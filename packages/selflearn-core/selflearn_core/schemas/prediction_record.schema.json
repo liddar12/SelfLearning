@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/liddar12/SelfLearning/blob/main/packages/selflearn-core/selflearn_core/schemas/prediction_record.schema.json",
+  "title": "PredictionRecord",
+  "description": "Wire contract for one append-only prediction, written at creation time by the liddar-terminal app and read by the selflearn-core scorer. Mirrors selflearn_core.types.Prediction (and the predictions table in store/schema.sql). features.breadth is the regime stamp derived from the terminal's /api/breadth payload; it is OPTIONAL because breadth can be unavailable (the terminal omits it rather than fabricating it).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "ts", "model_version", "task", "features", "prediction", "horizon_s"],
+  "properties": {
+    "id": { "type": "string", "description": "uuid; primary key in the predictions table" },
+    "ts": {
+      "type": "integer",
+      "description": "unix seconds, prediction time. The no-lookahead boundary: everything in features must be knowable at ts."
+    },
+    "model_version": { "type": "string" },
+    "task": {
+      "type": "string",
+      "description": "'scanner' | 'power_h1' | ... open-ended; identifies which adapter produced the record.",
+      "examples": ["scanner", "power_h1"]
+    },
+    "features": {
+      "type": "object",
+      "description": "Point-in-time features known at ts. May carry a breadth regime stamp.",
+      "properties": {
+        "breadth": { "$ref": "#/$defs/breadth" }
+      }
+    },
+    "prediction": {
+      "description": "The prediction payload (direction/price/etc.). For task='scanner' this is a scanner idea.",
+      "oneOf": [{ "type": "object" }, { "type": "string" }, { "type": "number" }]
+    },
+    "horizon_s": { "type": "integer", "minimum": 1, "description": "seconds until the prediction is resolvable" },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "cohort": { "type": ["string", "null"], "description": "ticker / ISO / regime bucket for scoring splits" },
+    "meta": { "type": "object" }
+  },
+  "$defs": {
+    "breadth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["direction", "vs50dma", "vs200dma", "ratio"],
+      "description": "RSP/SPY breadth regime at ts. Lets the scorer split hit-rate/return by regime (the 'stick with the wave' thesis, made measurable). All four values come from /api/breadth: direction, and last vs dma50/dma200.",
+      "properties": {
+        "direction": { "enum": ["rising", "falling", "flat"] },
+        "vs50dma": { "enum": ["above", "below"] },
+        "vs200dma": { "enum": ["above", "below"] },
+        "ratio": { "type": "number", "description": "the RSP/SPY ratio at ts" }
+      }
+    }
+  }
+}
