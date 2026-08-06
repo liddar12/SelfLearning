@@ -22,4 +22,4 @@ where = ["."]
 include = ["selflearn_core*"]
 
 [tool.setuptools.package-data]
-selflearn_core = ["store/*.sql"]
+selflearn_core = ["store/*.sql", "schemas/*.json"]
