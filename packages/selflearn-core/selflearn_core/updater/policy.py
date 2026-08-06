@@ -53,10 +53,51 @@ class Level0Monitor(UpdatePolicy):
 
 
 class Level1Calibration(UpdatePolicy):
+    """Propose fitting a confidence calibrator for tasks whose sample is real.
+
+    Gate 3: implemented. Rule: for each (task, cohort=None pooled, window='all')
+    hit_rate score with n >= min_resolved, propose a 'calibrate' change; if a
+    brier score is present its value goes in the rationale. Proposes only —
+    applying the calibrator stays behind the manual gate.
+    """
+
     level = 1
 
+    def __init__(self, min_resolved: int = DEFAULT_MIN_RESOLVED, method: str = "isotonic") -> None:
+        self.min_resolved = min_resolved
+        self.method = method
+
     def propose(self, scores: Iterable[Score]) -> list[Change]:
-        raise NotImplementedError("Gate 3: calibration policy.")
+        scores = list(scores)
+        briers = {
+            s.task: s.value
+            for s in scores
+            if s.metric == "brier" and s.cohort is None and s.window == "all"
+        }
+        changes: list[Change] = []
+        for s in scores:
+            if (
+                s.metric == "hit_rate"
+                and s.cohort is None
+                and s.window == "all"
+                and s.n >= self.min_resolved
+            ):
+                brier = briers.get(s.task)
+                rationale = (
+                    f"{s.task}: n={s.n} resolved (>= {self.min_resolved}), "
+                    f"hit_rate={s.value:.3f} [{s.ci_low:.3f}, {s.ci_high:.3f}]"
+                )
+                if brier is not None:
+                    rationale += f", brier={brier:.3f}"
+                changes.append(
+                    Change(
+                        task=s.task,
+                        kind="calibrate",
+                        detail={"method": self.method, "n": s.n},
+                        rationale=rationale,
+                    )
+                )
+        return changes
 
 
 class Level2Ensemble(UpdatePolicy):
