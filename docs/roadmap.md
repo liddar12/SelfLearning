@@ -8,6 +8,9 @@ epics (`delivery-plan.md`) against **actual code state**. Two tracks — **Build
 Repos: **liddar12/SelfLearning** (Python spine + research + execution-core) ·
 **liddar12/liddar-terminal** (Vite/React + Vercel app).
 
+> **Sports adapters:** the plan for putting sports prediction markets (NFL2026 first,
+> WC2026 second) on this spine lives in [`sports-roadmap.md`](./sports-roadmap.md).
+
 ---
 
 ## 0. Where we are (verified)

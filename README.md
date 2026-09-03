@@ -10,6 +10,11 @@ Monorepo for three workstreams that share one self-learning spine.
 
 The React **Liddar Terminal** (deployed at liddar-terminal.vercel.app) is the web front end. It reads scored results over a small JSON/HTTP boundary and does not import Python.
 
+## Sports adapters
+
+The spine's second family of adapters is sports prediction markets — `liddar12/NFL2026` (live) and
+`liddar12/wc2026-tracker` (prior work). See `docs/sports-roadmap.md`.
+
 ## Where to start
 
 1. Read `docs/power2026-build.md` — the living project brief (three workstreams, gates, guardrails).
