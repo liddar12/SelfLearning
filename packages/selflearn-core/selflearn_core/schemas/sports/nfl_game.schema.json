@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/liddar12/SelfLearning/blob/main/packages/selflearn-core/selflearn_core/schemas/sports/nfl_game.schema.json",
+  "title": "nfl.game",
+  "description": "Sports task contract (S1) for task='nfl.game'. Mirrors selflearn_core.contracts_sports.SPORTS_TASKS['nfl.game']; the Python validator is the source of truth and a test keeps the required keys here equal to it. Horizon: kickoff -> final (~4 h); horizon_s >= 1.",
+  "type": "object",
+  "required": [
+    "id",
+    "ts",
+    "model_version",
+    "task",
+    "features",
+    "prediction",
+    "horizon_s"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "description": "unix seconds, prediction time; must be <= meta.kickoff_ts when present (no lookahead)"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "the shipped rule, e.g. weekly_split_v2 | candidate | parlay_v2"
+    },
+    "task": {
+      "const": "nfl.game"
+    },
+    "features": {
+      "$ref": "#/$defs/features"
+    },
+    "prediction": {
+      "$ref": "#/$defs/prediction"
+    },
+    "horizon_s": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "kickoff -> final (~4 h); horizon_s >= 1"
+    },
+    "confidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "cohort": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "free text: position / week / tier"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Measurement-only side channel. kickoff_ts (unix seconds) enables the no-lookahead check; market prices (market_prob, closing_line, ...) live here.",
+      "properties": {
+        "kickoff_ts": {
+          "type": "integer"
+        },
+        "market_prob": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "features": {
+      "type": "object",
+      "required": [
+        "elo_home",
+        "elo_away",
+        "hfa",
+        "rest_home",
+        "rest_away",
+        "roof",
+        "week",
+        "families_applied"
+      ],
+      "properties": {
+        "elo_home": {
+          "type": "number",
+          "description": "home team Elo at ts"
+        },
+        "elo_away": {
+          "type": "number",
+          "description": "away team Elo at ts"
+        },
+        "hfa": {
+          "type": "number",
+          "description": "home-field advantage (Elo points)"
+        },
+        "rest_home": {
+          "type": "number",
+          "description": "home rest days"
+        },
+        "rest_away": {
+          "type": "number",
+          "description": "away rest days"
+        },
+        "roof": {
+          "type": "string",
+          "description": "stadium roof type (e.g. outdoors | dome | retractable)"
+        },
+        "week": {
+          "type": "integer",
+          "description": "NFL week number"
+        },
+        "families_applied": {
+          "type": "array",
+          "description": "adopted signal families applied to this estimate"
+        }
+      },
+      "description": "Point-in-time features known at ts. Market prices are NOT allowed here (keys implied_prob, market_prob, closing_line, moneyline, spread_line, kalshi, polymarket are rejected at any depth); put them under meta.",
+      "additionalProperties": true
+    },
+    "prediction": {
+      "description": "Either {home_prob} or a 2-vector {probs: [home, away]} summing to 1.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "home_prob"
+          ],
+          "properties": {
+            "home_prob": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "probs"
+          ],
+          "properties": {
+            "probs": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "description": "[home, away], summing to 1"
+            }
+          }
+        }
+      ]
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "home_won",
+        "margin"
+      ],
+      "properties": {
+        "home_won": {
+          "type": "boolean"
+        },
+        "margin": {
+          "type": "integer"
+        }
+      },
+      "description": "Realized payload (Outcome.realized) once the event is final. Unresolved events have no outcome at all."
+    }
+  }
+}

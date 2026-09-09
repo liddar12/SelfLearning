@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/liddar12/SelfLearning/blob/main/packages/selflearn-core/selflearn_core/schemas/sports/nfl_player_season.schema.json",
+  "title": "nfl.player_season",
+  "description": "Sports task contract (S1) for task='nfl.player_season'. Mirrors selflearn_core.contracts_sports.SPORTS_TASKS['nfl.player_season']; the Python validator is the source of truth and a test keeps the required keys here equal to it. Horizon: season; horizon_s >= 1.",
+  "type": "object",
+  "required": [
+    "id",
+    "ts",
+    "model_version",
+    "task",
+    "features",
+    "prediction",
+    "horizon_s"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "description": "unix seconds, prediction time; must be <= meta.kickoff_ts when present (no lookahead)"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "the shipped rule, e.g. weekly_split_v2 | candidate | parlay_v2"
+    },
+    "task": {
+      "const": "nfl.player_season"
+    },
+    "features": {
+      "$ref": "#/$defs/features"
+    },
+    "prediction": {
+      "$ref": "#/$defs/prediction"
+    },
+    "horizon_s": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "season; horizon_s >= 1"
+    },
+    "confidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "cohort": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "free text: position / week / tier"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Measurement-only side channel. kickoff_ts (unix seconds) enables the no-lookahead check; market prices (market_prob, closing_line, ...) live here.",
+      "properties": {
+        "kickoff_ts": {
+          "type": "integer"
+        },
+        "market_prob": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "features": {
+      "type": "object",
+      "required": [
+        "prior_ppg",
+        "projected_games",
+        "candidate_signals"
+      ],
+      "properties": {
+        "prior_ppg": {
+          "type": "number",
+          "description": "prior-season points per game (PPR)"
+        },
+        "projected_games": {
+          "type": "number",
+          "description": "projected games played"
+        },
+        "candidate_signals": {
+          "type": "object",
+          "description": "candidate signal values keyed by signal name"
+        }
+      },
+      "description": "Point-in-time features known at ts. Market prices are NOT allowed here (keys implied_prob, market_prob, closing_line, moneyline, spread_line, kalshi, polymarket are rejected at any depth); put them under meta.",
+      "additionalProperties": true
+    },
+    "prediction": {
+      "type": "object",
+      "required": [
+        "points",
+        "low",
+        "high"
+      ],
+      "properties": {
+        "points": {
+          "type": "number"
+        },
+        "low": {
+          "type": "number"
+        },
+        "high": {
+          "type": "number"
+        }
+      },
+      "description": "low <= points <= high."
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "points_ppr"
+      ],
+      "properties": {
+        "points_ppr": {
+          "type": "number"
+        }
+      },
+      "description": "Realized payload (Outcome.realized) once the event is final. Unresolved events have no outcome at all."
+    }
+  }
+}
