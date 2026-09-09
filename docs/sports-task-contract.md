@@ -104,24 +104,35 @@ store with `ts <= kickoff`" (the S2 measure of success) is enforced by the contr
 
 ## Example: `nfl.player_week` from an NFL2026 weekly row
 
-The NFL2026 weekly estimate row shape is `{gsis_id, wk, opp, home, bye, pts}` plus `low` / `high`
-**[inferred** from the S1 brief; **VERIFY** against `liddar12/NFL2026` `data/estimates/*.json` when S2
-wires the adapter**]**. Mapping, with the row values illustrative:
+The NFL2026 weekly row shape is **[verified]** against `liddar12/NFL2026` at `e2721c7`:
+`data/player_weekly.json` → `players[]` each `{gsis_id, ..., weeks: [{wk, opp, home, bye, pts}]}`
+(18 rows, `wk` 1..18, bye rows carry `opp: null, pts: 0.0`). Two facts the adapter must respect:
+
+- `gsis_id` lives on the player, not the row, and is the ESPN-prefixed id NFL2026 uses everywhere
+  (`"espn-3918298"`), **not** a nflverse `00-00…` id. The contract only requires `meta.gsis_id` to be
+  a string, so the adapter passes it through unchanged.
+- `low` / `high` are **not** on the weekly row. The learning ledger `data/estimates/<season>.json`
+  holds them at season level (`players[id].{first,latest,locked}.candidate_low / candidate_high`) next
+  to `weeks`, an 18-float array of the shipped split (bye / blocked = 0). S2 derives the per-week band
+  the way the ledger derives the per-week point (`candidate_x * weeks[w] / sum(weeks)`), so every
+  `nfl.player_week` record still carries `prediction.low <= points <= high`.
+
+Mapping, with the row values illustrative:
 
 | NFL2026 row | contract | note |
 |---|---|---|
-| `gsis_id: "00-0036355"` | `meta.gsis_id` (and part of `id`) | player identity is measurement context, not a feature |
+| `gsis_id: "espn-3918298"` (player level) | `meta.gsis_id` (and part of `id`) | player identity is measurement context, not a feature |
 | `wk: 2` | `features.week` | |
 | `opp: "GB"` | `features.opp` | |
 | `home: true` | `features.venue_factor` | the adapter's home/away multiplier; the raw flag may also ride along in `features.home` (extra keys are allowed) |
 | `bye: false` | — | a bye-week row produces **no record** (nothing to predict, nothing to resolve) |
 | `pts: 16.4` | `prediction.points` | |
-| `low: 9.1`, `high: 24.8` | `prediction.low`, `prediction.high` | |
+| ledger `candidate_low` / `candidate_high` scaled by `weeks[w] / sum(weeks)` | `prediction.low`, `prediction.high` | derived by the adapter; not on the weekly row |
 | position / team / factors / availability | `features.*` | from the NFL2026 snapshot the row was priced from |
 
 ```json
 {
-  "id": "nfl.player_week:2026:wk2:00-0036355",
+  "id": "nfl.player_week:2026:wk2:espn-3918298",
   "ts": 1757896200,
   "model_version": "weekly_split_v2",
   "task": "nfl.player_week",
@@ -140,7 +151,7 @@ wires the adapter**]**. Mapping, with the row values illustrative:
   "horizon_s": 14400,
   "confidence": null,
   "cohort": "WR",
-  "meta": { "gsis_id": "00-0036355", "kickoff_ts": 1757899800, "market_prob": null }
+  "meta": { "gsis_id": "espn-3918298", "kickoff_ts": 1757899800, "market_prob": null }
 }
 ```
 
