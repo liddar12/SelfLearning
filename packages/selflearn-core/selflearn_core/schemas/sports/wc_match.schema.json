@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/liddar12/SelfLearning/blob/main/packages/selflearn-core/selflearn_core/schemas/sports/wc_match.schema.json",
+  "title": "wc.match",
+  "description": "Sports task contract (S1) for task='wc.match'. Mirrors selflearn_core.contracts_sports.SPORTS_TASKS['wc.match']; the Python validator is the source of truth and a test keeps the required keys here equal to it. Horizon: kickoff -> full time; horizon_s >= 1.",
+  "type": "object",
+  "required": [
+    "id",
+    "ts",
+    "model_version",
+    "task",
+    "features",
+    "prediction",
+    "horizon_s"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "description": "unix seconds, prediction time; must be <= meta.kickoff_ts when present (no lookahead)"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "the shipped rule, e.g. weekly_split_v2 | candidate | parlay_v2"
+    },
+    "task": {
+      "const": "wc.match"
+    },
+    "features": {
+      "$ref": "#/$defs/features"
+    },
+    "prediction": {
+      "$ref": "#/$defs/prediction"
+    },
+    "horizon_s": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "kickoff -> full time; horizon_s >= 1"
+    },
+    "confidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "cohort": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "free text: position / week / tier"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Measurement-only side channel. kickoff_ts (unix seconds) enables the no-lookahead check; market prices (market_prob, closing_line, ...) live here.",
+      "properties": {
+        "kickoff_ts": {
+          "type": "integer"
+        },
+        "market_prob": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "features": {
+      "type": "object",
+      "required": [
+        "elo_home",
+        "elo_away",
+        "momentum",
+        "lineup_known",
+        "venue"
+      ],
+      "properties": {
+        "elo_home": {
+          "type": "number",
+          "description": "home side Elo at ts"
+        },
+        "elo_away": {
+          "type": "number",
+          "description": "away side Elo at ts"
+        },
+        "momentum": {
+          "type": "number",
+          "description": "momentum feature"
+        },
+        "lineup_known": {
+          "type": "boolean",
+          "description": "whether the starting lineup was published before ts"
+        },
+        "venue": {
+          "type": "string",
+          "description": "venue / host city"
+        }
+      },
+      "description": "Point-in-time features known at ts. Market prices are NOT allowed here (keys implied_prob, market_prob, closing_line, moneyline, spread_line, kalshi, polymarket are rejected at any depth); put them under meta.",
+      "additionalProperties": true
+    },
+    "prediction": {
+      "type": "object",
+      "required": [
+        "home",
+        "draw",
+        "away"
+      ],
+      "properties": {
+        "home": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "draw": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "away": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "description": "home + draw + away = 1 (each in [0, 1]). result is one of H | D | A; score is [home_goals, away_goals] as ints."
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "result",
+        "score"
+      ],
+      "properties": {
+        "result": {
+          "enum": [
+            "H",
+            "D",
+            "A"
+          ]
+        },
+        "score": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "[home_goals, away_goals]"
+        }
+      },
+      "description": "Realized payload (Outcome.realized) once the event is final. Unresolved events have no outcome at all."
+    }
+  }
+}

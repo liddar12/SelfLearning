@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/liddar12/SelfLearning/blob/main/packages/selflearn-core/selflearn_core/schemas/sports/nfl_parlay_leg.schema.json",
+  "title": "nfl.parlay_leg",
+  "description": "Sports task contract (S1) for task='nfl.parlay_leg'. Mirrors selflearn_core.contracts_sports.SPORTS_TASKS['nfl.parlay_leg']; the Python validator is the source of truth and a test keeps the required keys here equal to it. Horizon: as the leg's game; horizon_s >= 1.",
+  "type": "object",
+  "required": [
+    "id",
+    "ts",
+    "model_version",
+    "task",
+    "features",
+    "prediction",
+    "horizon_s"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "description": "unix seconds, prediction time; must be <= meta.kickoff_ts when present (no lookahead)"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "the shipped rule, e.g. weekly_split_v2 | candidate | parlay_v2"
+    },
+    "task": {
+      "const": "nfl.parlay_leg"
+    },
+    "features": {
+      "$ref": "#/$defs/features"
+    },
+    "prediction": {
+      "$ref": "#/$defs/prediction"
+    },
+    "horizon_s": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "as the leg's game; horizon_s >= 1"
+    },
+    "confidence": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
+    },
+    "cohort": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "free text: position / week / tier"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Measurement-only side channel. kickoff_ts (unix seconds) enables the no-lookahead check; market prices (market_prob, closing_line, ...) live here.",
+      "properties": {
+        "kickoff_ts": {
+          "type": "integer"
+        },
+        "market_prob": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "features": {
+      "type": "object",
+      "required": [
+        "market",
+        "line",
+        "mu",
+        "sd",
+        "z",
+        "p_team",
+        "correlation_tags"
+      ],
+      "properties": {
+        "market": {
+          "type": "string",
+          "description": "leg market (e.g. player_rec_yds, team_total)"
+        },
+        "line": {
+          "type": "number",
+          "description": "the line the leg is priced against"
+        },
+        "mu": {
+          "type": "number",
+          "description": "model mean"
+        },
+        "sd": {
+          "type": "number",
+          "description": "model standard deviation"
+        },
+        "z": {
+          "type": "number",
+          "description": "(line - mu) / sd"
+        },
+        "p_team": {
+          "type": "number",
+          "description": "team-level probability input"
+        },
+        "correlation_tags": {
+          "type": "array",
+          "description": "tags used for correlation handling across legs"
+        }
+      },
+      "description": "Point-in-time features known at ts. Market prices are NOT allowed here (keys implied_prob, market_prob, closing_line, moneyline, spread_line, kalshi, polymarket are rejected at any depth); put them under meta.",
+      "additionalProperties": true
+    },
+    "prediction": {
+      "type": "object",
+      "required": [
+        "model_prob"
+      ],
+      "properties": {
+        "model_prob": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "description": "model_prob in [0, 1]. An unresolved leg is simply never resolved; it is never recorded as a miss."
+    },
+    "outcome": {
+      "type": "object",
+      "required": [
+        "hit"
+      ],
+      "properties": {
+        "hit": {
+          "type": "boolean"
+        }
+      },
+      "description": "Realized payload (Outcome.realized) once the event is final. Unresolved events have no outcome at all."
+    }
+  }
+}

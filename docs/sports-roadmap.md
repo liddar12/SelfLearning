@@ -33,7 +33,8 @@ an overwrite. Market prices are allowed in `meta` for measurement and never in `
 ## 3. Releases
 
 ### Q3 2026 — read side first
-- **S1 Sports task contract** ⬜ — shapes above, validator, docs. MoS: NFL2026 snapshots and ledger rows validate.
+- **S1 Sports task contract** 🟡 — shapes above, validator, docs: `docs/sports-task-contract.md`, `contracts_sports.py`,
+  `schemas/sports/`. MoS: NFL2026 snapshots and ledger rows validate (pending S2, which produces the rows).
 - **S2 NFL adapter (read)** ⬜ — `adapters/nfl.py` ingests `data/snapshots/*.json` and `data/estimates/*.json`
   from the NFL2026 repo (nightly, GitHub Action in this repo pulling the raw files) into the store. MoS: every
   locked NFL row is in the store with `ts ≤ kickoff`; nothing is fabricated when a file is missing.

@@ -13,7 +13,8 @@ The React **Liddar Terminal** (deployed at liddar-terminal.vercel.app) is the we
 ## Sports adapters
 
 The spine's second family of adapters is sports prediction markets — `liddar12/NFL2026` (live) and
-`liddar12/wc2026-tracker` (prior work). See `docs/sports-roadmap.md`.
+`liddar12/wc2026-tracker` (prior work). See `docs/sports-roadmap.md`; the task shapes every sports adapter must emit
+(`nfl.game`, `nfl.player_week`, `nfl.parlay_leg`, `nfl.player_season`, `wc.match`) are in `docs/sports-task-contract.md`.
 
 ## Where to start
 
