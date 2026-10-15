@@ -22,6 +22,9 @@ data/
 secrets/
 *.token.json
 
+# Supabase CLI local cache (never migration source)
+/supabase/.temp/
+
 # Node / web terminal
 node_modules/
 .next/

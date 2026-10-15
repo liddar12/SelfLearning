@@ -2,6 +2,18 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
+Later implementation evidence, October 15, 2026, 5:44 p.m. CDT:
+[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#latest-local-journal-and-evidence-checkpoint)
+supersedes the historical code-checkpoint counts and corresponding outstanding
+items below. R1 planning/PDF acceptance is unchanged. Latest root results:
+511 core/hosted tests, 4 coverage-tool tests, 16 PostgreSQL-WASM SQL tests,
+8 actual Python/API/adversarial SQL tests passed; 7 native connection-safety
+guards passed but actual native execution skipped. All 9 critical Python
+targets exceed 90% executable-line coverage (2,021/2,116 = 95.5104%). NFL
+dependency-free gate passed with 2,165 feature tests; browser step 8 skipped.
+No hosted migration/round trip, native concurrency, complete browser gate,
+candidate adoption or accuracy gain is established by those checks.
+
 ## Planning artifact acceptance
 
 | Requirement | Evidence |
@@ -25,7 +37,7 @@ git diff --check
 
 The optional browser export was attempted and failed at Chromium launch with SIGABRT/EPERM. No browser-layout pass is claimed. The portable vector export and actual rendered PDF previews are the delivered visual evidence.
 
-## Code checkpoints and regression results
+## Historical initial code checkpoints and regression results
 
 NFL local source head `6a04c2d6`, including journal `7ed3ae5e`, on `build/week6-learning-runtime-20261015`. Shared source `30fde77` on `build/nfl-feedback-runtime-20261015`. Source changes were committed only after the listed checks; no generated sports data was regenerated or hand-edited. The review contract schema is code, not a rewritten result history.
 
@@ -50,7 +62,7 @@ PYTHONPATH=packages/selflearn-core \
 
 Independent review found two real edge cases absent from earlier passing tests: unknown source timestamps admitted by the NFL journal but rejected by the engine, and valid overtime finals graded pending by R130. Both were corrected and locked by new regressions. This is not a claim that passing suites found every bug.
 
-## Explicitly outstanding evidence
+## Initial outstanding evidence (see updated handoff above)
 
 - Full configured Playwright/browser acceptance and final full release gate, including exact-SHA CI.
 - Historical R130 as-offered series from sufficient full Git history. This checkout is shallow and correctly reports unavailable; the expected 17/66, 13/66, 21/66, 22/65, 14/63 series was not reverified here.

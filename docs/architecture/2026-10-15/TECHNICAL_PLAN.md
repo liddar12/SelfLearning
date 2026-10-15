@@ -2,6 +2,12 @@
 
 Revision 1. Evidence checked October 15, 2026, 3:19 p.m. CDT, America/Chicago. Proposed delivery plan for the owner and Claude Code; not a production authorization.
 
+Implementation note, October 15, 2026, 5:44 p.m. CDT: the R1 visual remains the
+design baseline, not a live deployment diagram. See IMPLEMENTATION_HANDOFF.md
+for the later locally tested journal/configuration checkpoint and remaining
+release evidence. Backlog estimates describe the original scope, not newly
+measured remaining effort.
+
 ## Recommendation
 
 Keep NFL2026 on Netlify, the existing Python SelfLearning API on Vercel, and durable learning evidence in the existing Supabase project. Run bounded Python evaluation jobs through GitHub Actions initially. Use the same authenticated API for an operator dashboard and application MCP tools. Do not replace the NFL frontend, move training into browser requests, or add another hosting provider for the first release.
@@ -22,13 +28,13 @@ Generic receipt, persistence, evaluation and candidate-contract enhancements bel
 | --- | --- | --- |
 | NFL source | Local release baseline `32c5bfbe`; PR #172 correctness integration is merged. Earlier production verification identified data refresh `674382a`. Current fetch attempts fail because this environment cannot resolve GitHub. | Refresh the exact source/data revision before release; do not call the local baseline the latest remote head. |
 | NFL frontend | Existing vanilla JavaScript PWA; valid production address is `https://nfl2026.netlify.app`. | Preserve no-build architecture and generated JSON interface. |
-| SelfLearning source | Published adapter checkpoint `4587231`; hosted FastAPI/Supabase foundation exists as dirty, unpublished local work based on `aa5bbae`. | Reconcile hosted foundation and adapter into reproducible commits without losing concurrent changes. |
+| SelfLearning source | Published adapter checkpoint `4587231`; the dirty hosted foundation based on `aa5bbae` was preserved and reconciled into isolated local commit `b9ecd3f`. Later local journal work is detailed in the handoff. | Refresh and reconcile current remote main, then publish only after separate authorization. Local commits are not proof of deployed source parity. |
 | Vercel operator credential | Owner confirms `SELFLEARN_OPERATOR_TOKEN` is configured for Production. | Test the deployed code's authenticated behavior. Do not recreate, disclose or download this token. |
 | Supabase | Native project-scoped MCP verified `omavgimpnvrpuxqhfxpf`. Tables: `predictions`, `outcomes`, `registry`, `registry_scores`; RLS enabled on all four. | This proves management visibility, not API ingestion or learning. Exact application row counts were not verified; metadata reports zero. |
 | Database migrations | Live history lists `20260921025211 hosted_foundation`. Local foundation is `20260921012817_hosted_foundation.sql`; local permission-fix file is empty. | Compare schema and migration contents before applying anything; never rerun CREATE TABLE setup blindly. |
 | Security | Advisor warns that `public.rls_auto_enable()` is SECURITY DEFINER and callable by `anon` and `authenticated`. Four no-policy notices match the intended service-only foundation, subject to grant verification. | Review helper ownership, event-trigger use and grants; fix narrowly and test. RLS does not constrain a service key that bypasses it. |
-| Existing integration | Hosted source explicitly reports NFL disconnected, learning jobs unconfigured and automatic promotion disabled. | Build the ingestion, evaluation, candidate-return and operating controls below. |
-| Local work in progress | Isolated branches are implementing prospective adaptation, local append-only receipt persistence, generation journals and R130 reporting. | Review tests and commit each slice. Local SQLite is a contract/test implementation, not the Vercel production store. |
+| Existing integration | Local source has scoped NFL object/generation intake, retry-safe export, a FINAL bridge and typed shadow evaluation. Production connection, scheduled jobs and automatic promotion remain unverified or disabled. | Complete authoritative outcome capture/transport, scheduled evaluation, persisted candidate return and operating controls below. |
+| Local persistence | SQLite contract tests plus a new canonical-text Supabase journal, additive migration, explicit backend selection and actual PostgreSQL-WASM tests exist locally. | Native concurrent-transaction CI, live PostgREST/grants, migration-history reconciliation and owner-approved deployment remain required. Never use SQLite as Vercel production state. |
 
 Local isolated branches: NFL `build/week6-learning-runtime-20261015`; SelfLearning `build/nfl-feedback-runtime-20261015`. Existing dirty checkouts are preserved. No production migration, deployment, promotion or push is part of this plan delivery.
 
@@ -67,7 +73,14 @@ MCP distinction: `supabase-selflearning` is a development/management connection.
 | Proposed evaluator credential | SelfLearning Actions and backend verifier | Read a declared dataset and append evaluations/candidates only; cannot approve or promote. |
 | Future operator session | Dashboard/application MCP | Short-lived scoped session or user auth, replacing repeated bootstrap-token entry. Owner-only first; multi-user login requires tested tenant policies. |
 
-Vercel Production secrets do not automatically appear in GitHub Actions or Preview. Keep Preview connected to a separate test database/namespace and separate credentials. Do not weaken a secret's visibility to make it downloadable. Environment changes require a deployment that actually consumes the new configuration; presence in settings is not proof of a working API.
+Vercel Production secrets do not automatically appear in GitHub Actions or Preview. The current pilot is fixed, single-owner: it does **not** implement tenant/namespace isolation. Preview must use a separate staging database/project and credentials, not a presumed namespace in the production journal. Do not weaken a secret's visibility to make it downloadable. Environment changes require a deployment that actually consumes the new configuration; presence in settings is not proof of a working API.
+
+The locally implemented journal additionally requires explicit
+`SELFLEARN_JOURNAL_BACKEND=supabase`. Its default is disabled; existing backend
+credentials alone never enable ingestion. After an authorized migration and
+release, each configured request probes the journal schema before an ACK;
+missing migration, permissions or configuration fails closed with 503. Do not
+enable the switch now as a substitute for the release checks.
 
 ### Core contracts
 
@@ -95,11 +108,31 @@ This is a proposed schema model, not executable migration SQL. Reconcile existin
 | `job_leases` and run events | Bounded ownership with expiry and resumable checkpoint; prevent duplicate concurrent work without assuming trigger delivery exactly once. |
 | `intake_items` | Private upload/question, provenance, parsed draft, owner confirmation and retention state; never a trusted label by default. |
 
-All keys and queries include server-derived owner/namespace and task authorization. RLS protects exposed tables; secret/service-role access also needs narrow grants and server checks because it bypasses RLS. No anonymous policies are needed for a service-only table. Avoid a new public SECURITY DEFINER function as a permission workaround.
+Server-derived owner/namespace and task authorization is a requirement for a
+future shared/multi-tenant service, **not a current pilot capability**. The
+single-owner pilot uses a dedicated credential boundary and private journal
+schema. Its receipt/object/generation/revision tables preserve canonical JSON
+text, database-owned clocks and immediate-predecessor corrections. A global
+transaction advisory lock serializes writers; keyset reads pin one committed
+watermark across receipt, generation and revision views. This is a bounded
+pilot, not a high-throughput or multi-tenant claim. Evaluation/candidate,
+publication, adoption and job-lease entities above remain proposed.
+
+RLS protects exposed tables; secret/service-role access also needs narrow grants
+and server checks because it bypasses RLS. No anonymous policies are needed for
+a service-only table. Avoid a new public SECURITY DEFINER function as a
+permission workaround. The new migration does not repair the unrelated
+existing `rls_auto_enable()` advisor finding or reconcile old migration IDs.
 
 ### API and adapter surface
 
 Proposed versioned routes, not a claim these already exist:
+
+Local implementation now provides `/api/v1/nfl/objects` and
+`/api/v1/nfl/generations`; existing intake is `/api/uploads`. Generic batch,
+outcome-transport, evaluation, candidate and approval routes below remain
+proposals. A pure FINAL adapter and database revision method do not establish
+an automated source-to-API outcome pipeline.
 
 | Route or interface | Behavior |
 | --- | --- |
