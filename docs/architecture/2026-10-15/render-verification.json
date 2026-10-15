@@ -1,0 +1,50 @@
+{
+  "renderer": "portable vector PDF from editable HTML",
+  "pages": 7,
+  "checks": [
+    {
+      "page": "page-1",
+      "body_bottom": 704,
+      "text_runs": 50,
+      "out_of_bounds": 0
+    },
+    {
+      "page": "page-2",
+      "body_bottom": 664,
+      "text_runs": 46,
+      "out_of_bounds": 0
+    },
+    {
+      "page": "page-3",
+      "body_bottom": 741,
+      "text_runs": 70,
+      "out_of_bounds": 0
+    },
+    {
+      "page": "page-4",
+      "body_bottom": 684,
+      "text_runs": 37,
+      "out_of_bounds": 0
+    },
+    {
+      "page": "page-5",
+      "body_bottom": 641,
+      "text_runs": 43,
+      "out_of_bounds": 0
+    },
+    {
+      "page": "page-6",
+      "body_bottom": 713.4000000000001,
+      "text_runs": 43,
+      "out_of_bounds": 0
+    },
+    {
+      "page": "page-7",
+      "body_bottom": 637.4000000000001,
+      "text_runs": 48,
+      "out_of_bounds": 0
+    }
+  ],
+  "pdf": "SelfLearning_Architecture_R1.pdf",
+  "visual_review": "required separately"
+}

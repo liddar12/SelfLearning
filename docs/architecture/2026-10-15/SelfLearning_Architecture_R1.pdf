@@ -1,0 +1,615 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 7 /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 8184 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (One learning engine, separate serving authority) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (Purpose and boundaries: preserve what was predicted, learn from trustworthy outcomes, and improve only with evidence.) Tj ET
+q 0.9137 0.9569 0.9373 rg 0.7882 0.8471 0.8745 RG 1 w 36 630 176.92000000000004 24 re B Q
+BT /F1 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 46.00 638.00 Tm (Verified current foundation) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.7882 0.8471 0.8745 RG 1 w 226.92000000000004 630 139.12 24 re B Q
+BT /F1 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 236.92 638.00 Tm (Proposed integration) Tj ET
+q 1.0000 0.9608 0.8745 rg 0.7882 0.8471 0.8745 RG 1 w 380.0400000000001 630 195.64000000000007 24 re B Q
+BT /F1 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 390.04 638.00 Tm (Incomplete or requires approval) Tj ET
+q 0.9137 0.9569 0.9373 rg 0.2627 0.5216 0.4235 RG 1.4 w 46 477 210 112 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 60.00 563.00 Tm (Source evidence) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 60.00 540.00 Tm (Schedule, stats, injuries) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 60.00 519.00 Tm (Weather vintages: planned) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 60.00 498.00 Tm (Markets: NFL benchmark only) Tj ET
+q 0.9137 0.9569 0.9373 rg 0.2627 0.5216 0.4235 RG 1.4 w 311 477 225 112 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 325.00 563.00 Tm (NFL2026 producer) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 325.00 540.00 Tm (Netlify PWA + Actions) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 325.00 519.00 Tm (Owns offers and predictions) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 325.00 498.00 Tm (Approved model artifacts) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 606 477 225 112 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 620.00 563.00 Tm (Shared API on Vercel) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 620.00 540.00 Tm (Existing local FastAPI work) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 620.00 519.00 Tm (Auth + adapter validation) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 620.00 498.00 Tm (Hosted integration unverified) Tj ET
+q 0.9137 0.9569 0.9373 rg 0.2627 0.5216 0.4235 RG 1.4 w 876 477 200 112 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 890.00 563.00 Tm (Supabase journal) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 890.00 540.00 Tm (4 foundation tables) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 890.00 519.00 Tm (Project verified via MCP) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 890.00 498.00 Tm (New evidence model planned) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 256 533 m 311 533 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 311 533 m 303.97933950487703 529.1645956911664 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 311 533 m 303.97933950487703 536.8354043088336 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 267.10 548.00 Tm (as-of) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 536 533 m 606 533 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 606 533 m 598.979339504877 529.1645956911664 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 606 533 m 598.979339504877 536.8354043088336 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 547.24 548.00 Tm (receipts) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 831 533 m 876 533 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 876 533 m 868.979339504877 529.1645956911664 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 876 533 m 868.979339504877 536.8354043088336 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 835.60 548.00 Tm (commit) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 606 257 225 112 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 620.00 343.00 Tm (Evaluation job) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 620.00 320.00 Tm (Bounded Python Actions) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 620.00 299.00 Tm (Frozen cohorts + FINAL only) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 620.00 278.00 Tm (Returns shadow candidates) Tj ET
+q 1.0000 0.9608 0.8745 rg 0.7451 0.5412 0.1765 RG 1.4 w 311 257 225 112 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 325.00 343.00 Tm (NFL adoption gate) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 325.00 320.00 Tm (Compatibility + own evidence) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 325.00 299.00 Tm (Owner approval + artifact pin) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 325.00 278.00 Tm (New forecasts only) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 46 257 210 112 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 60.00 343.00 Tm (Owner / chat / dashboard) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 60.00 320.00 Tm (Status, traces, uploads) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 60.00 299.00 Tm (Same authenticated API) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 60.00 278.00 Tm (No database-owner access) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 950 477 m 950 404 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 950 404 m 946.1645956911664 411.02066049512297 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 950 404 m 953.8354043088336 411.02066049512297 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 909.84 433.00 Tm (pinned records) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 950 404 m 718 404 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 718 404 m 725.020660495123 407.83540430883363 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 718 404 m 725.020660495123 400.16459569116637 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 718 404 m 718 369 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 718 369 m 714.1645956911664 376.02066049512297 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 718 369 m 721.8354043088336 376.02066049512297 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 606 312 m 536 312 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 536 312 m 543.020660495123 315.83540430883363 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 536 312 m 543.020660495123 308.16459569116637 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 544.06 327.00 Tm (candidate) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 423 369 m 423 477 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 423 477 m 426.83540430883363 469.97933950487703 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 423 477 m 419.16459569116637 469.97933950487703 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 435.56 415.00 Tm (approved) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 256 312 m 311 312 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 311 312 m 303.97933950487703 308.16459569116637 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 311 312 m 303.97933950487703 315.83540430883363 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 265.60 327.00 Tm (review) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 101 517.5 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 218 m 553.5 218 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 190.00 Tm (Current truth) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 163.40 Tm (Operator token is configured per owner. Supabase management access and) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 144.50 Tm (foundation tables are verified. Neither proves a working NFL feedback loop.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 568.5 101 517.5 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 568.5 218 m 1086 218 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 190.00 Tm (Non-goals) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 163.40 Tm (No bets or trades, no automatic promotion, no guaranteed parlay wins, no) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 144.50 Tm (new frontend framework, and no reconstruction of missing historical) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 125.60 Tm (evidence.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (1 / 7) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 7201 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Components, contracts and persistence) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (Mid-level design: the database owns durable observations; NFL owns the contract users saw and what serves next.) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 51 514 255 120 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 608.00 Tm (NFL immutable outbox) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 585.00 Tm (Envelope + source snapshots) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 564.00 Tm (Before display-card dedupe) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 543.00 Tm (Generation + selection versions) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 416 514 285 120 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 430.00 608.00 Tm (API authentication boundary) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 430.00 585.00 Tm (Server-derived owner + task) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 430.00 564.00 Tm (Separate ingest / evaluator scopes) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 430.00 543.00 Tm (Validate; acknowledge after commit) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 811 514 260 120 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 825.00 608.00 Tm (Supabase persistent authority) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 825.00 585.00 Tm (Append-only receipts + revisions) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 825.00 564.00 Tm (DB-owned received timestamps) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 825.00 543.00 Tm (Private files; explicit grants) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 306 576 m 416 576 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 416 576 m 408.97933950487703 572.1645956911664 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 416 576 m 408.97933950487703 579.8354043088336 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 316.66 593.00 Tm (versioned batch) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 701 576 m 811 576 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 811 576 m 803.979339504877 572.1645956911664 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 811 576 m 803.979339504877 579.8354043088336 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 722.70 593.00 Tm (transaction) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 51 284 255 135 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 393.00 Tm (Source adapter) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 370.00 Tm (NFL: IDs, eligibility, yards) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 349.00 Tm (Other domains: own policy) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 328.00 Tm (No sportsbook predictors in NFL) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 416 284 285 135 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 430.00 393.00 Tm (Domain-neutral core) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 430.00 370.00 Tm (Identity, lineage, revisions) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 430.00 349.00 Tm (Cohorts, scores, grouped evidence) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 430.00 328.00 Tm (No NFL injury/weather rules) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 811 284 260 135 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 825.00 393.00 Tm (Operator and intake) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 825.00 370.00 Tm (Dashboard + application MCP) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 825.00 349.00 Tm (Draft parsing and confirmation) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 825.00 328.00 Tm (Read-only tools by default) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 306 359 m 416 359 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 416 359 m 408.97933950487703 355.16459569116637 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 416 359 m 408.97933950487703 362.83540430883363 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 310.48 376.00 Tm (validated envelope) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 943 419 m 943 444 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 943 444 m 946.8354043088336 436.97933950487703 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 943 444 m 939.1645956911664 436.97933950487703 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 963.92 426.00 Tm (auth API) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 943 444 m 646 444 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 646 444 m 653.020660495123 447.83540430883363 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 646 444 m 653.020660495123 440.16459569116637 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 646 444 m 646 514 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 646 514 m 649.8354043088336 506.97933950487703 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 646 514 m 642.1645956911664 506.97933950487703 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 558 514 m 558 419 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 558 419 m 554.1645956911664 426.02066049512297 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 558 419 m 561.8354043088336 426.02066049512297 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 571.66 458.00 Tm (durable records) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 141 340 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 258 m 376 258 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 230.00 Tm (Forecast identity) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 203.40 Tm (Contract ID != display card ID != source receipt) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 184.50 Tm (ID != persisted envelope ID. Preserve each join) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 165.60 Tm (explicitly.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 391 141 340 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 391 258 m 731 258 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 230.00 Tm (Original versus correction) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 203.40 Tm (New outcome revisions supersede by chain. Old) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 184.50 Tm (forecasts and evaluation manifests remain) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 165.60 Tm (unchanged.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 746 141 340 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 746 258 m 1086 258 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 230.00 Tm (Production state) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 203.40 Tm (Vercel filesystem and local SQLite are not the) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 184.50 Tm (hosted store. Supabase schema/API extensions) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 165.60 Tm (still need build and approval.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (2 / 7) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 8566 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Forecast, publication and outcome pipelines) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (Detailed control flow: freeze evidence before results; distinguish internal capture from observed public availability.) Tj ET
+q 0.9451 0.9608 0.9725 rg 0.9451 0.9608 0.9725 RG 1 w 36 523 1050 131 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 631.00 Tm (Forecast and publication) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 48 532 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 58.00 598.00 Tm (1) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 58.00 578.00 Tm (Fetch as-of sources) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 210.83 576.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 220.83333333333334 532 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 230.83 598.00 Tm (2) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 230.83 578.00 Tm (Generate base ->) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 230.83 559.10 Tm (serve once) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 383.67 576.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 393.6666666666667 532 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 403.67 598.00 Tm (3) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 403.67 578.00 Tm (Journal before) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 403.67 559.10 Tm (dedupe) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 556.50 576.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 566.5 532 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 576.50 598.00 Tm (4) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 576.50 578.00 Tm (Gate exact) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 576.50 559.10 Tm (generation) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 729.33 576.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 739.3333333333334 532 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 749.33 598.00 Tm (5) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 749.33 578.00 Tm (Publish + verify) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 749.33 559.10 Tm (hashes) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 902.17 576.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 912.1666666666667 532 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 922.17 598.00 Tm (6) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 922.17 578.00 Tm (Export + durable ACK) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 387 517.5 128 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 515 m 553.5 515 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 487.00 Tm (Failure path before publication) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 460.40 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 460.40 Tm (Unknown status -> quarantine its identifiable row.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 435.50 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 435.50 Tm (Stale source or hash mismatch -> reject with reason.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 410.60 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 410.60 Tm (Keep R102 checks and R106 archive protection.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 568.5 387 517.5 128 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 568.5 515 m 1086 515 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 487.00 Tm (Failure path after publication) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 460.40 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 460.40 Tm (Engine down -> preserve outbox; retry same IDs.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 435.50 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 435.50 Tm (Conflicting payload -> reject; never overwrite.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 410.60 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 410.60 Tm (ACK only after commit; alert before kickoff.) Tj ET
+q 0.9451 0.9608 0.9725 rg 0.9451 0.9608 0.9725 RG 1 w 36 244 1050 131 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 352.00 Tm (Outcome and learning) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 48 253 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 58.00 319.00 Tm (1) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 58.00 299.00 Tm (Authoritative FINAL) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 210.83 297.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 220.83333333333334 253 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 230.83 319.00 Tm (2) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 230.83 299.00 Tm (Append revision chain) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 383.67 297.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 393.6666666666667 253 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 403.67 319.00 Tm (3) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 403.67 299.00 Tm (Pin exact) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 403.67 280.10 Tm (cohort/revisions) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 556.50 297.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 566.5 253 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 576.50 319.00 Tm (4) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 576.50 299.00 Tm (Chronological) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 576.50 280.10 Tm (evaluation) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 729.33 297.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 739.3333333333334 253 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 749.33 319.00 Tm (5) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 749.33 299.00 Tm (Shadow candidate) Tj ET
+BT /F2 15 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 902.17 297.00 Tm (>) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 912.1666666666667 253 161.83333333333334 86 re B Q
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 922.17 319.00 Tm (6) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 922.17 299.00 Tm (NFL gate + owner) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 922.17 280.10 Tm (review) Tj ET
+q 0.9176 0.9569 0.9608 rg 0.9176 0.9569 0.9608 RG 1 w 36 174 1050 62 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 236 m 36 174 l S Q
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 212.00 Tm (Three clocks: source availability -> forecast creation -> internal/database observation. A later import cannot prove earlier capture. Public availability needs) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 193.10 Tm (a separate deployment/content-hash observation.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 64 517.5 98 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 162 m 553.5 162 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 134.00 Tm (Sampling boundary) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 107.40 Tm (Pool rungs, MY offers and Game/Week cards are distinct populations.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 88.50 Tm (Compare the same declared cohort; copies are not independent samples.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 568.5 64 517.5 98 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 568.5 162 m 1086 162 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 134.00 Tm (Scheduling and recovery) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 107.40 Tm (Actions completion + manual dispatch; cron is best effort. Durable) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 88.50 Tm (leases/checkpoints recover repeated or killed jobs.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (3 / 7) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 5987 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Learning and adoption states) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (Statistical and serving authority stay separate. Uploading evidence or fitting a model is not permission to use it.) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 51 526 225 103 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 603.00 Tm (Generated receipt) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 580.00 Tm (Frozen base + served value) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 559.00 Tm (Public status unverified) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 336 526 225 103 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 350.00 603.00 Tm (Durably captured) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 350.00 580.00 Tm (Validate exact source receipt) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 350.00 559.00 Tm (Immutable first observation) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 621 526 225 103 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 635.00 603.00 Tm (FINAL resolution) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 635.00 580.00 Tm (Exact persisted envelope join) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 635.00 559.00 Tm (Append correction revisions) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 276 577 m 336 577 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 336 577 m 328.97933950487703 573.1645956911664 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 336 577 m 328.97933950487703 580.8354043088336 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 288.60 593.00 Tm (ingest) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 561 577 m 621 577 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 621 577 m 613.979339504877 573.1645956911664 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 621 577 m 613.979339504877 580.8354043088336 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 570.42 593.00 Tm (resolve) Tj ET
+q 0.9294 0.9529 0.9804 rg 0.2784 0.4431 0.5569 RG 1.4 w 621 316 225 105 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 635.00 395.00 Tm (Shadow candidate) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 635.00 372.00 Tm (Base-compatible typed artifact) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 635.00 351.00 Tm (Train before held-out events) Tj ET
+q 1.0000 0.9608 0.8745 rg 0.7451 0.5412 0.1765 RG 1.4 w 336 316 225 105 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 350.00 395.00 Tm (Owner review) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 350.00 372.00 Tm (Common-cohort evidence) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 350.00 351.00 Tm (Subgroups + clustered interval) Tj ET
+q 1.0000 0.9608 0.8745 rg 0.7451 0.5412 0.1765 RG 1.4 w 51 316 225 105 re B Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 395.00 Tm (Approved future serving) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 372.00 Tm (NFL compatibility gate) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 351.00 Tm (Pinned artifact, once only) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 733 526 m 733 421 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 733 421 m 729.1645956911664 428.02066049512297 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 733 421 m 736.8354043088336 428.02066049512297 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 751.24 466.00 Tm (evaluate) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 621 369 m 561 369 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 561 369 m 568.020660495123 372.83540430883363 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 561 369 m 568.020660495123 365.16459569116637 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 573.60 385.00 Tm (review) Tj ET
+q 0.1922 0.3333 0.4235 RG 1.5 w 336 369 m 276 369 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 276 369 m 283.02066049512297 372.83540430883363 l S Q
+q 0.1922 0.3333 0.4235 RG 1.5 w 276 369 m 283.02066049512297 365.16459569116637 l S Q
+BT /F2 12 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 283.74 385.00 Tm (approve) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 176 517.5 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 293 m 553.5 293 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 265.00 Tm (Equation contract) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 238.40 Tm (Generic Platt: sigmoid\(a x confidence + b\). NFL: sigmoid\(a + b x) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 219.50 Tm (logit\(immutable base\)\), then clamp and round. These are not) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 200.60 Tm (interchangeable.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 568.5 176 517.5 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 568.5 293 m 1086 293 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 265.00 Tm (Timing and rollback) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 238.40 Tm (Current MY policy needs >=100 legs and >=2 held-out week folds: normally) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 219.50 Tm (>=3 receipt weeks. R127 separately needs >=2 new graded weeks. Rollback) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 200.60 Tm (changes future serving, not history.) Tj ET
+q 0.9176 0.9569 0.9608 rg 0.9176 0.9569 0.9608 RG 1 w 36 121 1050 43 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 164 m 36 121 l S Q
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 140.00 Tm (Do not refit to Week 5 or one TNF result. Candidate population, base model, artifact hash, evaluation revisions and effective version must all remain traceable.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (4 / 7) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 5280 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Operator and chat journeys) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (User action -> implementation -> visible result -> observable acceptance. Mobile dashboard is the fallback if chat cannot handle images.) Tj ET
+q 0.9569 0.9725 0.9804 rg 0.9569 0.9725 0.9804 RG 1 w 36 557 1050 97 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 654 m 36 557 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 630.00 Tm (1  /  Is learning actually connected?) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 606.00 Tm (Open status) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 298.25 606.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 308.25 606.00 Tm (Authenticated API + DB check) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 554.50 606.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 564.50 606.00 Tm (SHA, durable ingest, job age) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 810.75 606.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 820.75 606.00 Tm (UI-01 / OPS-03) Tj ET
+BT /F1 13 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 582.00 Tm (Empty, stale and unauthorized states have recovery guidance. MCP connected alone never displays "learning active".) Tj ET
+q 0.9569 0.9725 0.9804 rg 0.9569 0.9725 0.9804 RG 1 w 36 450 1050 97 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 547 m 36 450 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 523.00 Tm (2  /  Why this prediction or losing parlay?) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 499.00 Tm (Select receipt/card) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 298.25 499.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 308.25 499.00 Tm (Canonical trace + cohort) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 554.50 499.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 564.50 499.00 Tm (Source, versions, exposure) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 810.75 499.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 820.75 499.00 Tm (EVAL-01 / PORTFOLIO-02) Tj ET
+BT /F1 13 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 475.00 Tm (Show generated/public, pending/FINAL, original/reduced settlement and shared-loss blast radius without changing the original bet.) Tj ET
+q 0.9569 0.9725 0.9804 rg 0.9569 0.9725 0.9804 RG 1 w 36 343 1050 97 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 440 m 36 343 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 416.00 Tm (3  /  Analyze my screenshot) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 392.00 Tm (Private upload) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 298.25 392.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 308.25 392.00 Tm (Draft parse + confirm IDs) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 554.50 392.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 564.50 392.00 Tm (Joined ticket + uncertainty) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 810.75 392.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 820.75 392.00 Tm (INTAKE-01/02/03) Tj ET
+BT /F1 13 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 368.00 Tm (Ambiguous game/player/line stays unresolved. Parsed text is untrusted; it cannot create verified publication or a FINAL label.) Tj ET
+q 0.9569 0.9725 0.9804 rg 0.9569 0.9725 0.9804 RG 1 w 36 236 1050 97 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 333 m 36 236 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 309.00 Tm (4  /  Should we use this improvement?) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 285.00 Tm (Compare candidate) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 298.25 285.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 308.25 285.00 Tm (Pinned held-out evaluation) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 554.50 285.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 564.50 285.00 Tm (Hold reason or approval review) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 810.75 285.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 820.75 285.00 Tm (PROMOTE-01 / RETURN-02) Tj ET
+BT /F1 13 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 261.00 Tm (Read-only MCP tools inspect evidence. Approval is a separate authorized action; active version means consumed by NFL, not latest proposed.) Tj ET
+q 0.9176 0.9569 0.9608 rg 0.9176 0.9569 0.9608 RG 1 w 36 164 1050 62 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 226 m 36 164 l S Q
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 202.00 Tm (Questions are not automatically training data. Objective predictions need a defined horizon and authoritative outcome. Subjective approval stays review) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 183.10 Tm (feedback, not truth.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (5 / 7) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 6245 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Parallel team and implementation roadmap) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (Four execution slots in this session. Speed comes from disjoint ownership and frozen contracts, not skipping evidence or review.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 537 251.25 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 654 m 287.25 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 626.00 Tm (Coordinator) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 599.40 Tm (Architecture, contract) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 580.50 Tm (ownership, integration manifest,) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 561.60 Tm (one owner question when needed.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 302.25 537 251.25 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 302.25 654 m 553.5 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 317.25 626.00 Tm (NFL lane) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 317.25 599.40 Tm (Eligibility, generation journal,) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 317.25 580.50 Tm (publisher gate, exporter and) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 317.25 561.60 Tm (approved consumer.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 568.5 537 251.25 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 568.5 654 m 819.75 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 626.00 Tm (Engine lane) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 599.40 Tm (Adapters, authenticated API,) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 580.50 Tm (durable store, revisions and) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 561.60 Tm (migration proposal.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 834.75 537 251.25 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 834.75 654 m 1086 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 849.75 626.00 Tm (Evaluation / UX lane) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 849.75 599.40 Tm (Cohorts, replay, metrics and) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 849.75 580.50 Tm (operator views; independent QA) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 849.75 561.60 Tm (rotates into a freed slot.) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 478 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 525 m 36 478 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 503.00 Tm (M0 / Foundation) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 503.00 Tm (Reproducible source, schema and scoped credentials) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 503.00 Tm (1-2 engineer-days) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 424 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 471 m 36 424 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 449.00 Tm (M1 / Prospective capture) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 449.00 Tm (Journal before dedupe, exact generation gate) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 449.00 Tm (2-3 days) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 370 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 417 m 36 370 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 395.00 Tm (M2 / Durable shadow loop) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 395.00 Tm (API, outbox/ACK, persistence, FINAL revisions) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 395.00 Tm (3-4 days) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 316 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 363 m 36 316 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 341.00 Tm (M3 / Evaluation and return) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 341.00 Tm (Parity, typed artifact, independent NFL gates) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 341.00 Tm (3-5 days) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 262 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 309 m 36 262 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 287.00 Tm (M4 / Operator and NFL work) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 287.00 Tm (R130, portfolio, R127/weather shadow, MCP/status) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 287.00 Tm (2-4 days; overlaps) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 208 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 255 m 36 208 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 233.00 Tm (M5 / M6 / Adopt then extend) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 233.00 Tm (Evidence + owner approval; one domain pilot at a time) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 233.00 Tm (Observation time extra) Tj ET
+q 0.9176 0.9569 0.9608 rg 0.9176 0.9569 0.9608 RG 1 w 36 134 1050 62 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 196 m 36 134 l S Q
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 172.00 Tm (Supported MY shadow-to-controlled-return build: roughly 10-18 engineer-days with overlap. Broad screenshot understanding and real) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 153.10 Tm (financial/F1/soccer/NCAA/election adapters are additional scope. No same-day accuracy promise.) Tj ET
+BT /F1 12 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 110.00 Tm (Claude Code is the proposed release coordinator per NFL workflow, not a live connected agent here. Exact SHA handoffs and independent tests connect the sessions. Owner authorizes) Tj ET
+BT /F1 12 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 93.80 Tm (production migrations, deploys and activation.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (6 / 7) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 15 0 R >>
+endobj
+17 0 obj
+<< /Length 6213 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Acceptance gates and the owner's next actions) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (The architecture becomes real only when the complete round trip is demonstrated on exact, reproducible revisions.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 432 517.5 222 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 654 m 553.5 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 626.00 Tm (Required end-to-end evidence) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 599.40 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 599.40 Tm (Pending receipt captured before kickoff, independently of display IDs.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 574.50 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 574.50 Tm (Commit ACK -> exact retry no-op -> conflict rejected.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 549.60 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 549.60 Tm (FINAL correction linked to the exact persisted envelope.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 524.70 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 524.70 Tm (NFL/engine identical cohort and served-score parity.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 499.80 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 499.80 Tm (Earlier-base fit -> shadow candidate -> incompatible return rejected.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 474.90 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 474.90 Tm (Approved future artifact applied once -> second cycle ->) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 456.00 Tm (outage/rollback.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 568.5 432 517.5 222 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 568.5 654 m 1086 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 626.00 Tm (Your remaining actions) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 599.40 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 599.40 Tm (No new operator-token setup; keep secret values out of chat.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 574.50 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 574.50 Tm (If convenient, confirm SUPABASE_URL and a supported backend secret key) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 555.60 Tm (are configured; they may already exist.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 530.70 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 530.70 Tm (Approve reviewed migration and release only after test evidence.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 505.80 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 505.80 Tm (Later choose portfolio tradeoff and any candidate activation.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 480.90 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 480.90 Tm (No new paid provider or automatic promotion is needed to start.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 284 340 136 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 420 m 376 420 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 392.00 Tm (Current verified foundation) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 365.40 Tm (Supabase project + 4 RLS-enabled tables;) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 346.50 Tm (migration history and advisor results. Operator) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 327.60 Tm (token present per owner.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 391 284 340 136 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 391 420 m 731 420 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 392.00 Tm (Current limits) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 365.40 Tm (Hosted end-to-end auth/DB round trip) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 346.50 Tm (unverified. Helper grants need review; migration) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 327.60 Tm (IDs differ. Remote checks are restricted here.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 746 284 340 136 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 746 420 m 1086 420 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 392.00 Tm (Local implementation evidence) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 365.40 Tm (Producer-parity and journal tests passed) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 346.50 Tm (locally. This is not hosted persistence,) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 327.60 Tm (production ingestion, candidate adoption or) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 308.70 Tm (proven accuracy gain.) Tj ET
+q 0.9176 0.9569 0.9608 rg 0.9176 0.9569 0.9608 RG 1 w 36 210 1050 62 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 272 m 36 210 l S Q
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 248.00 Tm (Source package: TECHNICAL_PLAN.md / BACKLOG.md / CSV / backlog-source.mjs / render.mjs / editable architecture.html. 12 epics / 31 stories / 93 tasks / 92) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 229.10 Tm (acceptance criteria.) Tj ET
+BT /F1 12 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 186.00 Tm (Primary references: vercel.com/docs/frameworks/backend/fastapi / supabase.com/docs/guides/api/securing-your-api / GitHub scheduled-workflow docs. Technical plan links exact source) Tj ET
+BT /F1 12 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 169.80 Tm (baselines and evidence.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (7 / 7) Tj ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 17 0 R >>
+endobj
+xref
+0 19
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000156 00000 n 
+0000000226 00000 n 
+0000000301 00000 n 
+0000008537 00000 n 
+0000008674 00000 n 
+0000015927 00000 n 
+0000016064 00000 n 
+0000024682 00000 n 
+0000024820 00000 n 
+0000030860 00000 n 
+0000030999 00000 n 
+0000036332 00000 n 
+0000036471 00000 n 
+0000042769 00000 n 
+0000042908 00000 n 
+0000049174 00000 n 
+trailer
+<< /Size 19 /Root 1 0 R >>
+startxref
+49313
+%%EOF
