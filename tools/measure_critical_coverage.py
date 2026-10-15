@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/store/receipt_journal.py",
+    "packages/selflearn-core/selflearn_core/store/supabase_journal.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_resolution.py",
     "packages/selflearn-core/selflearn_core/outcome_revisions.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_calibration.py",
@@ -189,7 +190,8 @@ def measure(root, nfl_checkout):
             "Includes every enumerated executable target line, even in uncalled functions; no pragma exclusions.",
             "Synthetic line 0 is not a physical source line; observed physical line events are also included.",
             "Trace.runctx traces the current thread and threads created during the run, not pre-existing threads.",
-            "Child-process execution is not traced. Supabase tests use fakes, not a live database round trip.",
+            "Child-process execution is not traced. These measured suites use fake Supabase transports, not a live database round trip.",
+            "The separate PostgreSQL SQL/adapter/native suites are not included in this Python line-coverage run.",
             "Per-file source hashes identify dirty local code; a commit SHA alone does not describe this measurement.",
         ],
     }

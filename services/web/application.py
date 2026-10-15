@@ -7,7 +7,8 @@ import math
 import os
 import re
 import time
-from contextlib import asynccontextmanager
+from base64 import urlsafe_b64decode
+from contextlib import ExitStack, asynccontextmanager, contextmanager
 from dataclasses import asdict
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from mcp_types import ToolAnnotations
 from selflearn_core.contracts import validate_prediction_record
 from selflearn_core.contracts_sports import SPORTS_TASKS, validate_sports_record, validate_sports_outcome
 from selflearn_core.store.supabase_store import StoreConflict, StoreError, SupabaseStore
+from selflearn_core.store.supabase_journal import SupabaseReceiptJournal
 from selflearn_core.types import Outcome, Prediction
 from .security import OwnerBoundary, MAX_IMAGE
 from .nfl_ingestion import register_nfl_routes
@@ -37,6 +39,74 @@ CAPABILITIES = {
     "learning_jobs": "not configured",
     "oauth": "not configured — owner bearer authentication",
 }
+
+
+def _journal_selection(env, injected):
+    """Select only an explicitly requested backend, without network or writes.
+
+    Legacy store credentials are not permission to enable learning ingestion.
+    A service-role claim is only a configuration-shape check, not signature or
+    authorization verification; the database readiness RPC remains mandatory.
+    """
+    if injected is not None:
+        return injected, {"backend": "injected", "journal_configured": True,
+                          "configuration_valid": None, "readiness": "injected_unverified"}
+    selection = env.get("SELFLEARN_JOURNAL_BACKEND", "")
+    if selection in (None, "", "disabled"):
+        return None, {"backend": "disabled", "journal_configured": False,
+                      "configuration_valid": True, "readiness": "disabled"}
+
+    def unavailable():
+        raise StoreError(503)
+
+    invalid = {"backend": "invalid" if selection != "supabase" else "supabase",
+               "journal_configured": False, "configuration_valid": False,
+               "readiness": "invalid_configuration"}
+    if selection != "supabase":
+        return unavailable, invalid
+    origin = env.get("SUPABASE_URL", "")
+    secret = env.get("SUPABASE_SECRET_KEY")
+    legacy = env.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    try:
+        if secret:
+            if not isinstance(secret, str) or not secret.startswith("sb_secret_"):
+                raise ValueError("a_backend_secret_key_is_required")
+            key = secret
+        else:
+            if not isinstance(legacy, str) or len(legacy.split(".")) != 3:
+                raise ValueError("a_service_role_jwt_is_required")
+            header, claims, signature = legacy.split(".")
+            if not header or not claims or not signature:
+                raise ValueError("a_service_role_jwt_is_required")
+            payload = json.loads(urlsafe_b64decode(claims + "=" * (-len(claims) % 4)))
+            if not isinstance(payload, dict) or payload.get("role") != "service_role":
+                raise ValueError("a_service_role_jwt_is_required")
+            key = legacy
+        # Validate the origin/key without attempting an RPC during app import.
+        # Missing migration or denied grants are checked privately per request.
+        SupabaseStore(origin, key)
+    except (ValueError, TypeError, UnicodeError):
+        return unavailable, invalid
+
+    @contextmanager
+    def verified_factory():
+        with ExitStack() as stack:
+            try:
+                journal = stack.enter_context(SupabaseReceiptJournal(origin, key))
+                readiness = journal.status()
+                if (not isinstance(readiness, dict) or type(readiness.get("schema_version")) is not int
+                        or readiness["schema_version"] != 1 or readiness.get("backend") != "postgres"
+                        or not isinstance(readiness.get("watermark"), str)
+                        or not re.fullmatch(r"0|[1-9][0-9]{0,18}", readiness["watermark"])):
+                    raise StoreError(503)
+            except Exception:
+                # Configuration/import, missing migration and grant failures
+                # are not caller validation errors or successful connections.
+                raise StoreError(503) from None
+            yield journal
+
+    return verified_factory, {"backend": "supabase", "journal_configured": True,
+                              "configuration_valid": True, "readiness": "configured_unverified"}
 
 
 def validate_json(value, depth=0):
@@ -127,6 +197,7 @@ def create_app(*, store=None, env=None, journal_factory=None):
             store = SupabaseStore(env.get("SUPABASE_URL", ""), key)
         except ValueError:
             store = None  # Never fall back to ephemeral/local storage in production.
+    journal_factory, journal_selection = _journal_selection(env, journal_factory)
     local = not env.get("VERCEL")
     hosts = {"self-learning-beige.vercel.app", "self-learning-liddar-terminal.vercel.app"}
     for variable in ("VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_BRANCH_URL"):
@@ -144,10 +215,17 @@ def create_app(*, store=None, env=None, journal_factory=None):
         return store
 
     def overview():
+        journal_status = {"protocol_version": 1, **journal_selection,
+                          "schema_verified": False, "production_connection_verified": False}
+        if journal_selection["backend"] == "supabase" and journal_selection["configuration_valid"]:
+            # This is an authenticated, read-only schema probe, not a production
+            # round-trip, successful ingestion or evidence of model adoption.
+            with journal_factory():
+                journal_status.update(readiness="verified", schema_verified=True,
+                                      journal_schema_version=1)
         return {"store": db().status(), "capabilities": CAPABILITIES,
                 "release": "hosted-foundation-v1", "code_sha": env.get("VERCEL_GIT_COMMIT_SHA") or None,
-                "nfl_ingestion": {"protocol_version": 1, "journal_configured": journal_factory is not None,
-                                  "production_connection_verified": False},
+                "nfl_ingestion": journal_status,
                 "data_policy": "Imports are unverified, not measured live performance"}
 
     mcp = MCPServer("SelfLearning", version="0.1.0", instructions=(
