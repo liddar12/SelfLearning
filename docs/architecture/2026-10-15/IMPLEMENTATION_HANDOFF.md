@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
-Revision 1 design, implementation status updated October 15, 2026,
-5:44 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+Revision 1 design, implementation follow-up October 15, 2026,
+6:25 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -14,6 +14,54 @@ planning baseline; the progress table below supersedes its older status text.
 - PR #172 is already merged. Do not propose merging that old draft again. Before a future release, refresh current main, reconcile new data/history and re-gate the exact new revision. This environment's GitHub fetch currently fails DNS resolution.
 
 Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04c2d6`, NFL exporter `ed2f9668`, NFL evidence-grading fix `ac8b1083`; SelfLearning prospective journal `30fde77`, architecture package `46f87cf`, hosted/shadow checkpoint `b9ecd3f`, Supabase journal/configuration/native-gate source `7225b84`. These SHAs are local references until the owner separately authorizes a push.
+
+Later local checkpoints: NFL immutable capture/producer/opt-in consumers
+`1bd076ac`, evidence/handoff `34fb9ea1`; SelfLearning observed-clock kernel
+`7204ebd`. No production behavior is enabled by those commits.
+
+## Audited completion by epic
+
+October 15, 2026, 6:36 p.m. CDT (America/Chicago). **33/99 = 33.3% local-build
+task completion**, not production readiness, completed story acceptance or an
+accuracy gain. Each whole task has equal weight; partial work gets no credit.
+The original R1 plan is 33/93 (35.5%); six explicitly added D1/D2 tasks expand
+E02 and the total denominator. Do not hide those tasks to inflate progress.
+The ID-by-ID classification and evidence are in [progress.json](progress.json).
+
+| Epic | Local complete | Percentage | Main remaining boundary |
+| --- | ---: | ---: | --- |
+| E00 Foundation/security | 2/9 | 22% | Live schema/history, helper permissions, credentials and deployed identity |
+| E01 Forecast/publication lineage | 3/9 | 33% | Verified public observation and exact-generation prepublication gate |
+| E02 Ingestion/outcome corrections | 8/15 | 53% | D1 atomic indexed observations, D2 provenance-bound transport, native/hosted checks |
+| E03 Evaluation/honest records | 8/9 | 89% | Independent full NFL/engine same-cohort comparator; real historical coverage remains unavailable |
+| E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
+| E05 Eligibility/freshness | 3/6 | 50% | Current-input eligibility verification, clearance guard and frozen replay |
+| E06 Parlay selection/concentration | 0/6 | 0% | Persisted reproducible R126 control replay and full Game/Week/MY objective comparison |
+| E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
+| E08 Dashboard/application MCP | 1/9 | 11% | Searchable journal trace, evaluation/candidate journeys and sessions |
+| E09 Screenshots/questions | 0/6 | 0% | Private lifecycle, OCR/draft confirmation and evidence-based question routing |
+| E10 Jobs/operations/release | 0/6 | 0% | Resumable leases/checkpoints, alert drills, exact-SHA browser/hosted release |
+| E11 Reusable/new domains | 2/9 | 22% | Full second-domain boundary suite and one real-domain pilot; finance separate |
+
+Zero completed tasks can include substantial partial code. In particular R126
+ranking is already a shipped baseline, but its ephemeral scratch replay is not
+the persisted reproducible control artifact required by this backlog. The real
+synthetic election fixture is built/tested; a real election adapter is not.
+The progress audit does not award deployment credit to local branches.
+
+### Current parallel team
+
+Four concurrent agents maximum: one coordinator/integrator and three file-owned
+lanes. The database lane owns the additive D1 migration/SQL fault tests; the
+Python lane owns the explicit observed-journal port and wire tests; independent
+QA owns adversarial review and the progress audit. The coordinator owns the
+bounded internal resolve/CAS job and cross-repository integration. Rotate a
+freed slot into NFL publication work after D1 review; do not increase shared-file
+collisions or run two NFL gates. Claude Code is not a live connected fifth lane.
+
+Keep building locally while the owner is away; production push, migration,
+deployment, portfolio-policy change and model activation remain separately
+authorized actions. No weekly manual SQL is required by the intended pipeline.
 
 ## Current bounded implementation slices
 
@@ -49,7 +97,7 @@ migration, deploy or model activation has occurred.
 | --- | --- | --- |
 | S001/S003 foundation/readiness | Hosted source reconciled; distinct operator/ingest scopes; explicit `SELFLEARN_JOURNAL_BACKEND=supabase`; per-request schema probe, sanitized failure and no SQLite fallback. | Current-main reconciliation, deployed identity/authentication, environment isolation and actual backend round trip. |
 | S008 durable journal | `SupabaseReceiptJournal`, canonical JSON text, atomic generation ACK/partition, server-owned timestamps, immutable receipts and correction history; additive CLI-generated migration `supabase/migrations/20261015222425_receipt_journal_v1.sql`. | Native CI results, hosted PostgREST/grants and persistence/recovery checks, production migration approval, exporter/workflow wiring and backlog alerting. |
-| S009 outcome authority | Pure FINAL bridge, revision persistence and SQL correction/VOID tests. NFL missing/malformed required yardage stays pending; explicit FINAL/OT and complete integer scores required. | Capture-once immutable score/stats/snaps bundle with real observation clocks; supported transport route/exporter. Do not invent upstream update or exact game-finish clocks. |
+| S009 outcome authority | Pure FINAL bridge, revision persistence and SQL correction/VOID tests. Later local capture, frozen producer, opt-in consumers and observed-v2 kernel are described below. | Authoritative observation index, complete fenced reads, atomic observation/revision commit and supported transport route/exporter. Do not invent upstream update or exact game-finish clocks. |
 | S010/S011/S013/S014 evaluation/typed return | Canonical first-forecast cohort, database-as-of revision fence, chronological shadow reconstruction, typed immutable-base-logit transform and synthetic second cycle. | Actual future source cohort parity, scheduled/persisted runs and candidates, independently implemented NFL approval/consumer/rollback. No production adoption. |
 | S005/S006 publication/generation | Generation journal and local semantic checks exist. | Verified public first-observation, exact published manifest and complete pipeline prepublication gate. |
 
@@ -65,7 +113,8 @@ reads use bounded keyset pages with one committed watermark. This is a
 single-owner pilot, **not** tenant isolation or high-throughput proof. Preview
 needs a separate staging database/project and credentials.
 
-Root verification on frozen source (all commands exit 0 unless noted):
+Earlier journal-checkpoint verification (all commands exit 0 unless noted;
+superseded by the later outcome checkpoint where the scope overlaps):
 
 - Full core/hosted measurement with real `NFL2026_CHECKOUT`: **511 passed,
   zero skips**; separate coverage-tool tests **4 passed**. Nine critical Python
@@ -100,14 +149,166 @@ the different historical migration IDs, inspect existing grants/trigger
 ownership and test a scoped forward fix separately. Do not create a fake empty
 permission-fix migration or globally revoke unrelated app privileges.
 
+### Local outcome-capture checkpoint: implemented, not activated
+
+The NFL branch now includes `scripts/capture_outcome_evidence.py` and
+`scripts/build_learning_outcomes.py`. One immutable capture preserves raw ESPN
+scoreboard, nflverse stats and snap-count bytes, source profiles, hashes,
+retrieval clocks and quarantine audits. A completed capture is not proof of
+provider completeness, an official sportsbook settlement or a public forecast.
+Unknown provider update and actual game-finish times remain unknown.
+
+All three existing NFL grading/facts consumers have an **opt-in**
+`--evidence-capture` path. It cannot combine legacy input routes or silently
+refetch; it refuses a partial capture that would erase required aggregate
+history. Explicit FINAL/OT, complete scores and frozen game identities remain
+mandatory. Invalid/ambiguous statistics and participation remain pending.
+Measured zero/negative yardage remains valid; named zero offensive snaps are
+not proof of inactivity. Recognizable aliases and damaged identities cannot
+be silently removed and relabeled absent. Default pipeline routes are unchanged.
+
+The new producer joins original generation receipts to the frozen player pool
+and schedule, not today's roster or display-only settlement files. Multiple
+forecast vintages and rungs retain their original identities, base/served
+probabilities and feature lineage. R106 absence/positive-snap labels are
+explicit inferences; they must never be presented as official book decisions.
+
+The separate pure `nfl_observed_resolution.py` kernel preserves strict v1
+semantics. It emits immutable observation records for accepted captures,
+including unchanged confirmations, distinct from outcome revisions. Complete
+observation history prevents a newer no-change confirmation being forgotten
+when an older conflicting feed later arrives. Exact old replay cannot revert
+a head; genuine newer corrections append history. This is a **local kernel**,
+not a durable hosted observation service.
+
+The SQL fixture persists these bodies as generic immutable source objects but
+uses a fixture-owned ID list. It does not prove an authoritative index,
+concurrent stale-write prevention or atomic fence/revision commit. The API is
+not wired to observed-v2; no daily workflow, cloud migration, live model or
+historical result has been changed by this checkpoint.
+
+Root outcome-checkpoint evidence (exit 0 unless a skip is stated):
+
+- Full core/hosted measurement with the real NFL checkout: **540 passed,
+  zero skips**, one existing Starlette/AnyIO deprecation warning; **2,451/2,567
+  = 95.4811% executable-line coverage** over ten critical Python targets,
+  every target above 90%. Observed-v2 alone: **430/451 = 95.3437%**.
+  `docs/reviews/2026-10-15-critical-coverage.json` pins measured file hashes;
+  its precommit HEAD metadata is not a claim that dirty files were already
+  committed or that later D1 files were measured. Source hashes were stable.
+- **16** actual PostgreSQL-WASM SQL tests and **9** Python adapter/API/producer
+  SQL tests passed. The additional fixture exercises four original receipts
+  across two vintages/rungs, unchanged confirmations, corrections, replay,
+  restoration, inferred VOID and pinned history. Its fixture-owned observation
+  index is explicitly not D1 production persistence.
+- Separate coverage-tool/native-preflight run: **11 passed** (4 tool + 7
+  guards), **4 native tests skipped** because no native PostgreSQL is available.
+- NFL Python 3.12 frozen full dependency-free gate: **2,220 passed**, data,
+  smoke and four model-regression gates passed; **browser step 8 skipped**.
+  New capture/producer line coverage: **518/575 = 90.087%**, **316/346 =
+  91.3295%**; five measured fixture suites **57 passed**, **69 Python shards**,
+  source hashes stable. Six coverage-tool self-tests passed. Evidence is on
+  the NFL branch in `docs/reviews/2026-10-15-outcome-coverage.json`.
+
+Independent review found and fixed malformed participation becoming false DNP,
+unjoined statistics becoming zero, stale corrections after no-change evidence,
+equal-clock contradictions and report hardlink overwrites. Tests demonstrate
+those boundaries, not universal bug-freedom or higher observed NFL hit rate.
+
+At 6:35 p.m. CDT the next D1 additive SQL migration, explicit observed-journal
+Python port and bounded internal CAS job are **in progress locally**. Their
+early focused tests are not included in the frozen checkpoint above; do not
+apply the migration, select the backend or announce D1 acceptance yet. The
+application API and daily pipeline remain unwired to this new outcome path.
+
+### S009 implementation-delta work packages
+
+These extend the R1 story without silently regenerating or changing the
+12-epic/31-story design baseline. They are remaining implementation, not done
+acceptance criteria. Planning estimates are not measured delivery velocity.
+
+**S009-D1 — durable observation authority.** Shared-engine/storage lane;
+dependency: reviewed journal schema and observed-v2 contract; risk High;
+estimated 2–3 engineer-days including focused native concurrency tests.
+
+As an evaluator, I can retrieve every accepted observation at a committed
+watermark, so delayed evidence cannot rewrite newer known measurements.
+
+Tasks:
+
+- D1-T1: Design an append-only indexed observation entity with canonical text,
+  exact receipt/contract/event links, immutable component IDs/clocks and
+  database-owned receipt time. Generate an additive migration with the CLI;
+  review service-only grants, RLS and old migration compatibility.
+- D1-T2: Add complete bounded keyset enumeration at a committed watermark.
+  Read all known observations and revisions under the same authoritative
+  fence; never trust a client-supplied subset or fixture ID list.
+- D1-T3: Validate and append observations plus any corresponding revisions in
+  one transaction under the writer lock. Check staleness and contradictions
+  again against current state before ACK; retries retain the same identities.
+
+Acceptance and required evidence:
+
+- D1-AC1 / OBS-01: A04 → unchanged A06 → late conflicting B05 is rejected;
+  A04 exact retry cannot revert a later head; newer genuine A→B→A preserves
+  every outcome revision and original forecast.
+- D1-AC2 / OBS-02: Contradictory measurements at one primary source clock,
+  one source ID with different clocks, or a missing observation proof fail
+  closed in any row order. Same-measurement confirmations are retained.
+- D1-AC3 / OBS-03: Native concurrent unchanged-refresh/correction writers
+  cannot accept stale evidence. Crash/fault between observation and revision
+  yields neither a partial commit nor a durable ACK. Retry is idempotent.
+- D1-AC4 / OBS-04: Pagination never omits a fence at the pinned watermark;
+  caller-supplied subsets, cross-receipt links and unauthorized roles cannot
+  weaken the history. No UPDATE/DELETE/TRUNCATE mutates immutable evidence.
+
+**S009-D2 — bounded, provenance-bound outcome transport.** NFL producer lane
+and shared API lane with disjoint files; depends on D1 transaction contract;
+risk High; estimated 1–2 engineer-days after the interface freeze.
+
+As an operator, I can deliver a verified capture once, safely retry it, and
+see exactly what was durably accepted without exposing a master credential.
+
+Tasks:
+
+- D2-T1: Specify immutable chunks/private-storage pointers for captures up to
+  64 MiB while keeping the 3 MiB API request contract. Bind raw bytes, manifests,
+  allowlisted profiles, observations and normalized labels end to end.
+- D2-T2: Implement scoped authenticated sender/receiver, strict content/size
+  checks, bounded retries and immutable destination-specific outbox/ACKs.
+  Never authorize a caller-provided network URL or silently raise body limits.
+- D2-T3: Batch/validate the complete underlying player/game/stat group against
+  durable receipt membership, across rungs and model vintages; persist safe
+  rejection/status reports and recovery instructions.
+
+Acceptance and required evidence:
+
+- D2-AC1 / OUT-01: Tampered bytes, stale/missing chunks, manifest/row/profile
+  mismatches, bad clocks and caller-controlled fetch URLs are refused before
+  labels are accepted. Unknown source dates remain unknown.
+- D2-AC2 / OUT-02: A contradictory rung/vintage cannot evade group quarantine
+  by batch order, partial delivery or retry. Independent valid groups survive.
+- D2-AC3 / OUT-03: Duplicate/lost-reply delivery yields the original durable
+  result; wrong-scope auth, outages and oversized payloads disclose no secrets
+  or false ACKs. Both observation and revision streams commit before ACK.
+- D2-AC4 / OUT-04: A future authorized staging demonstration crosses actual
+  NFL capture → API → database → pinned evaluator with equal cohort/metrics;
+  disconnected/unwired capabilities remain visibly false until verified.
+
+The independent reviewer must not author the acceptance fixes being approved.
+Line coverage is only one check: consumer-change coverage, native concurrency,
+hosted transport, browser acceptance and the full two-cycle workflow remain
+separate evidence. No D1/D2 production readiness is inferred from the local
+fixture or pure-kernel pass.
+
 ### Next delivery order and owner actions
 
 1. **Foundation/storage lane:** publish only with authorization; run native CI,
    reconcile real Supabase schema/history, review helper permissions, test an
    isolated staging PostgREST round trip and backup/recovery. Prepare additive
    production migration and exact-SHA release; owner approves execution.
-2. **NFL pipeline lane (parallel):** capture one immutable outcome bundle for
-   every consumer, version honest observation-clock semantics, add outcome
+2. **NFL pipeline lane (parallel):** review/integrate the locally implemented
+   capture, producer and opt-in consumers; complete D1/D2 durable outcome
    transport and verified public-generation observations. Preserve original
    receipt IDs, R102/R106 and the existing Week-6 serving regime.
 3. **Evaluation/UX lane (parallel):** persist pinned evaluation manifests and
@@ -130,7 +331,9 @@ Do not paste values in chat. Enable the journal selector only as part of the
 reviewed migration/release, not immediately. Supabase review starts in the
 [existing project](https://supabase.com/dashboard/project/omavgimpnvrpuxqhfxpf)
 and [Security Advisor](https://supabase.com/dashboard/project/omavgimpnvrpuxqhfxpf/advisors);
-do not recreate tables/project. Routine ingestion/evaluation should eventually
+do not recreate production tables/project. Authorize a separate staging
+resource if none exists and access or billing requires an owner decision.
+Routine ingestion/evaluation should eventually
 need no weekly manual SQL; production approvals, portfolio-policy choices and
 model activation remain deliberate owner actions.
 

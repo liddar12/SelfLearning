@@ -2,15 +2,19 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-Later implementation evidence, October 15, 2026, 5:44 p.m. CDT:
+Later outcome-checkpoint evidence, October 15, 2026, 6:35 p.m. CDT:
 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#latest-local-journal-and-evidence-checkpoint)
 supersedes the historical code-checkpoint counts and corresponding outstanding
 items below. R1 planning/PDF acceptance is unchanged. Latest root results:
-511 core/hosted tests, 4 coverage-tool tests, 16 PostgreSQL-WASM SQL tests,
-8 actual Python/API/adversarial SQL tests passed; 7 native connection-safety
-guards passed but actual native execution skipped. All 9 critical Python
-targets exceed 90% executable-line coverage (2,021/2,116 = 95.5104%). NFL
-dependency-free gate passed with 2,165 feature tests; browser step 8 skipped.
+540 core/hosted tests, 4 coverage-tool tests, 16 PostgreSQL-WASM SQL tests,
+9 actual Python/API/adversarial SQL tests passed; 7 native connection-safety
+guards passed but 4 actual native tests skipped. All 10 critical Python
+targets exceed 90% executable-line coverage (2,451/2,567 = 95.4811%). NFL
+dependency-free gate passed with 2,220 feature tests; browser step 8 skipped.
+The two new NFL capture/producer targets separately meet 90% (518/575 and
+316/346); all 57 measured fixture tests and 6 tooling self-tests passed.
+This checkpoint precedes the in-progress D1 observation-store/atomic-commit
+work. It does not certify later uncommitted files or consumer branch coverage.
 No hosted migration/round trip, native concurrency, complete browser gate,
 candidate adoption or accuracy gain is established by those checks.
 

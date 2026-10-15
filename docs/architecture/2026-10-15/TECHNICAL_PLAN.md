@@ -102,6 +102,7 @@ This is a proposed schema model, not executable migration SQL. Reconcile existin
 | `publication_observations` | Generation + observed deployment + content hash + observer/time; generated-only and verified-publication states separate. |
 | `ingestion_batches` and acknowledgements | Stable batch hash, per-record result, durable commit reference; same payload retry is a no-op, conflicting ID is rejected. |
 | `outcome_revisions` | Receipt/contract/event link, immutable revision ID, immediate predecessor, authoritative source, resolved time and DB receipt time; correction does not overwrite the original. |
+| `outcome_observations` | Immutable receipt/contract/event + measurement + component observation IDs/clocks, including unchanged confirmations. Authoritative indexed enumeration and a committed read watermark are required; append observations and any outcome revisions atomically. A local list of object IDs is not this store. |
 | `evaluation_runs` | Pinned receipt IDs, outcome revision IDs, train/evaluation cutoffs, code/policy versions, exclusions and dataset manifest hash. |
 | `candidate_artifacts` | Immutable typed transform, base compatibility, training manifest, evaluation references, artifact hash and shadow state. |
 | `adoption_events` | Separate proposed/approved/active/held/rolled-back events with actor, reason and exact artifact; candidate creation is not permission to serve. |
@@ -166,6 +167,58 @@ The first production integration should support only declared tasks, reject unkn
 4. Compare identical frozen cohorts locally and in the engine: contract membership, served probability, log loss and Brier. The generation journal captures candidate-pool rungs; the existing NFL learner uses displayed MY offers. Pin the population explicitly and never substitute the larger pool for the offered cohort. Report excluded/unreconstructable coverage separately.
 5. Train a shadow correction on immutable base inputs using only outcomes available before its declared cutoff. Split chronologically; group uncertainty by game and show per-position/market effects.
 6. Return a typed candidate. NFL independently checks compatibility, validation evidence and explicit approval before a future generation may consume it. Historical forecasts are never repriced to make the record look better.
+
+#### Observation-clock implementation boundary (local follow-up)
+
+NFL can now capture one immutable, content-addressed input set: requested ESPN
+scoreboards first, then nflverse player-stat and snap-count CSV bytes. Real
+retrieval clocks, source profiles, audits and hashes are retained; unknown
+upstream issue/update and exact game-finish times stay unknown. New opt-in
+consumer paths use the capture without refetch/fallback, preserve required
+aggregate history and FINAL-gate every supported market. The daily workflow is
+not switched by this local work. Provider schedules differ and later corrections
+remain possible: retrieval after observed FINAL does not prove a complete or
+last provider revision. See the [nflverse source schedule](https://nflreadr.nflverse.com/articles/nflverse_data_schedule.html).
+
+`scripts/build_learning_outcomes.py` joins original journal receipts to the exact
+frozen pool/schedule, not today's roster or display-only score files. Required
+yardage remains unknown when malformed; unjoined aliases/identities cannot be
+turned into zero. R106 positive-snap/absent-stat zero and team-sheet absence are
+explicit inferences, not official sportsbook settlement. Named zero-offense
+participation remains ambiguous in this new mode.
+
+The separate `nfl.observed_resolution_v2` adapter accepts observation-based
+evidence without weakening strict provider-clock v1. Conservative outcome
+availability is the maximum required captured source clock, while database
+insertion remains a separate training-availability boundary. Stable measurement
+identity excludes unrelated season-CSV changes, scores, and fetch timestamps.
+Every forecast vintage retains its original base/served lineage.
+
+**Observation records are distinct from outcome revisions.** If measurement A
+is observed at 04:20, confirmed unchanged at 06:00, then an older conflicting B
+from 05:00 arrives, outcome history alone cannot reject B: it still records
+04:20. The v2 interface therefore emits an immutable observation record for
+every accepted capture, including no-change captures. Later analysis consumes
+the complete record set to fence stale component clocks. Exact old delivery
+replays never revert a head; a genuinely newer A after B can be a new correction.
+Missing observation proof for an existing v2 revision fails closed.
+
+This pure interface is tested locally but **not a complete hosted pipeline**.
+Before exposing outcome ingestion, implement an authoritative indexed
+observation store, complete fenced reads and a single transaction committing
+observations with any corresponding revisions before ACK. Cross-repository SQL
+fixtures currently persist observation bodies as immutable generic source
+objects and use a fixture-owned list of IDs; that does not prove a production
+index, concurrent stale-write prevention or atomic fence/revision commit.
+Neither local SQLite nor an in-memory observation list may become Vercel's
+production state authority.
+
+Outcome transport must also bind raw capture provenance, scope credentials and
+bounded payloads. Large source captures do not fit a single API request: use
+reviewed immutable chunk/private-storage contracts, not a raised HTTP-body
+limit. Batch by a validated underlying player/game/stat group so contradictory
+rungs or model vintages cannot be acknowledged independently. Hosted delivery,
+scheduled evaluation, candidate return and NFL adoption remain separate gates.
 
 ### Calibration contract that must not be confused
 
