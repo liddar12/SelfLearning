@@ -1,0 +1,6 @@
+# Hosted application only. selflearn-core remains dependency-free.
+fastapi==0.141.1
+mcp==2.2.0
+uvicorn==0.53.0
+httpx==0.28.1
+./packages/selflearn-core
