@@ -12,10 +12,12 @@ import copy
 import json
 import math
 from pathlib import Path
+import re
 
 from ..contracts_sports import validate_sports_record, validate_sports_outcome
 from ..probability_receipts import (fingerprint, finite_number, instant,
-                                    prediction_id, seal_receipt, validate_resolution)
+                                    prediction_id, seal_receipt, validate_resolution,
+                                    validate_probability_receipt)
 from ..scoring.binary_receipts import score_binary_receipts
 
 PROP_MARKETS = frozenset(("qb_pass_yds", "rb_rush_yds", "wr_rec_yds"))
@@ -242,6 +244,249 @@ def adapt_my_cards(card_docs, scores_doc, game_evidence):
                         "quarantine_reasons": dict(sorted(Counter(r["reason"] for r in rejected).items())),
                         "publication": "internal pre-event receipts; public availability unverified",
                         "writes": False}}
+
+
+def _prospective_prediction(receipt, source, season, week):
+    created, kickoff = instant(receipt["forecast_created_utc"]), instant(receipt["event_start_utc"])
+    prediction = {"id": prediction_id(receipt), "ts": int(created.timestamp()),
+        "model_version": fingerprint([receipt["base_model_version"], receipt["calibrator_version"]]),
+        "task": receipt["task"], "features": copy.deepcopy(receipt["features"]),
+        "prediction": {"model_prob": receipt["served_prob"]}, "confidence": receipt["served_prob"],
+        "horizon_s": max(1, math.ceil((kickoff - created).total_seconds())),
+        "cohort": f"{season}:wk{week}:{source['market']}",
+        "meta": {"kickoff_ts": int(kickoff.timestamp()), "horizon_kind": "until_event_start",
+                 "contract_id": receipt["contract_id"], "receipt_id": receipt["receipt_id"],
+                 "source_receipt_id": receipt["source_receipt_id"], "game_id": source["game_id"],
+                 "gsis_id": source["player_id"], "correlation_group": receipt["correlation_group"],
+                 "publication_status": receipt["publication_status"],
+                 "base_prob": receipt["base_prob"], "calibrator_version": receipt["calibrator_version"],
+                 "input_context": copy.deepcopy(source.get("input_context"))}}
+    validate_sports_record(prediction)
+    return prediction
+
+
+def adapt_prospective(card_docs=(), pool_docs=(), game_evidence=None, *, observed_utc=None,
+                      journal_docs=(), existing_receipts=()):
+    """Pure, unresolved capture of frozen MY prop receipts, never final scoring.
+
+    Raw card/pool inputs need an explicit capture time and scheduled game evidence
+    keyed by game_id with kickoff_utc and source. Immutable NFL journal documents
+    instead supply their original recorded_utc and generation-linked kickoff.
+    Their internal evidence is NOT a claim of public availability. Existing sealed
+    receipts preserve the first capture on retries; changed evidence quarantines.
+    Every distinct source receipt is retained, including later model vintages.
+    """
+    rejected, candidates, previous = [], defaultdict(list), {}
+    games = game_evidence if isinstance(game_evidence, dict) else {}
+
+    def reject(reason, source_id=None):
+        rejected.append({"reason": str(reason), "source_receipt_id": source_id if isinstance(source_id, str) else None})
+
+    for receipt in existing_receipts:
+        try:
+            validate_probability_receipt(receipt)
+            if receipt["domain"] != "nfl" or receipt["task"] != "nfl.parlay_leg":
+                continue
+            sid = receipt["source_receipt_id"]
+            if sid in previous and previous[sid] != receipt:
+                raise ValueError("conflicting_existing_receipts")
+            previous[sid] = copy.deepcopy(receipt)
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            # Invalid existing state is not a license to mint a replacement.
+            raise ValueError("invalid_existing_receipts: " + str(exc)) from exc
+
+    def add(doc, leg, seen, kickoff, provenance):
+        sid = None
+        try:
+            if not isinstance(leg, dict):
+                raise ValueError("invalid_leg")
+            source = leg.get("learning_receipt")
+            sid = source.get("receipt_id") if isinstance(source, dict) else None
+            season, week = doc.get("season"), doc.get("week")
+            if type(week) is not int or not 1 <= week <= 30:
+                raise ValueError("invalid_week")
+            key = validate_nfl_receipt(source, leg, season, week)
+            context = source.get("input_context") or {}
+            if not isinstance(context, dict):
+                raise ValueError("invalid_eligibility_context")
+            eligibility, this_week = context.get("eligibility") or {}, context.get("this_week") or {}
+            if not isinstance(eligibility, dict) or not isinstance(this_week, dict):
+                raise ValueError("invalid_eligibility_context")
+            if eligibility.get("eligible") is False or this_week.get("playable") is False:
+                raise ValueError("source_not_eligible")
+            if eligibility.get("week", week) != week or this_week.get("wk", week) != week:
+                raise ValueError("wrong_week_eligibility_context")
+            payload = {"version": 1, "domain": "nfl", "task": "nfl.parlay_leg",
+                "contract_id": source["contract_id"], "event_id": f"nfl:{season}:game:{key[1]}",
+                "correlation_group": f"nfl:{season}:game:{key[1]}",
+                "base_prob": source["base_prob"], "served_prob": source["served_prob"],
+                "base_model_version": source["base_model_version"], "calibrator_version": source["calibrator_version"],
+                "forecast_created_utc": source["forecast_created_utc"], "first_seen_utc": seen,
+                "event_start_utc": kickoff, "source_snapshot_id": source["source_snapshot_id"],
+                "source_timestamps": copy.deepcopy(source["source_timestamps"]),
+                "features": copy.deepcopy(source["features"]), "source_receipt_id": sid,
+                "publication_status": source["publication_status"], "capture_provenance": provenance}
+            envelope = seal_receipt(payload)
+            prediction = _prospective_prediction(envelope, source, season, week)
+            candidates[sid].append((envelope, prediction))
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            reject(exc, sid)
+
+    def raw_add(doc, leg):
+        sid = (leg.get("learning_receipt") or {}).get("receipt_id") if isinstance(leg, dict) and isinstance(leg.get("learning_receipt"), dict) else None
+        try:
+            if not isinstance(leg, dict) or not isinstance(leg.get("game_id"), str):
+                raise ValueError("missing_canonical_identity")
+            game = games.get(leg["game_id"])
+            if not isinstance(game, dict) or not isinstance(game.get("source"), str) or not game["source"].strip():
+                raise ValueError("missing_schedule_evidence")
+            known = previous.get(sid)
+            seen = known["first_seen_utc"] if known else observed_utc
+            if not known and game.get("status") not in ("SCHEDULED", "STATUS_SCHEDULED"):
+                raise ValueError("game_not_scheduled")
+            for key in ("season", "week"):
+                if key in game and game[key] != doc.get(key):
+                    raise ValueError("schedule_period_mismatch")
+            instant(observed_utc)  # The caller must supply an actual observation, even on retry.
+            if instant(seen) > instant(observed_utc):
+                raise ValueError("observation_time_regressed")
+            add(doc, leg, seen, game.get("kickoff_utc"), {"kind": "raw_capture", "source": game["source"]})
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            reject(exc, sid)
+
+    for doc in card_docs:
+        if not isinstance(doc, dict) or not isinstance(doc.get("cards"), list):
+            reject("invalid_card_document")
+            continue
+        for card in doc["cards"]:
+            if not isinstance(card, dict) or not isinstance(card.get("legs"), list):
+                reject("invalid_card")
+                continue
+            for leg in card["legs"]:
+                raw_add(doc, leg)
+
+    for doc in pool_docs:
+        if not isinstance(doc, dict) or not isinstance(doc.get("players"), list):
+            reject("invalid_pool_document")
+            continue
+        for player in doc["players"]:
+            if not isinstance(player, dict) or not isinstance(player.get("rungs"), list):
+                reject("invalid_pool_player")
+                continue
+            for rung in player["rungs"]:
+                if not isinstance(rung, dict):
+                    reject("invalid_pool_rung")
+                    continue
+                # NFL pool v1's fixed yardage contract omits these redundant
+                # fields. Explicit conflicting fields are never overwritten.
+                leg = {"direction": "over", "comparison_operator": "gte", **player, **rung}
+                source = rung.get("learning_receipt")
+                if isinstance(source, dict):
+                    try:
+                        if (instant(source.get("forecast_created_utc")) != instant(doc.get("generated_utc"))
+                                or source.get("base_model_version") != doc.get("base_model_version")):
+                            raise ValueError("receipt_pool_generation_mismatch")
+                    except (ValueError, TypeError) as exc:
+                        reject(exc, source.get("receipt_id"))
+                        continue
+                raw_add(doc, leg)
+
+    for doc in journal_docs:
+        if (not isinstance(doc, dict) or type(doc.get("version")) is not int or doc.get("version") != 1
+                or not isinstance(doc.get("receipts"), list) or not isinstance(doc.get("generations"), list)):
+            reject("invalid_journal_document")
+            continue
+        try:
+            if doc.get("envelope_id") != fingerprint({k: v for k, v in doc.items() if k != "envelope_id"}):
+                raise ValueError("journal_envelope_hash_mismatch")
+        except (ValueError, TypeError) as exc:
+            reject(exc)
+            continue
+        for row in doc["receipts"]:
+            sid = row.get("receipt_id") if isinstance(row, dict) else None
+            try:
+                if not isinstance(row, dict) or not isinstance(sid, str):
+                    raise ValueError("invalid_journal_row")
+                source = row.get("learning_receipt")
+                if not isinstance(source, dict) or source.get("receipt_id") != sid:
+                    raise ValueError("journal_receipt_id_mismatch")
+                matches = [g for g in doc["generations"] if isinstance(g, dict)
+                           and isinstance(row.get("generation_id"), str) and g.get("generation_id") == row["generation_id"]]
+                if len(matches) != 1:
+                    raise ValueError("missing_or_ambiguous_generation")
+                generation = matches[0]
+                manifest_keys = ("version", "season", "week", "pool_generated_utc", "source_snapshots",
+                                 "offered_cards", "selection_policy_version", "joint_model_version")
+                manifest = {k: generation[k] for k in manifest_keys}
+                if (generation["generation_id"] != fingerprint(manifest)
+                        or type(generation["version"]) is not int or generation["version"] != 1
+                        or generation["season"] != doc.get("season") or generation["week"] != doc.get("week")):
+                    raise ValueError("generation_hash_or_period_mismatch")
+                if (row.get("publication_status") != "generated_unverified"
+                        or generation.get("publication_status") != "generated_unverified"):
+                    raise ValueError("unsupported_publication_claim")
+                if not isinstance(generation.get("receipt_ids"), list) or sid not in generation["receipt_ids"]:
+                    raise ValueError("receipt_not_in_generation")
+                if row.get("recorded_utc") != generation.get("recorded_utc"):
+                    raise ValueError("generation_observation_mismatch")
+                if instant(generation.get("pool_generated_utc")) > instant(row.get("recorded_utc")):
+                    raise ValueError("generation_after_observation")
+                if instant(source.get("forecast_created_utc")) != instant(generation.get("pool_generated_utc")):
+                    raise ValueError("receipt_pool_generation_mismatch")
+                if generation.get("population") != "eligible_pool_prop_rungs_before_display_dedupe":
+                    raise ValueError("unsupported_capture_population")
+                snapshots = generation.get("source_snapshots")
+                if (not isinstance(snapshots, dict) or any(not isinstance(snapshots.get(k), str)
+                        or re.fullmatch(r"sha256:[0-9a-f]{64}", snapshots[k]) is None
+                        for k in ("leg_pool", "schedule", "parlay_calibration"))):
+                    raise ValueError("missing_schedule_snapshot")
+                leg = row.get("leg")
+                if not isinstance(leg, dict):
+                    raise ValueError("invalid_leg")
+                if "learning_receipt" in leg and leg["learning_receipt"] != source:
+                    raise ValueError("journal_leg_receipt_mismatch")
+                offered = generation.get("offered_cards")
+                if (not isinstance(offered, list) or any(not isinstance(c, dict)
+                        or not isinstance(c.get("card_id"), str) or not isinstance(c.get("receipt_ids"), list)
+                        or any(not isinstance(r, str) for r in c["receipt_ids"]) for c in offered)):
+                    raise ValueError("invalid_offered_card_references")
+                add(doc, {"direction": "over", "comparison_operator": "gte", **leg, "learning_receipt": source},
+                    row.get("recorded_utc"), row.get("kickoff_utc"),
+                    {"kind": "nfl_generation_journal", "generation_id": row["generation_id"],
+                     "schedule_snapshot_id": snapshots["schedule"],
+                     "population": generation.get("population"),
+                     "offered_card_ids": sorted({c["card_id"] for c in offered if sid in c["receipt_ids"]})})
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                reject(exc, sid)
+
+    def immutable_forecast(receipt):
+        return {k: v for k, v in receipt.items() if k not in ("receipt_id", "first_seen_utc", "capture_provenance")}
+
+    selected, duplicates = [], 0
+    for sid, versions in sorted(candidates.items()):
+        if len({fingerprint(immutable_forecast(r)) for r, _ in versions}) != 1:
+            reject("conflicting_capture_evidence", sid)
+            continue
+        versions.sort(key=lambda item: (instant(item[0]["first_seen_utc"]), item[0]["receipt_id"]))
+        receipt, prediction = versions[0]
+        if sid in previous:
+            known = previous[sid]
+            if immutable_forecast(known) != immutable_forecast(receipt):
+                reject("existing_receipt_conflict", sid)
+                continue
+            receipt = known
+            prediction["id"] = prediction_id(known)
+            prediction["meta"]["receipt_id"] = known["receipt_id"]
+        selected.append((receipt, prediction))
+        duplicates += len(versions) - 1
+    rejected.sort(key=lambda r: (r["reason"], str(r["source_receipt_id"])))
+    return {"version": 1, "adapter": "nfl.my_props.prospective_v1",
+            "receipts": [r for r, _ in selected], "predictions": [p for _, p in selected],
+            "outcomes": [], "resolutions": [], "rejections": rejected,
+            "summary": {"eligible_receipts": len(selected), "duplicate_copies": duplicates,
+                        "quarantined_records": len(rejected),
+                        "quarantine_reasons": dict(sorted(Counter(r["reason"] for r in rejected).items())),
+                        "publication": "internal observations only; public availability unverified", "writes": False}}
 
 
 def main():
