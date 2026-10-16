@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 3 · October 16, 2026, 1:43 a.m. America/Chicago (CDT).
+Revision 4 · October 16, 2026, 2:02 a.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; not a completion guarantee.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -11,6 +11,13 @@ No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
 ## Committed locally
+
+Latest frozen combined verification: NFL `0ea4b003` full gate exit 0 with
+**2,381 feature tests**, contracts, smoke and four model gates; browser step 8
+skipped. Engine **1,054 tests / zero skips**, **34/34 critical files >90%**,
+6,816/7,116 = **95.7841%**; stable hashes, report committed as `2b9e247`.
+Full Python SQL suite **93 passed / 7 native-only skipped**, exit 0.
+These are local source checks, not hosted/native/browser or accuracy acceptance.
 
 | Repository | Checkpoint | What it establishes |
 | --- | --- | --- |
@@ -29,6 +36,10 @@ story acceptance, production readiness and accuracy remain separate measures.
 | SelfLearning | `0cb777d` | Pure separate parity attachment; no change to legacy grades |
 | SelfLearning | `624dc83` | Empty SQL journal → both actual senders → authenticated ASGI → SQL/quota tests |
 | SelfLearning | `744cef8` | Explicit read-only trace bridge completion; browser harness retained as blocked |
+| NFL2026 | `a40393a3` | Isolated local JSON review preview; no legacy grade changes or live hook |
+| NFL2026 | `0ea4b003` | Non-active calibrator draft and rollback-claim mechanics; owner authority unverified |
+| SelfLearning | `8d2a52c` | Bounded attachment CLI and source pins for the preview path |
+| SelfLearning | `2b9e247` | Stable 1,054-test / 34-critical-file coverage evidence |
 
 These commits have not been pushed. No production environment, database,
 deployment, model coefficient, parlay selection or sportsbook transaction was
@@ -64,7 +75,7 @@ batch/cache implementation.
   The finite cache is limited to 256 rows and 128 MiB serialized accounting,
   not physical disk allocation; there is no eviction/GC or production retention
   procedure in this slice. Cold misses at capacity fail closed.
-- Last full core/hosted run: **1,033 passed, zero skipped**; stable source/test/tool
+- Earlier full core/hosted run: **1,033 passed, zero skipped**; stable source/test/tool
   hashes. All **33/33 critical files exceed 90%**: 6,570/6,863 lines (95.7307%).
   The first run missed the per-file target; nine additional meaningful view
   tests cover pagination, scope rechecking, lazy pointer lookup, capacity faults
@@ -125,12 +136,19 @@ acceptance remains unverified. No security flags or permissions were relaxed.
 
 ## Next in the current build
 
-1. Finish independent QA of the local review preview and draft-only materializer;
-   combine frozen changes into a single full NFL gate and 34-target engine run.
-2. Preserve default live review, honest records and all approval boundaries;
-   inspectable preview JSON is not a live site or active candidate.
-3. Keep browser, zero-weight, source-completeness and future-week holds; actual
-   SQL orchestration and bridge-only read closure are now separately verified.
+1. Build an immutable, default-off owner-intent journal with server clocks, CAS
+   and exact referenced-object hashes. Generic hash bindings are not domain
+   candidate/report authorization; that adapter remains separate.
+2. Capture original exact-ID FINAL roster evidence and build a zero-weight DNP
+   shadow. Current retained inactive archives contain no FINAL participation
+   proof; injury omission/generic Active cannot become newer clearance.
+3. Bind original generation input/output/code/policy bytes. A final publisher
+   check must run again after each rebase/fallback immediately before push;
+   missing originals or unsupported scope must hold, not certify old outputs.
+4. Preserve default live review, honest records and all approval boundaries;
+   local preview JSON and materialized drafts are not serving or model adoption.
+5. Keep browser, source-completeness and genuine future-week holds; no task
+   credit is added before the next slices pass independent acceptance.
 4. Reconcile whole-task credit and the handoff after verification, retaining
    separate local-build, acceptance, release and prospective-evidence states.
 

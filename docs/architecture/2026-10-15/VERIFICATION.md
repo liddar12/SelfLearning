@@ -2,7 +2,32 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Current task and focused checks — October 16, 2026, 1:43 a.m. CDT
+## Frozen combined checkpoint — October 16, 2026, 2:02 a.m. CDT
+
+NFL source `0ea4b003` (including preview `a40393a3`, privacy `3fe68c73` and
+current-input `1a27db5f`): full gate exit **0**, **2,381 feature tests**, data
+contracts/smoke/four model gates pass. Browser step 8 **SKIP**, not a release pass.
+
+Engine source `8d2a52c`, evidence `2b9e247`: **1,054 core/API tests passed,
+zero skipped**; all **34/34** designated critical Python files exceed 90%
+executable-line coverage, **6,816/7,116 = 95.7841%**, stable source/test/tool
+hashes. [Pinned report](../../reviews/2026-10-16-critical34-coverage.json).
+Complete Python SQL suite: **93 passed / 7 native-only skipped**, exit 0,
+142.17 seconds. The earlier 74-test Node SQL checkpoint remains unchanged;
+no native/hosted/concurrency/real-Storage/browser-layout claim is established.
+
+Root focused checks: 30 preview/materializer/eligibility cases, 53 engine
+attachment/tool cases, 80 exporter/intake cases and actual three SQL intake
+cases all pass. New preview and draft materialization do **not** complete an
+active learning loop or authenticate owner/model/data claims. Materializer
+mechanics are not a fitted-model performance evaluation.
+
+The ledger remains **50/99 local tasks (50.5%)**. Next owner-intent persistence,
+original participation capture and generation-bound semantic checks are being
+built outside this checkpoint; none earns completion credit or release approval
+merely by existing. No push, production migration/deploy or activation occurred.
+
+## Earlier task and focused checks — October 16, 2026, 1:43 a.m. CDT
 
 Task ledger: **50/99 (50.5%)**, original 44/93; 34 partial and 15 open.
 S016-T1 now has independent current-main revalidation: exact 800-row injury /

@@ -100,6 +100,36 @@ Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
 authorized actions. No weekly manual SQL is required by the intended pipeline.
 
+## Frozen combined checkpoint
+
+October 16, 2026, 2:02 a.m. CDT. NFL `0ea4b003` passes the complete dependency-
+free gate: **2,381 feature tests**, contracts, smoke and four model regression
+gates, exit **0**; browser step 8 explicitly skipped. Engine `8d2a52c`, evidence
+`2b9e247`: **1,054 core/API tests, zero skips**, **34/34 critical files >90%**,
+**6,816/7,116 = 95.7841%** executable lines, stable hashes. Complete Python SQL
+suite **93 passed / 7 native-only skipped**, exit 0. Storage remains a fake in
+relevant ASGI/SQL tests. [Coverage](../../reviews/2026-10-16-critical34-coverage.json).
+
+The opt-in local JSON review preview is NFL `a40393a3`; it preserves all legacy
+grades and only publishes a new file outside source/data authorities. Historical
+analytical cut, snapshot export and code-owned verification clock are distinct.
+Prepublication failure/cancellation leaves no output; publication is an atomic
+exclusive local commit, so a lost notification afterward may leave a valid file.
+It is not a live-site report or proof of namespace/provider authenticity.
+
+Draft-only materializer `0ea4b003` independently checks supplied typed candidate,
+report, context and complete owner-intent-claim mechanics. Two synthetic cycles
+and explicit rollback retain old bytes and apply the actual NFL transform once.
+Backdated event history and negative absolute loss controls now hold. Base/code
+IDs are equality-checked claims, not recomputed deployed compatibility; evaluation
+is not re-executed and owner authority is unverified. Every output remains
+non-active, with model adoption/serving/release authorization false.
+
+Task credit stays **50/99**. The next separate owner-intent journal, original
+FINAL-participation capture and exact-generation prepublication binding are
+in progress, not part of this measured checkpoint. S015 authority/consumer and
+S017 empirical guard/replay acceptance remain unfinished. No production action.
+
 ## Current-input and privacy checkpoint
 
 October 16, 2026, 1:43 a.m. CDT. S016-T1 is independently verified against
