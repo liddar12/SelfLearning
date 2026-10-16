@@ -17,12 +17,14 @@ from contextlib import ExitStack, contextmanager
 from urllib.parse import urlsplit
 
 from selflearn_core.adapters.nfl_capture_delivery_journal import NFLCaptureDeliveryJournal
+from selflearn_core.adapters.nfl_capture_application_journal import NFLCaptureApplicationJournal
 from selflearn_core.probability_receipts import fingerprint
 from selflearn_core.store.capture_staging import CaptureStagingQuota, staging_namespace
 from selflearn_core.store.supabase_evidence import SupabaseEvidenceStore
 from selflearn_core.store.supabase_store import StoreError, SupabaseStore
 
 from .nfl_capture_intake import CaptureReceiver
+from .nfl_capture_applications import CaptureApplicationReceiver
 
 
 APPROVED_DESTINATION_ORIGIN = "https://self-learning-beige.vercel.app"
@@ -125,6 +127,9 @@ def select_capture_factory(env, injected=None):
     if type(selection) is not str or selection != "supabase":
         return _unavailable, _selection("invalid", False, False, "invalid_configuration")
     try:
+        protocol = env.get("SELFLEARN_CAPTURE_PROTOCOL", "v1")
+        if type(protocol) is not str or protocol not in ("v1", "v2"):
+            raise ValueError("invalid_server_capture_protocol")
         origin, key = server_supabase_credentials(env)
         bucket = env.get("SELFLEARN_CAPTURE_EVIDENCE_BUCKET")
         # Reuse the private adapter's exact bucket/namespace validators; there
@@ -138,7 +143,9 @@ def select_capture_factory(env, injected=None):
         with ExitStack() as stack:
             try:
                 store = SupabaseStore(origin, key)
-                journal = stack.enter_context(NFLCaptureDeliveryJournal(origin, key, transport=store.request))
+                journal_type = NFLCaptureApplicationJournal if protocol == "v2" else NFLCaptureDeliveryJournal
+                journal = stack.enter_context(journal_type(origin, key, transport=store.request,
+                    **({"max_run_seconds": 45} if protocol == "v2" else {})))
                 status = journal.status()
                 if (type(status) is not dict or set(status) != {"schema_version", "backend", "watermark"}
                         or type(status["schema_version"]) is not int or status["schema_version"] != 1
@@ -149,7 +156,10 @@ def select_capture_factory(env, injected=None):
                 # RPC exists and can be executed. It reserves/writes nothing.
                 if journal.get_capture_delivery(_PROBE_ID) is not None:
                     raise StoreError(503)
-                receiver = CaptureReceiver(journal,
+                if protocol == "v2" and journal.get_capture_application(_PROBE_ID) is not None:
+                    raise StoreError(503)
+                receiver_type = CaptureApplicationReceiver if protocol == "v2" else CaptureReceiver
+                receiver = receiver_type(journal,
                     SupabaseEvidenceStore(store.request, bucket=bucket, namespace=_STORAGE_NAMESPACE),
                     CaptureStagingQuota(store.request, namespace_id=_NAMESPACE),
                     destination_id=DESTINATION_ID, producer_id=PRODUCER_ID)
@@ -159,4 +169,7 @@ def select_capture_factory(env, injected=None):
             # existing sanitized boundary; do not turn conflicts into success.
             yield receiver
 
-    return capture_factory, _selection("supabase", True, True, "configured_unverified")
+    info = _selection("supabase", True, True, "configured_unverified")
+    if protocol == "v2":
+        info["capture_protocol"] = "v2"
+    return capture_factory, info

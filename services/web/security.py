@@ -49,7 +49,8 @@ class OwnerBoundary:
             if any(type(key) is not str for key in (self.token, self.ingest_token, self.capture_token)):
                 return await reject(503, "Scoped access is not configured")
             nfl_ingest = path in NFL_INGEST_PATHS
-            nfl_capture = path in NFL_CAPTURE_PATHS or path.startswith("/api/v1/nfl/capture-deliveries/")
+            nfl_capture = (path in NFL_CAPTURE_PATHS or path.startswith("/api/v1/nfl/capture-deliveries/")
+                           or path == "/api/v2/nfl/capture-applications" or path.startswith("/api/v2/nfl/capture-applications/"))
             credential = self.capture_token if nfl_capture else self.ingest_token if nfl_ingest else self.token
             configured = [k for k in (self.token, self.ingest_token, self.capture_token) if k]
             if (len(credential) < 32 or credential == "[SENSITIVE]"

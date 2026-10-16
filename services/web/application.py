@@ -28,6 +28,7 @@ from .security import OwnerBoundary, MAX_IMAGE
 from .nfl_ingestion import register_nfl_routes
 from .nfl_capture_intake import register_capture_routes
 from .capture_configuration import select_capture_factory
+from .nfl_capture_applications import register_application_routes
 from . import private_uploads
 from . import nfl_trace
 
@@ -424,6 +425,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
 
     register_nfl_routes(app, journal_factory, body)
     register_capture_routes(app, capture_factory, body)
+    register_application_routes(app, capture_factory, body)
 
     # Last mount: explicit routes above take precedence; unknown paths stay 404.
     app.mount("/", mcp_app)
