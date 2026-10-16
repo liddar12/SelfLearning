@@ -1,7 +1,10 @@
 """Pure worker contracts plus actual child-only Unix resource enforcement."""
 import io
 import json
+import errno
 from pathlib import Path
+import signal
+import subprocess
 import sys
 from unittest.mock import patch
 
@@ -117,9 +120,18 @@ def test_main_refusal_is_static_and_never_echoes_payload_or_exception(inputs,fau
 
 def test_actual_child_cpu_limit_terminates_busy_loop_before_wall_budget(tmp_path):
     root=str(Path(W.__file__).resolve().parent.parent)
-    script="import sys;sys.path.insert(0,sys.argv[1]);from selflearn_core.nfl_compute_worker import enforce_limits;enforce_limits(1)\nwhile True:pass"
-    with pytest.raises(P.ComputeProcessError,match="^compute_worker_refused$"):
-        P.run_worker([sys.executable,"-I","-S","-B","-u","-c",script,root],b"",cwd=tmp_path,environment={},wall_seconds=8)
+    marker=tmp_path/"busy-loop-started-after-resource-readback"
+    script="import sys;from pathlib import Path;sys.path.insert(0,sys.argv[1]);from selflearn_core.nfl_compute_worker import enforce_limits;enforce_limits(1);Path(sys.argv[2]).touch()\nwhile True:pass"
+    original=subprocess.Popen;children=[]
+    def tracked(*args,**kwargs):
+        child=original(*args,**kwargs);children.append(child);return child
+    with patch.object(P.subprocess,"Popen",side_effect=tracked),pytest.raises(P.ComputeProcessError,match="^compute_worker_refused$"):
+        P.run_worker([sys.executable,"-I","-S","-B","-u","-c",script,root,str(marker)],b"",cwd=tmp_path,environment={},wall_seconds=8)
+    # Import errors, rejected resource setup, early exits and parent wall-time
+    # cleanup cannot satisfy this assertion. The leader had already exited by
+    # CPU signal before run_worker invoked its finally-block group cleanup.
+    assert marker.is_file()and len(children)==1
+    assert children[0].returncode in(-signal.SIGXCPU,-signal.SIGKILL)
 
 
 def test_actual_child_core_and_regular_file_growth_limits(tmp_path):
@@ -128,12 +140,14 @@ def test_actual_child_core_and_regular_file_growth_limits(tmp_path):
 sys.path.insert(0,sys.argv[1])
 from selflearn_core.nfl_compute_worker import enforce_limits
 limits=enforce_limits(3)
+failure=None
 try:
     with open(sys.argv[2],'wb') as f:f.write(b'x'*100)
-except OSError:pass
-print(json.dumps({'limits':limits,'size':os.stat(sys.argv[2]).st_size}))
+except OSError as error:failure=error.errno
+print(json.dumps({'limits':limits,'size':os.stat(sys.argv[2]).st_size,'failure':failure}))
 """
     result=P.run_worker([sys.executable,"-I","-S","-B","-u","-c",script,root,str(target)],b"",
         cwd=tmp_path,environment={},wall_seconds=5)
     response=json.loads(result["stdout"])
     assert response["limits"]==limits(3)and response["size"]==0 and target.stat().st_size==0
+    assert response["failure"]==errno.EFBIG
