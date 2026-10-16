@@ -58,13 +58,15 @@ CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/store/supabase_store.py",
     "tools/compare_nfl_cohort.py",
     "tools/nfl_review_parity.py",
+    "tools/nfl_review_attachment.py",
 )
 SUITES = ("packages/selflearn-core/tests", "tests/hosted")
 NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.py",
                       "scripts/build_my_cards.py", "scripts/export_learning.py",
                       "scripts/capture_outcome_evidence.py", "scripts/build_learning_outcomes.py",
                       "scripts/pinned_cohort_oracle.py", "scripts/export_capture_application.py",
-                      "scripts/check_learning_parity.py")
+                      "scripts/check_learning_parity.py", "scripts/prop_feature_shadow.py",
+                      "scripts/run_learning_intake.py", "scripts/export_outcome_capture.py")
 
 
 class CriticalTrace(trace.Trace):
