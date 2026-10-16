@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 15, 2026, 11:25 p.m. CDT: use the
+Implementation status updated October 15, 2026, 11:43 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -16,7 +16,7 @@ Use the existing Vercel Python backend and Supabase project, preserve NFL2026's 
 - [Delivery backlog](BACKLOG.md): 12 epics, 31 features, 31 user stories, 93 tasks and 92 acceptance criteria, with effort/risk, owners and dependency mapping.
 - [Spreadsheet-friendly backlog](BACKLOG.csv): one row per task, including parent story and acceptance/test references.
 - [Implementation handoff](IMPLEMENTATION_HANDOFF.md): current branches, local changes, exact verification and next file-owned workstreams.
-- [Audited progress by epic](IMPLEMENTATION_HANDOFF.md#audited-completion-by-epic): 46/99 whole local-build tasks complete (46.5%), including the explicitly added D1/D2 work; not deployment readiness. [Task/evidence inventory](progress.json).
+- [Audited progress by epic](IMPLEMENTATION_HANDOFF.md#audited-completion-by-epic): 47/99 whole local-build tasks complete (47.5%), including the explicitly added D1/D2 work; not deployment readiness. [Task/evidence inventory](progress.json).
 
 Editable visual source: [architecture.html](architecture.html), [render.mjs](render.mjs), [portable PDF exporter](export-vector-pdf.mjs). Editable backlog source: [backlog-source.mjs](backlog-source.mjs). These are repository documentation tools, not an NFL app build step.
 

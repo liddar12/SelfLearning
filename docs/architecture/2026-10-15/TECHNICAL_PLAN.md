@@ -82,6 +82,16 @@ release, each configured request probes the journal schema before an ACK;
 missing migration, permissions or configuration fails closed with 503. Do not
 enable the switch now as a substitute for the release checks.
 
+Local runtime `a5c4707` separately wires default-off
+`SELFLEARN_CAPTURE_BACKEND=supabase` for outcome capture delivery. It requires
+a distinct `SELFLEARN_NFL_OUTCOME_INGEST_TOKEN`, the server backend key/origin,
+and `SELFLEARN_CAPTURE_EVIDENCE_BUCKET`; no token alone enables it. The server
+fixes destination/producer/storage namespace. Read-only journal/ledger probes
+do not provision or verify quota/private-bucket readiness; every actual stage
+must first obtain its durable quota reservation. Uploaded bytes never mean
+learning acceptance. No live settings have changed. See
+[CAPTURE_ROLLOUT.md](CAPTURE_ROLLOUT.md) for the gated release procedure.
+
 ### Core contracts
 
 The versioned generic envelope contains namespace, domain, task, canonical contract/event IDs, correlation group, base and served probabilities, input/output stages, model/calibrator versions, frozen features, source hashes/timestamps, forecast creation time and internal first observation. Domain adapters validate their own identity and settlement rules before sealing it.

@@ -2,7 +2,20 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-Latest local integrity evidence, October 15, 2026, 11:25 p.m. CDT:
+Latest local integrity evidence, October 15, 2026, 11:43 p.m. CDT:
+[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#first-forecast-and-configuration-checkpoint-1143-pm-cdt).
+Engine `a5c4707`: **913 core/API, 47 Python-to-SQL, 43 SQL and 15 functional
+DOM tests pass**; coverage/progress tools pass 21. All **26 critical Python
+targets** exceed 90% executable-line coverage: **5,119/5,355 = 95.5929%**,
+stable source hashes/heads. Generic scoring now freezes the first valid
+forecast before joining outcomes; identical NFL/synthetic-election boundary
+tests pass. The explicit capture-backend setting is wired but default-off;
+no environment, quota or bucket was provisioned. Status is configuration-only,
+not live learning. No universal owner namespace, real election pilot, hosted
+round trip, native concurrency, browser layout acceptance or accuracy claim.
+New uncommitted v2 execution/comparator files are outside this checkpoint.
+
+Historical local integrity evidence, October 15, 2026, 11:25 p.m. CDT:
 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#scoped-capture-and-forecast-trace-checkpoint-1125-pm-cdt).
 Engine `44895b9` / NFL `8561210c`: **808 core/API tests, 37 Python-to-SQL,
 43 SQL and 15 functional DOM tests pass**, plus five coverage-tool and sixteen

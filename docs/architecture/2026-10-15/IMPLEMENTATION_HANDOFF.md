@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 15, 2026,
-11:23 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+11:43 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -56,10 +56,10 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 15, 2026, 11:23 p.m. CDT (America/Chicago). **46/99 = 46.5% local-build
+October 15, 2026, 11:43 p.m. CDT (America/Chicago). **47/99 = 47.5% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
-The original R1 plan is 41/93 (44.1%); six explicitly added D1/D2 tasks expand
+The original R1 plan is 42/93 (45.2%); six explicitly added D1/D2 tasks expand
 E02 and the total denominator. Do not hide those tasks to inflate progress.
 The ID-by-ID classification and evidence are in [progress.json](progress.json).
 
@@ -76,12 +76,15 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | E08 Dashboard/application MCP | 4/9 | 44% | Real-browser/mobile acceptance, evaluation/candidate journeys and sessions |
 | E09 Screenshots/questions | 0/6 | 0% | Private lifecycle, OCR/draft confirmation and evidence-based question routing |
 | E10 Jobs/operations/release | 0/6 | 0% | Resumable leases/checkpoints, alert drills, exact-SHA browser/hosted release |
-| E11 Reusable/new domains | 2/9 | 22% | Full second-domain boundary suite and one real-domain pilot; finance separate |
+| E11 Reusable/new domains | 3/9 | 33% | Universal cross-owner/adapter identity story acceptance and one real-domain pilot; finance separate |
 
 Zero completed tasks can include substantial partial code. R126 ranking was
 already shipped; its recovered reference replay is now persisted and tested,
 but complete original candidate history remains unavailable. The real
-synthetic election fixture is built/tested; a real election adapter is not.
+synthetic election fixture and identical two-domain boundary tests are built/tested;
+a real election adapter is not. S029-T2 is testing-task credit, not S029 story
+acceptance: legacy prediction IDs still require domain-qualified task names and
+do not establish universal cross-owner isolation.
 The progress audit does not award deployment credit to local branches.
 
 ### Current parallel team
@@ -731,3 +734,68 @@ Do not label an interrupted or browser-blocked gate as passed. Do not hand-edit 
 ## Owner involvement
 
 `SELFLEARN_OPERATOR_TOKEN` is already in Vercel Production per the owner. Verify the backend URL/key and authenticated DB round trip privately; do not request token values in chat. Vercel credentials do not automatically configure GitHub Actions, and management MCP is not application MCP. Ask only if a concrete required credential/permission is absent. Production releases/migrations and model activation remain owner decisions.
+
+## First-forecast and configuration checkpoint, 11:43 p.m. CDT
+
+October 15, 2026, America/Chicago. Runtime source **`a5c4707`**, NFL runtime
+unchanged at `8561210c` (later NFL documentation head `1181c824`). Local only.
+This supersedes earlier aggregate engine counts, not their historical evidence.
+
+The generic binary scorer previously joined outcomes before selecting the
+canonical forecast. That allowed an unresolved original forecast to disappear
+and a later resolved vintage to enter its place. It now chooses the earliest
+valid `(domain, task, contract)` forecast before matching any outcomes. Tied
+first forecasts with incompatible scoring signatures are withheld. Later
+vintages cannot change the selected probability or denominator. The result
+declares `first_valid_forecast_before_outcome_join_v2`. This is descriptive
+scoring of caller-pinned latest resolutions, **not** an outcome-revision/as-of
+selector; passing unfiltered correction history is not the API contract.
+No model was refitted or activated and this fixes evaluation integrity, not a
+proven increase in future wins.
+
+The identical nine-method journal/revision/cohort boundary contract now runs
+against SQLite and actual `SupabaseReceiptJournal` on PostgreSQL-WASM for both
+NFL and deterministic synthetic elections. Candidate checks exercise the real
+generic candidate-only proposal/register paths and typed NFL rejection, not
+an invented universal election fitter. S029-T2 receives local testing-task
+credit only. S029 story AC2 remains unproven: legacy `prediction_id` omits
+domain and requires domain-qualified task names; universal cross-owner IDs,
+real election data, fitting and serving are not implemented.
+
+`services/web/capture_configuration.py` is wired into the real app. Explicit
+`SELFLEARN_CAPTURE_BACKEND=supabase` plus server credentials and a private
+evidence bucket configure the factory; default is still disabled. Selection
+does no HTTP or transport construction. Opening an operation uses two
+read-only journal/ledger probes, then the existing quota-before-Storage
+boundary. No quota/bucket/migration is provisioned and no environment value
+was changed. The private status field `nfl_outcome_intake` stays
+`configured_unverified`, `production_connection_verified=false`,
+`working_learning_loop=false`, and `model_adoption=unverified`, even after
+successful staging. Explicitly invalid preferred secrets never fall back to
+legacy credentials in this new selector. Existing journal-selector behavior
+is preserved. See [capture rollout steps](CAPTURE_ROLLOUT.md).
+
+Root verification, all exit **0**:
+
+- Full core/hosted suite: **913 passed, zero skipped**, one existing Starlette
+  deprecation warning. Critical measurement: **26/26 targets above 90%**,
+  **5,119/5,355 = 95.5929% executable lines**, stable hashes/heads;
+  [generated report](../../reviews/2026-10-15-critical-coverage.json).
+- Explicit existing plus cross-domain Python-to-SQL suite: **47 passed**.
+  SQL/WASM is real PostgreSQL execution, but single-connection; HTTP is
+  in-process and private Storage is an explicit fake.
+- Existing four Node SQL suites: **43 passed**, zero skips.
+- Functional DOM interface regressions: **15 passed**, zero skips; no real
+  browser/mobile layout claim.
+- Coverage-tool/progress-ledger tests: **21 passed** (5 + 16).
+- Focused root configuration/app/intake/cross-domain run: **115 passed**;
+  independent reviewer configuration run **85**, runtime/app/cohort run **114**,
+  plus adversarial first-forecast permutations and pre-probe auth/bounds checks.
+- Latest NFL runtime gate remains `8561210c`: **2,277 feature tests**, data,
+  smoke and four model gates pass; browser step 8 **SKIP**, not full acceptance.
+
+New v2 SQL/contract/comparator files being built after this source checkpoint
+are not included in these counts or task credit. **D2-T3 remains incomplete**
+until its actual sealed multi-batch sender/API/atomic persistence chain passes.
+No production release, cloud DDL, native concurrency, authenticated provider
+source, model adoption, or accuracy improvement is established.

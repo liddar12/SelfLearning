@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "as_of": "2026-10-15T23:23:18-05:00",
+  "as_of": "2026-10-15T23:43:36-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "requested_target": "2026-10-16T07:00:00-05:00",
@@ -23,16 +23,17 @@
     "SelfLearning_original_delivery_job": "33e09c1",
     "SelfLearning_capacity_planner": "b8a70e3",
     "SelfLearning_staging_quota": "bd29ff7",
-    "SelfLearning_scoped_capture_and_trace": "44895b9"
+    "SelfLearning_scoped_capture_and_trace": "44895b9",
+    "SelfLearning_first_forecast_and_capture_configuration": "a5c4707"
   },
-  "original_scope": {"epics": 12, "tasks": 93, "completed": 41, "partial": 37, "open": 15},
-  "expanded_scope": {"tasks": 99, "completed": 46, "partial": 37, "open_or_in_progress": 16},
+  "original_scope": {"epics": 12, "tasks": 93, "completed": 42, "partial": 36, "open": 15},
+  "expanded_scope": {"tasks": 99, "completed": 47, "partial": 36, "open_or_in_progress": 16},
   "extra_tasks": {
     "epic": "E02",
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
     "ids": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2", "D2-T3"],
     "completed": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2"],
-    "note": "D1, D2-T1 raw/frozen-member binding and D2-T2 scoped authenticated sender/receiver with bounded requests/retries and immutable destination outbox/original ACK are independently reviewed and locally verified. D2-T2 evidence: engine44895b9/NFL8561210c, actual sender-to-ASGI-to-PostgreSQL-WASM5tests plus scoped intake13tests. Storage is fake in SQL integration; runtime factory remains explicit injection/default disabled. T2 is whole LOCAL-BUILD credit, not automatic production configuration or full D2 acceptance. D2-T3 remains incomplete: current executor holds complete captures above500; b8a70e3 only previews whole-group capacity, with no multi-batch RPC/ACK. Hosted/native verification, retention/GC and runtime activation remain story/release gates. These six tasks do not silently change the original R1 PDF/backlog."
+    "note": "D1, D2-T1 raw/frozen-member binding and D2-T2 scoped authenticated sender/receiver with bounded requests/retries and immutable destination outbox/original ACK are independently reviewed and locally verified. D2-T2 evidence: engine44895b9/NFL8561210c, actual sender-to-ASGI-to-PostgreSQL-WASM5tests plus scoped intake13tests. Storage is fake in SQL integration. a5c4707 adds explicit default-off SELFLEARN_CAPTURE_BACKEND=supabase configuration; no environment was changed and configured_unverified is never live learning. T2 is whole LOCAL-BUILD credit, not automatic production configuration or full D2 acceptance. D2-T3 remains incomplete: current executor holds complete captures above500; b8a70e3 only previews whole-group capacity, with no multi-batch RPC/ACK. Hosted/native verification, retention/GC and runtime activation remain story/release gates. These six tasks do not silently change the original R1 PDF/backlog."
   },
   "epics": [
     {"id":"E00","completed":["S001-T1","S001-T2"],"partial":["S001-T3","S002-T1","S002-T2","S002-T3","S003-T1","S003-T2","S003-T3"],"open":[]},
@@ -46,7 +47,7 @@
     {"id":"E08","completed":["S022-T1","S022-T2","S022-T3","S024-T3"],"partial":["S024-T1","S024-T2"],"open":["S023-T1","S023-T2","S023-T3"]},
     {"id":"E09","completed":[],"partial":["S025-T1","S026-T1"],"open":["S025-T2","S025-T3","S026-T2","S026-T3"]},
     {"id":"E10","completed":[],"partial":["S027-T1","S027-T2","S027-T3","S028-T1","S028-T2","S028-T3"],"open":[]},
-    {"id":"E11","completed":["S029-T1","S029-T3"],"partial":["S029-T2","S031-T1","S031-T2","S031-T3"],"open":["S030-T1","S030-T2","S030-T3"]}
+    {"id":"E11","completed":["S029-T1","S029-T2","S029-T3"],"partial":["S031-T1","S031-T2","S031-T3"],"open":["S030-T1","S030-T2","S030-T3"]}
   ],
   "completed_task_evidence": {
     "S001-T1": "b9ecd3f; IMPLEMENTATION_HANDOFF.md source preservation and hosted reconciliation",
@@ -89,6 +90,7 @@
     "S022-T3": "44895b9; loading/empty/unsupported/backend-offline/auth-lock/partial-upload-outage and retry states; independent stale rejection/success/401 auth-epoch regressions, XSS-safe text and memory-only owner key; no real browser acceptance claim.",
     "S024-T3": "hosted MCP exact four-read-tool allowlist/read-only tests and OwnerBoundary: untrusted content cannot authorize intake/promotion",
     "S029-T1": "test_probability_receipts.py real deterministic elections/election.binary synthetic fixture; not a real-domain pilot",
+    "S029-T2": "a5c4707; identical two-domain nine-method journal/revision/cohort contract runs on actual SQLite and SupabaseReceiptJournal/PostgreSQL-WASM; 11 core and10SQL tests plus actual generic candidate-only register/proposal and typedNFL rejection boundaries. Generic scorer now selects first valid forecast before joining outcomes; independent adversarial permutations passed. Full913core/API suite and26criticaltargets>90%. Task parity is local-complete, NOT S029 story acceptance: universal owner/domain prediction-ID isolation is not implemented, and the legacy same-task/source collision is explicitly pinned as a limitation. No real election provider/fitter/adoption or native/hosted proof.",
     "S029-T3": "generic receipts/revisions/store/scoring do not import NFL; AST boundary regression enforces domain policy in adapters",
     "D1-T1": "3ed4cae; CLI-generated additive migration 20261015233134, service-only grants/RLS/immutability and legacy compatibility SQL tests",
     "D1-T2": "NFLObservedJournal complete pinned keyset reads; SQL indexed enumeration, historical fences and no fixture-owned ID list",
@@ -102,6 +104,7 @@
     "E02 includes six new D1/D2 tasks in its expanded denominator: 13/15, not the misleading original-only 8/9.",
     "Zero completed tasks can contain significant partial work; this metric intentionally awards no fractional credit.",
     "No accuracy improvement, future hit count, completion date or autonomous model promotion is inferred.",
+    "S029-T2 test-task completion does not satisfy universal owner/adapter namespace story AC2: legacy prediction_id uses task plus source ID without domain; domain-qualified tasks remain required.",
     "This local checkpoint has not been pushed to GitHub. New in-progress files are not credited until reviewed and verified."
   ]
 }
