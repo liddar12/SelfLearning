@@ -19,6 +19,11 @@ from selflearn_core.store.supabase_store import StoreError
 from .nfl_capture_intake import CaptureReceiver
 
 _ORDINAL = re.compile(r"(?:0|[1-9][0-9]{0,3})\Z")
+# SQL's ceiling remains500. The public v2 server chooses a lower immutable
+# execution policy: the actual1088-member local probe left only0.46s under the
+# existing12s SQL transport timeout at496-member batches. No timeout is widened
+# and clients cannot supply this setting. Hosted/native timing stays unverified.
+DEFAULT_BATCH_MEMBERS = 400
 
 
 class CaptureApplicationReceiver(CaptureReceiver):
@@ -40,7 +45,10 @@ class CaptureApplicationReceiver(CaptureReceiver):
         request = V.validate_request(value)
         if not self._scope(request):
             raise CaptureApplicationScopeMismatch("capture_application_not_found_in_configured_scope")
-        ack = register_capture_application(self.journal, request, self._raw(request))
+        ack = register_capture_application(self.journal, request, self._raw(request),
+            max_batch_members=DEFAULT_BATCH_MEMBERS,
+            max_batch_observations=DEFAULT_BATCH_MEMBERS,
+            max_batch_revisions=DEFAULT_BATCH_MEMBERS)
         return {"version": 2, "registration": ack, "scope": "registration_only", "learning_accepted": False}
 
     def step(self, application_id, step_id):

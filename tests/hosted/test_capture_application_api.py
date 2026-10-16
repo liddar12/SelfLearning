@@ -26,6 +26,7 @@ try:
     from test_supabase_evidence import FakeStorage
     from test_nfl_capture_delivery_job import request as fixture_request
     from test_nfl_capture_labels import good_capture
+    from test_nfl_capture_application_contracts import sealed, registration
 finally:
     sys.path.pop(0)
 
@@ -191,6 +192,54 @@ def test_query_allowlist_unique_keys_cursor_types_and_scope_deny_before_writes()
         response = client.post(path + "/steps/" + fingerprint("step"), json={}, headers=headers())
         assert response.status_code == 404 and "request" not in response.text
     assert storage.calls == [] and quota.calls == []
+
+
+def test_new_registration_uses_only_server_owned_400_member_policy(monkeypatch):
+    # A boundary fake proves argument ownership, not a durable registration.
+    journal = BoundaryJournal(); receiver, storage, quota = receiver_for(journal)
+    calls = []
+    ack = {"fixture": "registration_only_not_SQL_evidence"}
+    def register(bound_journal, request, raw, **limits):
+        calls.append((bound_journal, copy.deepcopy(request), limits))
+        return copy.deepcopy(ack)
+    monkeypatch.setattr("services.web.nfl_capture_applications.register_capture_application", register)
+    value = intent()
+    with api_client(receiver) as client:
+        result = client.post(BASE, json=value, headers=headers())
+        assert result.status_code == 200
+        assert result.json() == {"version": 2, "registration": ack,
+            "scope": "registration_only", "learning_accepted": False}
+        for supplied in ({"max_batch_members": 500}, {"limits": {"members": 500}},
+                         {"max_batch_members": 1}):
+            assert client.post(BASE, json={**value, **supplied}, headers=headers()).status_code == 422
+    assert calls == [(journal, value, {"max_batch_members": 400,
+        "max_batch_observations": 400, "max_batch_revisions": 400})]
+    assert journal.calls == [] and storage.calls == [] and quota.calls == []
+
+
+def test_existing_500_member_seal_recovers_original_without_new_policy_or_raw(monkeypatch):
+    # Real pure preparation/validation with an explicitly in-memory ACK.
+    # Recovery must not rebind or repack this seal under the new 400 policy.
+    context, seal = sealed(max_batch_members=500)
+    request, ack = context["request"], registration(seal)
+    captured = request["capture_request"]
+    journal = BoundaryJournal()
+    journal.known = {"request": request, "seal": seal, "registration": ack}
+    before = copy.deepcopy(journal.known)
+    receiver, storage, quota = receiver_for(journal,
+        destination=captured["destination_id"], producer=captured["producer_id"])
+    def forbidden(*args, **kwargs):
+        raise AssertionError("An existing seal must not be prepared again")
+    monkeypatch.setattr(V, "bind_context", forbidden)
+    monkeypatch.setattr(V, "prepare_seal", forbidden)
+    with api_client(receiver) as client:
+        result = client.post(BASE, json=request, headers=headers())
+        assert result.status_code == 200
+        assert result.json()["registration"] == ack
+        assert result.json()["learning_accepted"] is False
+    assert seal["limits"]["members"] == 500
+    assert journal.known == before
+    assert len(journal.calls) == 1 and storage.calls == [] and quota.calls == []
 
 
 @pytest.mark.parametrize("failure,expected", [(RuntimeError("SECRET_PROVIDER"), 503),

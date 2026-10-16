@@ -1,6 +1,6 @@
 # Sealed capture applications v2 — local implementation contract
 
-Contract revision 1, October 15, 2026, 11:51 p.m. CDT (America/Chicago). Proposed/approved-for-local-build protocol; not a deployment, provider-authentication, model-adoption or D2-T3 completion claim. The R1 whiteboard/backlog remains unchanged.
+Contract revision 2, October 16, 2026, 12:39 a.m. CDT (America/Chicago). Proposed/approved-for-local-build protocol; not a deployment, provider-authentication, model-adoption or D2-T3 completion claim. The R1 whiteboard/backlog remains unchanged.
 
 This reference freezes the additive wire/storage boundary for the SQL and Python lanes. Existing v1 delivery functions/results and the offline capacity planner remain unchanged. The only permitted compatibility addition is the shared-lock BEFORE INSERT guard described below. Implementation and acceptance evidence belong in the handoff, not in these normative shapes.
 
@@ -93,7 +93,7 @@ The server produces the seal after a complete pinned raw/frozen-member bind. Cli
 
 `seal_id` hashes every other seal field. `source_watermark` equals registration's expected observed watermark. `weeks` is the sorted unique nonempty integer list from the capture. V2 global `membership_id` is the fingerprint of `{binding_policy,groups:[group.membership_id in group_id order]}`. Order sealed groups by `group_id`.
 
-The illustrated limits are defaults/ceilings, not mandatory exact values. Trusted server preparation may seal smaller limits for a bounded application: every limit is a strict JSON integer from 1 through its illustrated ceiling, never a boolean or float. Each whole group and batch must obey its sealed member/observation/revision limits, and the actual escaped per-batch RPC must obey its sealed `rpc_bytes` limit. The independent global registration RPC ceiling remains 8 MiB. Once admitted, no limit or assignment can be enlarged or repacked.
+The illustrated limits are private preparation defaults/hard ceilings, not mandatory exact values. The public v2 receiver chooses **400 members, observations and revisions per new batch**. This is server-owned policy, not a public request field. Trusted server preparation may seal smaller limits for a bounded application: every limit is a strict JSON integer from 1 through its illustrated ceiling, never a boolean or float. Each whole group and batch must obey its sealed member/observation/revision limits, and the actual escaped per-batch RPC must obey its sealed `rpc_bytes` limit. The independent global registration RPC ceiling remains 8 MiB. Once admitted, no limit or assignment can be enlarged or repacked. An original 500-member seal is recovered and executed unchanged; the new registration default cannot reinterpret it.
 
 This global order is explicitly **different from the current raw binder/v1 scope-tuple order**. Python must first validate the binder's original scope-ordered digest, then construct the v2 group-ID-ordered digest; never assert those two global digests are equal. Individual group membership hashes are unchanged. SQL derives and hashes v2 groups in group-ID order. The accepted offline planner's original digest/order is not rewritten or silently treated as this new wire contract.
 
@@ -374,6 +374,7 @@ Stable special conflict messages: `capture_application_request_conflict`, `captu
 | Canonical seal | 3 MiB |
 | Complete groups / members | 2,000 / 10,000 |
 | Per batch members / observations / revisions | 500 / 500 / 500 |
+| New public v2 registration's server-owned member / observation / revision defaults | 400 / 400 / 400; existing seals retain their original limits/assignments |
 | Actual escaped internal RPC outer body | 8 MiB |
 | Paged response | 100 records and 3 MiB; reduce returned count when needed; registration preflights its full one-record page with maximum fence width before admission; a single unrepresentable record fails closed |
 | Complete generic NFL authority scan | Existing 10,000 receipts +64 MiB; 256 generation commits +64 MiB |
@@ -397,6 +398,8 @@ The exact registration POST wrapper is `{version:2,registration:<original immuta
 Runtime selection requires explicit `SELFLEARN_CAPTURE_BACKEND=supabase` and `SELFLEARN_CAPTURE_PROTOCOL=v2` plus the independently valid server configuration. Protocol defaults to v1; preserve existing v1 response/status bytes. The static configuration status adds `capture_protocol` only for selected v2. No environment, token, bucket or migration is provisioned by this document or by pure selection, and neither selector nor token proves hosted readiness.
 
 Immutable sender outbox stores original registration request/ACK, each server-issued step command/ACK, and final original result in separate paths. GET original before restaging/recomputing; bounded retries retain exact operation IDs. A lost batch reply recovers that step, not a newly selected next batch. A replacement after an incomplete terminal result needs a new verified capture, not a new nonce or overwritten ACK. Do not reuse an incomplete application's applied subset as a full evaluation cohort.
+
+The v2 sender caps each urllib operation at **50 seconds**, further bounded by its command's remaining monotonic deadline. It checks the remaining budget before network work, between bounded response reads and before accepting a response. This socket/inactivity timeout is not a guaranteed hard wall-clock limit on DNS resolution or a continuously trickling response. Expiry leaves the original operation resumable; neither expiry nor a late response is learning acceptance. This v2 sender bound does not widen the server's 45-second operation budget, SQL transport timeout, v1 sender timeout or platform duration.
 
 Preferred minimal executor is stateless bounded step calls: one complete verified bind/cache per process, full raw verification again on restart, complete indexed snapshot/current membership and current-revision resolve for every new step. No durable parsed index or worker lease is introduced. Request-budget exhaustion leaves active work resumable. Lease expiry is therefore not an implemented capability or acceptance claim; any future lease must be separate coordination, never a replacement for CAS/immutable results. Scheduling, retention/GC, quotas already consumed by orphan staging, native concurrency and hosted activation remain separate gates.
 
