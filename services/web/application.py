@@ -26,6 +26,7 @@ from selflearn_core.store.supabase_journal import SupabaseReceiptJournal
 from selflearn_core.types import Outcome, Prediction
 from .security import OwnerBoundary, MAX_IMAGE
 from .nfl_ingestion import register_nfl_routes
+from . import private_uploads
 
 ROOT = Path(__file__).resolve().parents[2]
 BUCKET = "selflearn-intake"
@@ -352,6 +353,7 @@ def create_app(*, store=None, env=None, journal_factory=None):
 
     @app.get("/api/uploads")
     def uploads():
+        private_uploads.require_private(db())
         rows = db().request("POST", f"/storage/v1/object/list/{BUCKET}", data={
             "prefix": "", "limit": 25, "offset": 0, "sortBy": {"column": "created_at", "order": "desc"}})
         return {"assets": [{"id": row["name"], "created_at": row.get("created_at"),
@@ -367,17 +369,13 @@ def create_app(*, store=None, env=None, journal_factory=None):
         except ValueError as exc:
             raise HTTPException(415, str(exc)) from None
         name = hashlib.sha256(data).hexdigest() + "." + extension
-        try:
-            await run_in_threadpool(db().request, "POST", f"/storage/v1/object/{BUCKET}/{name}", raw=data, content_type=mime)
-        except StoreConflict:
-            pass  # Content-addressed replay. There is no overwrite/delete API.
-        return {"id": name, "status": "stored privately; awaiting manual review", "analysis_performed": False}
+        return await run_in_threadpool(private_uploads.stage_upload, db(), name, data, mime)
 
     @app.get("/api/uploads/{asset_id}")
     def download(asset_id: str):
         if not ASSET.fullmatch(asset_id):
             raise HTTPException(404, "Asset not found")
-        payload = db().request("GET", f"/storage/v1/object/{BUCKET}/{asset_id}", binary=True)
+        payload = private_uploads.read_upload(db(), asset_id)
         return Response(payload, media_type="application/octet-stream", headers={
             "Content-Disposition": f'attachment; filename="{asset_id}"'})
 

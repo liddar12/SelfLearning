@@ -12,6 +12,7 @@ class FakeStore:
         self.predictions = {}
         self.outcomes = {}
         self.objects = {}
+        self.private_bucket = {"id": "selflearn-intake", "public": False}
 
     def status(self):
         return {"schema_version": 1, "predictions": len(self.predictions), "outcomes": len(self.outcomes), "models": 0}
@@ -36,6 +37,8 @@ class FakeStore:
                 for p in list(self.predictions.values())[-limit:][::-1]]
 
     def request(self, method, path, *, data=None, raw=None, content_type=None, binary=False):
+        if path == "/storage/v1/bucket/selflearn-intake":
+            return self.private_bucket
         if path.startswith("/storage/v1/object/list/"):
             return [{"name": name, "created_at": "2026-09-20T00:00:00Z"} for name in self.objects]
         name = path.rsplit("/", 1)[-1]

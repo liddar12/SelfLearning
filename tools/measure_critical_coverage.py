@@ -36,6 +36,7 @@ CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/outcome_revisions.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_calibration.py",
     "services/web/nfl_ingestion.py",
+    "services/web/private_uploads.py",
     "services/web/security.py",
     "services/web/application.py",
     "packages/selflearn-core/selflearn_core/store/supabase_store.py",
