@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-2:50 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+3:10 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -106,21 +106,27 @@ Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
 authorized actions. No weekly manual SQL is required by the intended pipeline.
 
-## Current follow-up — October 16, 2026, 2:50 a.m. CDT
+## Current follow-up — October 16, 2026, 3:10 a.m. CDT
 
 Local NFL participation mechanics `db531f44` pass 14 focused tests; generation
 binding foundation `398d3b54` passes 17 author/independent tests. Their combined
-NFL gate is running, not yet claimed green. They are not hooked into production;
+NFL gate passed: 2,412 feature tests, contracts, smoke and four model gates,
+exit 0; browser step 8 explicitly skipped. Subsequent ID-first injury and opt-in
+capture-hook edits are outside that frozen gate and need another combined run.
+They are not hooked into production;
 QB depth and in-window inactive policies remain held, not invented.
 
-Owner-intent foundation `1ac7325`, evidence `a5fc61a`, had 1,127 passing core/API
-tests and 38/38 critical files >90%. Follow-up fixes are independently verified
-but not yet committed: typed-provider-error redaction, pre-serialization byte
-accounting and readable-history capacity. Full current Python suite passes
-1,156 tests, no skips; coverage for the changed source must be rerun. Complete
-pre-follow-up SQL: 85 Node passed; 96 Python passed / seven native-only skipped.
-Near-capacity SQL exceeded the 12-second budget; duplicate validation is being
-removed and profiled without relaxing the timeout or claiming hosted readiness.
+Owner-intent hardening is committed as `615199d`; expanded cross-repository
+source inventory as `45b2a93`. The fresh full run passes **1,156 core/API tests,
+zero skips**, with **38/38 critical files >90%**, **7,262/7,568 = 95.9567%**
+executable lines and stable source/test/tool/head identities. Its NFL dependency
+checkout is a detached, unchanged `398d3b54`, not the concurrently edited runtime
+worktree. [Pinned report](../../reviews/2026-10-16-critical38-owner-hardened-coverage.json).
+Complete hardened SQL regressions: **86 Node passed, zero skips**; **96 Python
+passed / seven native-only skipped**, both exit 0. After removal of duplicate
+validation, the local worst-capacity rejection measured 7,297.118 ms instead of
+12,204.860 ms; the 12-second HTTP timeout and mandatory insert guard are unchanged.
+These local PostgreSQL-WASM timings are not HTTP/native/hosted acceptance.
 
 All new source is local and unreleased. No new whole-task credit is awarded for
 these foundations. See `OWNER_INTENT_JOURNAL.md`, `progress.json` and the newest

@@ -1,6 +1,6 @@
 # Owner-intent journal — local implementation boundary
 
-Revision 2 · October 16, 2026, 2:53 a.m. America/Chicago (CDT).
+Revision 3 · October 16, 2026, 3:10 a.m. America/Chicago (CDT).
 
 This additive journal records an operator's intent. It does **not** approve a
 statistical conclusion, activate an NFL calibrator or change serving. Local
@@ -170,5 +170,12 @@ All 12 focused SQL tests pass. These are in-process local timings, not native,
 HTTP or hosted Supabase performance proof; the timeout was not increased.
 
 The 1,127-test/38-file report above is retained as a **pre-follow-up** checkpoint.
-Refreshed complete coverage and full SQL regressions for the changed source are
-still required; older source hashes do not describe the follow-up revision.
+The fresh hardened run at engine `45b2a93` passes **1,156 core/API tests, zero
+skips**, **38/38 critical files >90%**, **7,262/7,568 = 95.9567%** executable
+lines, with stable measured source/test/tool/head hashes. It uses detached NFL
+`398d3b54`; current injury/hook edits are not included.
+[Current report](../../reviews/2026-10-16-critical38-owner-hardened-coverage.json).
+Complete hardened SQL reruns pass **86 Node tests, no skips**, and **96 Python
+tests / seven native-only skips**, exit 0. The storage foundation is local;
+domain authorization, a live consumer, native concurrency and hosted release
+acceptance remain incomplete.

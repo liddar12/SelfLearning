@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "as_of": "2026-10-16T02:50:00-05:00",
+  "as_of": "2026-10-16T03:10:00-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "requested_target": "2026-10-16T07:00:00-05:00",
@@ -41,6 +41,8 @@
     "SelfLearning_trace_bridge_verification": "744cef8",
     "SelfLearning_owner_intent_foundation": "1ac7325",
     "SelfLearning_owner_intent_first_coverage": "a5fc61a",
+    "SelfLearning_owner_intent_hardening": "615199d",
+    "SelfLearning_expanded_dependency_inventory": "45b2a93",
     "NFL2026_final_participation_candidate": "db531f44",
     "NFL2026_generation_semantic_foundation": "398d3b54"
   },

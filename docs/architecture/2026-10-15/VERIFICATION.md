@@ -2,7 +2,7 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Current follow-up — October 16, 2026, 2:50 a.m. CDT
+## Current follow-up — October 16, 2026, 3:10 a.m. CDT
 
 Task credit is **49/99 (49.5%)** after reopening S016-T1. Original 33 documented
 holds are retained, but a genuine same-ID OUT report was missed through the
@@ -11,15 +11,21 @@ and independent same-input comparative audit remain unfinished.
 
 NFL `db531f44` participation mechanics: 14 focused tests passed, no skips.
 Generation foundation `398d3b54`: 17 author/independent tests passed, no skips.
-The combined full NFL gate is running; no green/release claim yet.
+The combined full NFL gate passes 2,412 feature tests, contracts, smoke and four
+model gates, exit 0. Browser step 8 is skipped; this is not a release pass.
+New uncommitted injury/capture-hook changes need their own exact-revision gate.
 
 Engine foundation `1ac7325`, evidence `a5fc61a`: 1,127 core/API tests passed,
 38/38 critical files >90%, 7,235/7,538 = 95.9804% executable lines. Subsequent
 review fixed typed-error redaction, serialization allocation and readable-history
 capacity. Current full Python suite is 1,156 passed, zero skipped, exit 0;
-refreshed coverage is pending. Complete SQL before those follow-ups: 85 Node
-passed, 96 Python passed / seven native-only skipped, exit 0. Current SQL capacity
-and latency checks are still being finalized, not a hosted-performance pass.
+the fresh hardened report at engine `45b2a93` passes **38/38 critical files >90%**,
+**7,262/7,568 = 95.9567%**, with all measured source/test/tool/head identities
+stable. NFL dependencies are frozen at detached `398d3b54`.
+[Current coverage](../../reviews/2026-10-16-critical38-owner-hardened-coverage.json).
+Complete hardened SQL: **86 Node passed, zero skipped**; **96 Python passed /
+seven native-only skipped**, both exit 0. The local 7,297.118 ms near-capacity
+rejection is not native/HTTP/hosted performance acceptance; no timeout changed.
 
 All source remains local, off by default where applicable, and unactivated.
 The earlier dated sections below describe historical, not current, task credit.

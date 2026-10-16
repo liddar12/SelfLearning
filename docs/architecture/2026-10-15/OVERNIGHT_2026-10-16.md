@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 5 · October 16, 2026, 2:50 a.m. America/Chicago (CDT).
+Revision 6 · October 16, 2026, 3:10 a.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; not a completion guarantee.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -16,14 +16,19 @@ story acceptance, production readiness and accuracy remain separate measures.
 ## Latest follow-up
 
 Participation mechanics `db531f44` (14 focused tests) and MY generation binding
-`398d3b54` (17 focused tests) are committed locally; combined NFL gate is running.
+`398d3b54` (17 focused tests) are committed locally; their combined NFL gate passes
+2,412 feature tests, contracts, smoke and four model gates, exit 0. Browser step 8
+is skipped. Current injury/capture-hook edits require a new frozen combined run.
 Both remain non-live foundations with explicit unknown/unsupported boundaries.
-Owner-intent foundation `1ac7325` and evidence `a5fc61a` are local; independently
-reviewed Python/SQL capacity and error-boundary follow-ups are in progress.
-Current full Python suite: 1,156 passed, no skips, exit 0. Its refreshed coverage
-is pending. Pre-follow-up full SQL: 85 Node passed, 96 Python passed / seven
-native-only skips, exit 0. Native/hosted/browser/real-Storage acceptance remains
-unverified; near-capacity SQL latency is being profiled, not timeout-relaxed.
+Owner-intent hardening `615199d` and source inventory `45b2a93` are local.
+Fresh full Python suite: **1,156 passed, no skips, exit 0**; **38/38 critical files
+>90%**, 7,262/7,568 = **95.9567%**, source/test/tool/head identities stable.
+[Measured report](../../reviews/2026-10-16-critical38-owner-hardened-coverage.json)
+uses detached NFL `398d3b54`, not the active edited worktree. Complete hardened
+SQL: **86 Node passed, no skips**; **96 Python passed / seven native-only skips**,
+exit 0. Near-capacity local SQL rejection now measures 7,297.118 ms; mandatory
+validation and the 12-second HTTP timeout are unchanged. Native/hosted/browser/
+real-Storage acceptance remains unverified.
 
 ## Earlier committed checkpoint — 2:02 a.m. CDT
 
