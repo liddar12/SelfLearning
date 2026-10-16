@@ -24,8 +24,10 @@ from zoneinfo import ZoneInfo
 CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/store/receipt_journal.py",
     "packages/selflearn-core/selflearn_core/store/supabase_journal.py",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_observed_journal.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_resolution.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_observed_resolution.py",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_observed_job.py",
     "packages/selflearn-core/selflearn_core/outcome_revisions.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_calibration.py",
     "services/web/nfl_ingestion.py",
@@ -89,7 +91,9 @@ class SuiteResults:
         self.outcomes = Counter()
 
     def pytest_collection_finish(self, session):
-        self.collected = session.testscollected
+        # pytest assigns session.testscollected only after this hook returns.
+        # The authoritative collected items already exist at this boundary.
+        self.collected = len(session.items)
 
     def pytest_runtest_logreport(self, report):
         if report.when == "call":

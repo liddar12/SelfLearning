@@ -2,7 +2,7 @@
 // WASM. No HTTP listener, secret, production URL or SQL emulation is involved.
 import assert from 'node:assert/strict';
 import { createInterface } from 'node:readline';
-import { openDatabase, serviceRpc } from './harness.mjs';
+import { openDatabase, openObservedDatabase, serviceRpc } from './harness.mjs';
 
 const params = Object.freeze({
   selflearn_journal_append_receipt_v1: ['p_receipt_json'],
@@ -10,9 +10,12 @@ const params = Object.freeze({
   selflearn_journal_commit_generation_v1: ['p_object_id', 'p_receipts_json', 'p_rejections_json'],
   selflearn_journal_append_resolution_v1: ['p_revision_json'],
   selflearn_journal_read_v1: ['p_view', 'p_key', 'p_after', 'p_limit', 'p_watermark'],
+  selflearn_journal_read_observed_v1: ['p_view', 'p_key', 'p_after', 'p_limit', 'p_watermark'],
+  selflearn_journal_commit_observed_v1: ['p_batch_json', 'p_watermark'],
 });
 
-const db = await openDatabase();
+const db = process.env.SELFLEARN_OBSERVED_JOURNAL_TEST === '1'
+  ? await openObservedDatabase() : await openDatabase();
 const lines = createInterface({ input: process.stdin, crlfDelay: Infinity });
 const write = value => process.stdout.write(JSON.stringify(value) + '\n');
 

@@ -2,8 +2,9 @@
 from pathlib import Path
 import sys
 import threading
+from types import SimpleNamespace
 
-from tools.measure_critical_coverage import CriticalTrace, executable_lines, summarize_file
+from tools.measure_critical_coverage import CriticalTrace, SuiteResults, executable_lines, summarize_file
 
 
 def target(tmp_path):
@@ -63,3 +64,9 @@ def test_runctx_retains_exit_code_in_explicit_globals_and_locals(tmp_path):
     context = {}
     CriticalTrace([path]).runctx("exit_code = 0", context, context)
     assert context["exit_code"] == 0
+
+
+def test_collection_hook_counts_items_before_pytest_updates_session_total():
+    results = SuiteResults()
+    results.pytest_collection_finish(SimpleNamespace(testscollected=0, items=[object(), object()]))
+    assert results.collected == 2

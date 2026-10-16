@@ -5,6 +5,7 @@ import { isAbsolute, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const migration = new URL('../../supabase/migrations/20261015222425_receipt_journal_v1.sql', import.meta.url);
+export const observedMigration = new URL('../../supabase/migrations/20261015233134_observed_journal_v1.sql', import.meta.url);
 
 // The test dependency is supplied explicitly. Never download a package, use an
 // unpinned CDN, open a socket, or silently replace PostgreSQL with SQLite.
@@ -27,6 +28,19 @@ export async function openDatabase() {
       CREATE ROLE authenticated NOLOGIN;
       CREATE ROLE service_role NOLOGIN BYPASSRLS;
     `);
+    await db.exec(sql);
+    return db;
+  } catch (error) {
+    await db.close();
+    throw error;
+  }
+}
+
+export async function openObservedDatabase() {
+  const db = await openDatabase();
+  try {
+    const sql = await readFile(observedMigration, 'utf8');
+    assert.ok(sql.trim(), 'Observed journal migration must contain actual SQL');
     await db.exec(sql);
     return db;
   } catch (error) {
