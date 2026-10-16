@@ -6,12 +6,13 @@
   <meta name="description" content="Private prediction records, outcomes, and screenshot intake for the SelfLearning engine.">
   <title>SelfLearning · Control room</title>
   <link rel="stylesheet" href="/style.css">
+  <script src="/nfl-trace.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="#overview"><span class="brand-mark" aria-hidden="true">sl.</span>SelfLearning</a>
-    <nav aria-label="Main navigation"><a href="#overview">Overview</a><a href="#intake">Intake</a><a href="#connect">Connect</a></nav>
+    <nav aria-label="Main navigation"><a href="#overview">Overview</a><a href="#forecast-trace">NFL trace</a><a href="#intake">Intake</a><a href="#connect">Connect</a></nav>
     <span class="badge">L0 · Observe only</span>
   </header>
   <main>
@@ -38,6 +39,14 @@
       <div class="section-heading"><div><p class="eyebrow">SHARED MEMORY</p><h2 id="records-heading">Recent predictions</h2></div><span class="muted">Latest 25 records</span></div>
       <div id="records" class="empty">Unlock to inspect real records. No example results or fabricated accuracy are shown.</div>
     </section>
+    <section id="forecast-trace" class="panel" aria-labelledby="trace-heading">
+      <p class="eyebrow">FROZEN FORECAST EVIDENCE / READ ONLY</p><h2 id="trace-heading">NFL forecast trace</h2>
+      <p>Search internal receipt, contract or event IDs. This journal is separate from imported predictions above. Management MCP connectivity does not verify this learning loop.</p>
+      <form id="trace-form"><label for="trace-query">Receipt, contract or event ID (optional)</label><div class="input-row"><input id="trace-query" maxlength="128" autocomplete="off" placeholder="sha256:… or nfl:2026:game:…" disabled data-private><button id="trace-search" type="submit" disabled data-private>Search journal</button></div></form>
+      <p id="trace-state" class="notice" role="status" aria-live="polite">Locked. Internal forecast evidence has not been loaded.</p>
+      <div id="trace-list"></div><div id="trace-detail" class="trace-detail" aria-live="polite">Select a forecast after unlocking.</div>
+      <p class="hint">Pending means no accepted final in the pinned journal snapshot, not necessarily an unfinished game. Source freshness, public publication and approved model adoption are not inferred.</p>
+    </section>
     <section id="intake" class="section-heading"><div><p class="eyebrow">EVIDENCE IN</p><h2>Capture before you evaluate</h2></div></section>
     <div class="two-column">
       <section class="panel" aria-labelledby="upload-heading"><h3 id="upload-heading">Private screenshot intake</h3><p>Save a parlay or other prediction screenshot as evidence. This release stores the original privately; it does not interpret or grade it.</p>
@@ -52,7 +61,7 @@
     <section class="panel" id="connect" aria-labelledby="connect-heading">
       <div class="section-heading"><div><p class="eyebrow">ONE ENGINE, MANY ADAPTERS</p><h2 id="connect-heading">Connect through MCP</h2></div><span class="badge">Read-only tools</span></div>
       <p>For clients that support Streamable HTTP with a custom bearer header. OAuth-only clients need additional integration.</p>
-      <dl class="connection"><dt>Endpoint</dt><dd><code id="mcp-url">/mcp</code></dd><dt>Authentication</dt><dd><code>Authorization: Bearer &lt;owner access key&gt;</code></dd><dt>Tools</dt><dd><code>get_status</code>, <code>list_tasks</code>, <code>list_predictions</code></dd></dl>
+      <dl class="connection"><dt>Endpoint</dt><dd><code id="mcp-url">/mcp</code></dd><dt>Authentication</dt><dd><code>Authorization: Bearer &lt;owner access key&gt;</code></dd><dt>Tools</dt><dd><code>get_status</code>, <code>list_tasks</code>, <code>list_predictions</code>, <code>get_nfl_forecast_trace</code></dd></dl>
       <div class="roadmap"><div><span class="pill ready">Implemented</span><h3>Shared foundation</h3><p>Protected API and read tools. Durable store readiness is checked after unlocking.</p></div><div><span class="pill">Next</span><h3>NFL2026 adapter</h3><p>Frozen pre-kickoff snapshots, verified settlement, and versioned evaluation. Production connection not verified.</p></div><div><span class="pill">Later</span><h3>Cross-domain learning</h3><p>Task-specific scoring, candidates, held-out tests, and approved model releases. No universal model is implied.</p></div></div>
     </section>
     <footer>SelfLearning · A reusable engine, not a promise of prediction accuracy.<br>Vercel application / Supabase persistence · NFL2026 production is unchanged.</footer>

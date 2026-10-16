@@ -140,7 +140,7 @@ def test_real_mcp_protocol_and_read_only_tool_surface(client):
     listing = client.post("/mcp", headers=headers, json={"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     assert listing.status_code == 200
     tools = listing.json()["result"]["tools"]
-    assert {t["name"] for t in tools} == {"get_status", "list_tasks", "list_predictions"}
+    assert {t["name"] for t in tools} == {"get_status", "list_tasks", "list_predictions", "get_nfl_forecast_trace"}
     assert all(t["annotations"]["readOnlyHint"] for t in tools)
     called = client.post("/mcp", headers=headers, json={"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {
         "name": "get_status", "arguments": {}}})

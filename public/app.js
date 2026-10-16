@@ -3,6 +3,7 @@
   const $ = id => document.getElementById(id);
   let ownerKey = '';
   let generation = 0;
+  const forecastTrace = createNFLTraceUI({ document, request, epoch: () => generation, unlocked: () => Boolean(ownerKey) });
   $('mcp-url').textContent = `${location.origin}/mcp`;
   function notice(message, error = false) {
     $('notice').textContent = message;
@@ -10,15 +11,18 @@
   }
   function lock() {
     ownerKey = ''; generation++;
+    $('unlock').disabled = false;
     $('access-form').hidden = false; $('connected').hidden = true;
     $('access-form').reset(); $('record-form').reset(); $('upload-form').reset();
     document.querySelectorAll('[data-private]').forEach(el => { el.disabled = true; });
     for (const id of ['prediction-count', 'outcome-count', 'model-count']) $(id).textContent = '—';
     $('records').textContent = 'Workspace locked. No private records are displayed.';
     $('uploads').textContent = 'Unlock to view private uploads.';
+    forecastTrace.reset();
     notice('Workspace locked. Your access key and displayed data have been cleared.');
   }
   async function request(path, options = {}, binary = false) {
+    const requestEpoch = generation;
     const response = await fetch(path, {
       ...options, credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(45000),
       headers: { ...options.headers, Authorization: `Bearer ${ownerKey}` }
@@ -26,7 +30,7 @@
     if (!response.ok) {
       let detail = 'Request failed. Please retry.';
       try { detail = (await response.json()).detail || detail; } catch (_) { /* no upstream HTML */ }
-      if (response.status === 401) lock();
+      if (response.status === 401 && requestEpoch === generation) lock();
       throw new Error(typeof detail === 'string' ? detail : 'Invalid request.');
     }
     return binary ? response.blob() : response.json();
@@ -61,37 +65,46 @@
           if (epoch !== generation) return;
           const url = URL.createObjectURL(blob); const a = document.createElement('a');
           a.href = url; a.download = asset.id; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } catch (error) { notice(error.message, true); }
+        } catch (error) { if (epoch === generation) notice(error.message, true); }
       });
       row.append(download); $('uploads').append(row);
     }
   }
   async function refresh() {
     const epoch = generation;
-    const [status, records, uploads] = await Promise.all([
+    const [statusResult, records, uploads] = await Promise.allSettled([
       request('/api/status'), request('/api/predictions'), request('/api/uploads')
     ]);
     if (epoch !== generation) return false;
+    if (statusResult.status !== 'fulfilled') throw statusResult.reason;
+    const status = statusResult.value;
     $('prediction-count').textContent = status.store.predictions;
     $('outcome-count').textContent = status.store.outcomes;
     $('model-count').textContent = status.store.models;
-    renderRecords(records.records); renderUploads(uploads.assets);
+    if (records.status === 'fulfilled') renderRecords(records.value.records);
+    else $('records').textContent = 'Prediction records unavailable. Refresh to retry; no records are inferred.';
+    if (uploads.status === 'fulfilled') renderUploads(uploads.value.assets);
+    else $('uploads').textContent = 'Private uploads unavailable. Verify the private bucket configuration before retrying.';
     return true;
   }
   $('access-form').addEventListener('submit', async event => {
     event.preventDefault(); ownerKey = $('access-key').value.trim(); generation++;
+    const epoch = generation;
     $('access-key').value = ''; $('unlock').disabled = true; notice('Checking private workspace…');
     try {
-      if (!await refresh()) return;
+      if (!await refresh() || epoch !== generation) return;
       $('access-form').hidden = true; $('connected').hidden = false;
       document.querySelectorAll('[data-private]').forEach(el => { el.disabled = false; });
+      forecastTrace.load();
       notice('Connected to the shared store. Automatic learning and model promotion are off.');
-    } catch (error) { lock(); notice(error.message, true); }
-    finally { $('unlock').disabled = false; }
+    } catch (error) { if (epoch === generation) { lock(); notice(error.message, true); } }
+    finally { if (epoch === generation) $('unlock').disabled = false; }
   });
   $('lock').addEventListener('click', lock);
   $('refresh').addEventListener('click', async () => {
-    try { if (await refresh()) notice('Workspace refreshed.'); } catch (error) { notice(error.message, true); }
+    const epoch = generation;
+    try { if (await refresh() && epoch === generation) { forecastTrace.load(); notice('Workspace refreshed.'); } }
+    catch (error) { if (epoch === generation) notice(error.message, true); }
   });
   $('upload-form').addEventListener('submit', async event => {
     event.preventDefault(); const file = $('upload-file').files[0]; if (!file) return;
@@ -102,9 +115,10 @@
     try {
       const result = await request('/api/uploads', { method: 'POST', headers: { 'Content-Type': file.type }, body: file });
       if (epoch !== generation) return;
-      $('upload-form').reset(); await refresh(); notice(result.status + '. No AI analysis was performed.');
-    } catch (error) { notice(error.message, true); }
-    finally { button.disabled = !ownerKey; }
+      $('upload-form').reset();
+      if (await refresh() && epoch === generation) notice(result.status + '. No AI analysis was performed.');
+    } catch (error) { if (epoch === generation) notice(error.message, true); }
+    finally { if (epoch === generation) button.disabled = !ownerKey; }
   });
   $('record-form').addEventListener('submit', async event => {
     event.preventDefault(); const button = event.submitter; button.disabled = true; const epoch = generation;
@@ -112,9 +126,9 @@
       const value = JSON.parse($('record-json').value);
       await request(`/api/${$('record-type').value}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
       if (epoch !== generation) return;
-      await refresh(); notice('Record saved (or identical replay confirmed). Imported data remains unverified.');
-    } catch (error) { notice(error instanceof SyntaxError ? 'Enter valid JSON before saving.' : error.message, true); }
-    finally { button.disabled = !ownerKey; }
+      if (await refresh() && epoch === generation) notice('Record saved (or identical replay confirmed). Imported data remains unverified.');
+    } catch (error) { if (epoch === generation) notice(error instanceof SyntaxError ? 'Enter valid JSON before saving.' : error.message, true); }
+    finally { if (epoch === generation) button.disabled = !ownerKey; }
   });
   $('example').addEventListener('click', () => {
     const ts = Math.floor(Date.now() / 1000) - 86400;

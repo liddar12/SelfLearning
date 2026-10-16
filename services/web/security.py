@@ -8,6 +8,7 @@ MAX_JSON = 256 * 1024
 MAX_IMAGE = 3 * 1024 * 1024
 MAX_LEARNING_JSON = 3 * 1024 * 1024
 NFL_INGEST_PATHS = frozenset(("/api/v1/nfl/objects", "/api/v1/nfl/generations"))
+NFL_CAPTURE_PATHS = frozenset(("/api/v1/nfl/capture-chunks", "/api/v1/nfl/capture-deliveries"))
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
@@ -18,9 +19,10 @@ SECURITY_HEADERS = {
 
 
 class OwnerBoundary:
-    def __init__(self, app, *, token: str, origins: set[str], ingest_token: str = ""):
+    def __init__(self, app, *, token: str, origins: set[str], ingest_token: str = "", capture_token: str = ""):
         self.app, self.token, self.origins = app, token, origins
         self.ingest_token = ingest_token
+        self.capture_token = capture_token
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -44,10 +46,14 @@ class OwnerBoundary:
             await JSONResponse({"detail": detail}, status_code=status, headers=headers)(scope, receive, secure_send)
 
         if private:
+            if any(type(key) is not str for key in (self.token, self.ingest_token, self.capture_token)):
+                return await reject(503, "Scoped access is not configured")
             nfl_ingest = path in NFL_INGEST_PATHS
-            credential = self.ingest_token if nfl_ingest else self.token
+            nfl_capture = path in NFL_CAPTURE_PATHS or path.startswith("/api/v1/nfl/capture-deliveries/")
+            credential = self.capture_token if nfl_capture else self.ingest_token if nfl_ingest else self.token
+            configured = [k for k in (self.token, self.ingest_token, self.capture_token) if k]
             if (len(credential) < 32 or credential == "[SENSITIVE]"
-                    or (self.ingest_token and self.ingest_token == self.token)):
+                    or len(configured) != len(set(configured))):
                 return await reject(503, "Scoped access is not configured")
             headers = {k.lower(): v for k, v in scope.get("headers", [])}
             expected = ("Bearer " + credential).encode()
@@ -56,7 +62,7 @@ class OwnerBoundary:
             origin = headers.get(b"origin")
             if origin and origin.decode("latin-1") not in self.origins:
                 return await reject(403, "Origin not allowed")
-            maximum = (MAX_LEARNING_JSON if nfl_ingest else MAX_IMAGE
+            maximum = (MAX_LEARNING_JSON if nfl_ingest or nfl_capture else MAX_IMAGE
                        if path == "/api/uploads" and scope["method"] == "POST" else MAX_JSON)
             try:
                 length = int(headers.get(b"content-length", b"0"))
