@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-1:50 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+2:41 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -85,9 +85,29 @@ NFL **2,468 feature tests pass**, zero failed/skipped, contracts/smoke/four mode
 gates pass, browser step 8 skips. [Corrected paired report](../../reviews/2026-10-16-critical48-nfl-pilot-r2-coverage.json).
 Preserve the original red log; do not replace the old result with a later pass.
 
+The follow-up NFL checkpoint `49bcd2ac` fixes exact-commit publication checking,
+retains raw captures in the repository, and adds MODEL's saved shadow metrics,
+cohort counts, hold reason and evaluation age. Failed/skipped attempts cannot
+restamp an old evaluation; a numeric pass remains measure-only. The standalone
+capture exporter still refuses sports-data writes; the explicit controller sink
+fixes the real checkout path, tested with the actual producer/shared evaluator
+and fixture transport, not an actual provider fetch. Committed Git data is
+checked through bounded private temporary materialization; this is not provider
+authentication or Netlify serving proof.
+
+Frozen pair engine `9738ead346a0e529ad31145ab3bb7457e07f177c` / NFL
+`49bcd2ac532f0714b1a8723fdb0be2dfee182a19`: **1,363 core/API pass**, zero skips,
+**48/48 critical files >90%**, **96.4183%** stable executable-line coverage;
+**2,482 NFL features pass**, zero failed/skipped, contracts/smoke/four model
+gates pass. Both terminal exits are **0**; browser step 8 skips. The coverage
+report pins 35 NFL provenance files, without dropping any engine target.
+[Latest paired report](../../reviews/2026-10-16-critical48-committed-status-coverage.json).
+
 Next: actual compatible future-generation consumer plus owner approval/rollback;
-Model/Review last success/failure, freshness and cohort/hold metrics; shared-leg/
-game exposure; exact current-main, fresh-pipeline and served-site acceptance.
+Review and remaining Model subgroup/manifest visibility; Game/MY shared-leg/game
+exposure (Week already has a panel); exact current-main, fresh-pipeline and
+served-site acceptance. Approval scope is an unanswered owner choice, not
+activation authority. S023-T1 is partial, with no new whole-task credit.
 The local data snapshot has zero new-format learning journals. New production
 generations must create real records; old card archives cannot substitute.
 Expect a correct HOLD when sufficient multiweek evidence is unavailable.

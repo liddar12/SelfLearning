@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 1:50 p.m. CDT: use the
+Implementation status updated October 16, 2026, 2:41 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -12,7 +12,7 @@ The owner selected **A, NFL Actions first**, for the **Sunday, October 18,
 → shared evaluation path passes its corrected full regression runs. This uses
 pinned shared Python code and existing Netlify/Actions, without making new
 Supabase migrations or Vercel access a Sunday prerequisite. Actual future-model
-adoption/rollback, visible status and live acceptance remain unfinished. The
+adoption/rollback, complete status/exposure and live acceptance remain unfinished. The
 full hosted architecture below remains the follow-on plan.
 
 Use the existing Vercel Python backend and Supabase project, preserve NFL2026's Netlify PWA, and build a durable shadow learning loop before activating any candidate. The Production operator token is already configured per the owner; no replacement token or recreation of the production project is needed. The new journal still requires a reviewed migration, and isolated staging needs its own database/project and credentials before hosted testing.
@@ -35,7 +35,20 @@ No additional `SELFLEARN_OPERATOR_TOKEN` setup is needed. If convenient, confirm
 
 The implementation team should perform the authenticated API/database test, reconcile migration history, create narrow pipeline credentials and prepare the reviewed release. A separate `SELFLEARN_NFL_INGEST_TOKEN` is needed for the Vercel verifier and NFL GitHub Actions when delivery is enabled; never reuse the operator token. The new journal selector is an explicit rollout switch, not a setting to enable before migration/release checks. The owner remains the authority for production migrations/deployment, changing the portfolio objective and model activation. The plan does not require buying another provider or enabling automatic promotion.
 
-## Current local pilot checkpoint October 16 1:50 p.m. CDT
+## Current local pilot checkpoint October 16 2:41 p.m. CDT
+
+NFL `49bcd2ac` adds exact committed-data publication checks, retained raw capture
+replay and MODEL's saved shadow metrics, counts, hold reasons and evaluation age.
+Engine tooling `9738ead` pins the expanded 35-file NFL provenance inventory.
+Frozen paired tests finish exit **0**: **1,363 core/API pass**, zero skips;
+**48/48 critical engine files >90%**, stable **96.4183%** executable lines;
+**2,482 NFL features pass**, zero failed/skipped, plus contracts/smoke/four model
+gates. Browser step 8 skips. [Paired evidence](../../reviews/2026-10-16-critical48-committed-status-coverage.json).
+No candidate is activated. Review/Parlay exposure, actual future-consumption/
+rollback and live acceptance remain unfinished; whole-task completion stays
+**50/99**. Existing R1 visuals remain the baseline; nothing is pushed/deployed.
+
+## Earlier local pilot checkpoint October 16 1:50 p.m. CDT
 
 Engine runtime `0e5b697`, tests `8460a71`, frozen pair `1468da7` with NFL
 `92b2b5a0`: **1,363 core/API tests pass**, zero skips; **48/48 critical files

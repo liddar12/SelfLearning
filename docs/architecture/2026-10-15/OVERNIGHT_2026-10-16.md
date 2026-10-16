@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 10 · October 16, 2026, 1:50 p.m. America/Chicago (CDT).
+Revision 11 · October 16, 2026, 2:41 p.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; **not met**.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -16,6 +16,27 @@ No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
 ## Latest follow-up
+
+NFL `49bcd2ac` now checks the exact committed feedback/source/raw tree before
+publication, fixes the controller's real-checkout outcome sink while retaining
+the standalone exporter protection, and exposes saved shadow metrics/counts,
+hold reasons and evaluation age on MODEL. Failed/skipped attempts do not become
+fresh successes; a numeric pass does not activate a candidate.
+
+Frozen pair `9738ead` / `49bcd2ac` passes **1,363 core/API** tests, zero skips,
+**48/48 critical engine files >90%**, stable **96.4183%** executable lines;
+**2,482 NFL features**, zero failed/skipped, contracts/smoke/four model gates,
+both terminal exits **0**. Browser step 8 skips. Focused new tests: **29 pass**;
+guard/status readers 109/109 and 103/103 lines, not branch/browser proof.
+[Paired report](../../reviews/2026-10-16-critical48-committed-status-coverage.json).
+
+Actual future-serving adoption/rollback, remaining Review/Model visibility,
+Game/MY exposure and fresh-pipeline/served-site acceptance remain. Approval
+scope is still an unanswered owner choice. S023-T1 is partial; whole-task credit
+stays **50/99**. The default is off; no cloud/source-data writes, deployment or
+accuracy improvement is claimed. Generated test data stays in scratch fixtures.
+
+## Earlier follow-up 1:50 p.m. CDT
 
 The owner selected **A: NFL Actions first**, with a pinned shared Python engine,
 for **Sunday, October 18, 10:00 a.m. CDT**. Engine `0e5b697` / `8460a71` now joins

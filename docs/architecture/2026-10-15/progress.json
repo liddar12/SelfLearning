@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "as_of": "2026-10-16T13:50:00-05:00",
+  "as_of": "2026-10-16T14:41:00-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "requested_target": "2026-10-16T07:00:00-05:00",
   "target_note": "The owner-requested07:00CDT target was not met. It was not release authorization; full scope is unchanged and genuine future graded weeks remain required for prospective acceptance.",
-  "sunday_pilot": {"owner_choice":"A","requested_target":"2026-10-18T10:00:00-05:00","route":"NFL Actions plus pinned shared Python engine; hosted expansion follows","status":"local capture/outcome/correction/evaluation slice passes corrected full gates; not live","production_authorized":false,"remaining":"actual future-serving adoption/rollback, visible Model/Review/freshness/exposure, fresh published generation and browser acceptance","whole_task_credit_added":0},
+  "sunday_pilot": {"owner_choice":"A","requested_target":"2026-10-18T10:00:00-05:00","route":"NFL Actions plus pinned shared Python engine; hosted expansion follows","status":"local complete-source feedback, committed-data checks and saved MODEL shadow status pass frozen full gates; not live","production_authorized":false,"remaining":"actual future-serving adoption/rollback, Review/remaining Model visibility, Game/MY exposure, fresh published generation and browser acceptance","approval_scope_question":"Pending owner choice: pinned candidate for eligible Week6 refreshes versus exact generation; no activation authorization inferred","whole_task_credit_added":0},
   "source_checkpoints": {
     "NFL2026_runtime": "1bd076ac",
     "NFL2026_evidence": "d85de971",
@@ -62,23 +62,28 @@
     "SelfLearning_repository_feedback_tests": "8460a71",
     "SelfLearning_repository_feedback_first_coverage": "1468da7",
     "NFL2026_repository_feedback": "903d5ff6",
-    "NFL2026_repository_feedback_guard": "92b2b5a0"
+    "NFL2026_repository_feedback_guard": "92b2b5a0",
+    "NFL2026_committed_feedback_and_MODEL_status": "49bcd2ac532f0714b1a8723fdb0be2dfee182a19",
+    "SelfLearning_committed_status_provenance": "9738ead346a0e529ad31145ab3bb7457e07f177c"
   },
   "latest_local_verification": {
-    "NFL2026": {"source_head": "92b2b5a0756b19c064a5b74fc21f721513b2d655", "exit_code": 0, "feature_passed": 2468, "feature_failed":0, "feature_skipped": 0, "contracts_smoke_and_four_model_gates": "pass", "browser_step_8": "skipped", "release_accepted": false, "log": "/private/tmp/nfl-parlay-feedback-full-gate-r2-root-20261016.log", "corrected_focused_passed":66, "historical_first_pilot_run":{"source_head":"903d5ff6b5502c56cd91808b7a117920089b2aeb","exit_code":1,"feature_passed":2450,"feature_failed":4,"feature_skipped":1,"log":"/private/tmp/nfl-parlay-feedback-full-gate-root-20261016.log"}},
-    "SelfLearning": {"measured_head": "1468da73c584fc9d4cdcd552038385bfb1ba5250", "runtime_introduced_head": "0e5b697", "NFL_dependency_head": "92b2b5a0756b19c064a5b74fc21f721513b2d655", "core_API_passed": 1363, "skipped": 0, "pytest_exit_code": 0, "critical_targets_above_90_percent": "48/48", "executable_lines": "8372/8683", "first_pilot_evidence_commit": "1468da7", "report": "docs/reviews/2026-10-16-critical48-nfl-pilot-r2-coverage.json", "source_test_tool_heads_stable":true},
+    "NFL2026": {"source_head": "49bcd2ac532f0714b1a8723fdb0be2dfee182a19", "exit_code": 0, "feature_passed": 2482, "feature_failed":0, "feature_skipped": 0, "contracts_smoke_and_four_model_gates": "pass", "browser_step_8": "skipped", "release_accepted": false, "log": "/private/tmp/nfl-committed-feedback-status-full-gate-root-20261016.log", "latest_focused_passed":29, "previous_corrected_focused_passed":66, "historical_first_pilot_run":{"source_head":"903d5ff6b5502c56cd91808b7a117920089b2aeb","exit_code":1,"feature_passed":2450,"feature_failed":4,"feature_skipped":1,"log":"/private/tmp/nfl-parlay-feedback-full-gate-root-20261016.log"}},
+    "SelfLearning": {"measured_head": "9738ead346a0e529ad31145ab3bb7457e07f177c", "runtime_introduced_head": "0e5b697", "NFL_dependency_head": "49bcd2ac532f0714b1a8723fdb0be2dfee182a19", "core_API_passed": 1363, "skipped": 0, "pytest_exit_code": 0, "critical_targets_above_90_percent": "48/48", "executable_lines": "8372/8683", "first_pilot_evidence_commit": "1468da7", "report": "docs/reviews/2026-10-16-critical48-committed-status-coverage.json", "NFL_provenance_files":35, "source_test_tool_heads_stable":true},
     "complete_Node_SQL": {"source_head": "8460a71", "passed": 93, "skipped": 0, "exit_code": 0},
     "complete_Python_SQL": {"source_head": "8460a71", "passed": 101, "native_only_skipped": 7, "exit_code": 0, "native_job_concurrency_verified": false},
+    "SQL_carry_forward_basis":"No new SQL run: runtime/services/SQL tests byte-identical8460a71..9738ead, git diff exit0; prior SQL results retain their original scope",
     "separate_ledger_and_coverage_tool_tests": {"passed": 32, "exit_code": 0, "included_in_core_API_count": false}
   },
   "partial_task_evidence": {
+    "S023-T1":"NFL49bcd2ac: MODEL reads independently validated saved repository records, shows incumbent/candidate Brier/log loss when available, receipt-vintage/unique-graded/held-out counts, bounded exclusions and hold reasons, saved evaluation Chicago timestamp/age, failed/skipped attempts and measure_only state even for a numeric pass. Six focused status tests pass,103/103 executable lines; full2482-feature gate exit0 with browser8SKIP. Subgroup comparison, manifest navigation, Review/candidate journeys and actual browser acceptance remain incomplete; no whole-task credit.",
+    "Sunday_pilot_committed_status":"NFL49bcd2ac/engine9738ead: exact immutable Git-data verification before publisher attempts, retained original raw-capture replay and narrow real-checkout controller sink while standalone export protection remains.29focused tests pass0skip, guard109/109 andstatus103/103 executable lines; full2482NFLfeatures PASS0failed/skipped, contracts/smoke/4modelgates, browser8SKIP. Full1363core/API PASS0skip with48/48criticaltargets>90%,96.4183% stable and35NFLprovenance hashes. Local Git/actual producer/grader/kernel with fixture transport, not provider authentication, public offering, actual Actions or Netlify acceptance. No adoption, accuracy or whole-task credit.",
     "Sunday_pilot_A": "Owner selected Actions-first. Engine0e5b697/8460a71 prepares complete frozen-source state, independently binds exact raw outcomes/corrections and invokes the actual shared evaluator. NFL903d5ff6/92b2b5a0 adds default-off pinned workflow execution, immutable file publication and read-only source/pointer integrity checks before publication attempts; old reviewed injury validator and audit pins remain exact. Ten core plus15NFL pilot tests and66focused integrations pass. Corrected full pair1468da7/92b2b5a0:1363core/API PASS,48targets>90%,96.4183% stable;2468NFLfeatures PASS0failed/skipped pluscontracts/smoke/4modelgates, browser8SKIP. SQL93Node+101Python pass with7native-only skips. First903d5ff6RED2450passed/4failed/1skip remains historical. No actual Actions/hosted/adoption/accuracy or whole-task credit.",
     "S027-T1": "d3a5693 plus419c73a/e087541/605afd4: durable generic job definitions/events on real SQLite and PostgreSQL-WASM, immutable identity/controls and fenced checkpoint/recovery. An explicit v2 policy now runs the fixed real330-receipt NFL fitter in isolated credential-free Python with CPU/wall/pipe limits and original durable result recovery. Ingestion-completion/manual workflow wiring, canonical complete-journal scalable dataset assembly and distinct scoped evaluator API/credential remain incomplete; no task credit.",
     "S027-T2": "Current job reads expose explicit due/expired/busy/attempt/runtime/terminal state and immutable reason codes. Namespace backlog metrics, last-success/age dashboards, alerts and operational drills remain incomplete; no task credit.",
     "S027-T3": "419c73a/e087541/605afd4: duplicate identity/deadline, lease/head, late cron, attempts, completion reserve, original ACK, source changes and maximum legal47-event history pass. Actual v2 child CPU termination requires started-loop marker plus CPU-limit signal; file-growth refusal requires EFBIG, not an unrelated error. Wall timeout, bounded pipes, exited-leader descendant cleanup, cancellation and checkpoint-preserving worker_error release pass. Database-only late-commit rejection is not presented as preemption of v1. Native concurrent SQL, intended hosted runtime, parent IO/global memory/cost ceilings and operational drills remain incomplete; no task credit."
   },
-  "original_scope": {"epics": 12, "tasks": 93, "completed": 44, "partial": 34, "open": 15},
-  "expanded_scope": {"tasks": 99, "completed": 50, "partial": 34, "open_or_in_progress": 15},
+  "original_scope": {"epics": 12, "tasks": 93, "completed": 44, "partial": 35, "open": 14},
+  "expanded_scope": {"tasks": 99, "completed": 50, "partial": 35, "open_or_in_progress": 14},
   "extra_tasks": {
     "epic": "E02",
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
@@ -95,7 +100,7 @@
     {"id":"E05","completed":["S016-T1","S016-T2","S016-T3","S017-T1"],"partial":[],"open":["S017-T2","S017-T3"]},
     {"id":"E06","completed":["S018-T1","S018-T2","S018-T3"],"partial":["S019-T1","S019-T2","S019-T3"],"open":[]},
     {"id":"E07","completed":[],"partial":["S020-T3","S021-T1","S021-T2","S021-T3"],"open":["S020-T1","S020-T2"]},
-    {"id":"E08","completed":["S022-T1","S022-T2","S022-T3","S024-T3"],"partial":["S024-T1","S024-T2"],"open":["S023-T1","S023-T2","S023-T3"]},
+    {"id":"E08","completed":["S022-T1","S022-T2","S022-T3","S024-T3"],"partial":["S024-T1","S024-T2","S023-T1"],"open":["S023-T2","S023-T3"]},
     {"id":"E09","completed":[],"partial":["S025-T1","S026-T1"],"open":["S025-T2","S025-T3","S026-T2","S026-T3"]},
     {"id":"E10","completed":[],"partial":["S027-T1","S027-T2","S027-T3","S028-T1","S028-T2","S028-T3"],"open":[]},
     {"id":"E11","completed":["S029-T1","S029-T2","S029-T3"],"partial":["S031-T1","S031-T2","S031-T3"],"open":["S030-T1","S030-T2","S030-T3"]}

@@ -2,7 +2,39 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## NFL first pilot verification October 16 1:50 p.m. CDT
+## Committed feedback and saved MODEL status October 16 2:41 p.m. CDT
+
+Frozen engine `9738ead346a0e529ad31145ab3bb7457e07f177c` and NFL
+`49bcd2ac532f0714b1a8723fdb0be2dfee182a19` both finish terminal exit **0**.
+**1,363 core/API tests pass**, zero skips; all **48 critical engine files >90%**,
+**8,372/8,683 = 96.4183%** executable lines, minimum **90.6114%**. Source,
+test, tool and both Git head identities stay stable. The [paired report](../../reviews/2026-10-16-critical48-committed-status-coverage.json)
+was generated at **2:41:45 p.m. CDT** and includes 35 NFL provenance files.
+**2,482 NFL feature tests pass**, zero failed/skipped, plus contracts/smoke and
+four model gates. Browser step 8 skips, not passes. Supplemental coverage-tool
+and ledger tests: **32 pass**, exit 0, outside the core/API count.
+
+Focused controller/guard/status tests: **29 pass**, zero skips, exit 0. The guard
+and status reader cover 109/109 and 103/103 executable lines, not branch/layout
+acceptance. Real local Git, NFL producer, raw-byte grader and shared evaluator
+exercise concurrent working-tree removal, committed missing-source/raw refusal,
+checkout-shaped outcome persistence, original external capture disappearance,
+saved timestamps and shadow-only UI. Transport is synthetic; provider identity,
+public offering time, actual Actions and served-site behavior are not attested.
+The original injury validator and its reviewed source pins remain unchanged.
+
+Logs:
+`/private/tmp/nfl-committed-feedback-status-focused-r3-root-20261016.log`,
+`/private/tmp/nfl-committed-feedback-status-full-gate-root-20261016.log`, and
+`/private/tmp/selflearning-critical48-committed-status-root-20261016.log`.
+SQL was not rerun for this NFL/tooling change: engine runtime, services and SQL
+tests are byte-identical from `8460a71` through `9738ead` (diff exit 0). The
+previous 93 Node/101 Python passes and seven native-only skips retain their
+original scope. No push, deploy, migration, adoption or accuracy gain. Completion
+stays **50/99**; S023-T1 moves from open to partial, not complete. Existing R1
+visuals are unchanged.
+
+## Earlier NFL first pilot verification October 16 1:50 p.m. CDT
 
 Owner selected A, shared engine in NFL Actions, for the Sunday October 18
 10:00 a.m. CDT target. Engine runtime `0e5b697`, tests `8460a71`, first evidence
