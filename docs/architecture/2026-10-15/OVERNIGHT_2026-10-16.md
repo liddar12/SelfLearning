@@ -1,16 +1,31 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 4 · October 16, 2026, 2:02 a.m. America/Chicago (CDT).
+Revision 5 · October 16, 2026, 2:50 a.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; not a completion guarantee.
 
 This is local branch work, not a production release or an accuracy claim.
-The audited task ledger is **50/99 (50.5%)**. D2-T3 whole-group batching,
-S010-T2 exact cohort comparison and S016-T1 current Week6 eligibility have
-independent local-build approval.
+The audited task ledger is **49/99 (49.5%)**. D2-T3 whole-group batching and
+S010-T2 exact cohort comparison retain independent local-build approval.
+S016-T1 is reopened: full pinned data confirms the name-based injury join misses
+same-ID “Deebo Samuel Sr.” OUT. The old 33/19/14 audit remains historical truth,
+but did not check all negative source rows in the reverse direction. A consistent
+ID-first producer/independent validator fix and fresh comparative audit are next.
 No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
-## Committed locally
+## Latest follow-up
+
+Participation mechanics `db531f44` (14 focused tests) and MY generation binding
+`398d3b54` (17 focused tests) are committed locally; combined NFL gate is running.
+Both remain non-live foundations with explicit unknown/unsupported boundaries.
+Owner-intent foundation `1ac7325` and evidence `a5fc61a` are local; independently
+reviewed Python/SQL capacity and error-boundary follow-ups are in progress.
+Current full Python suite: 1,156 passed, no skips, exit 0. Its refreshed coverage
+is pending. Pre-follow-up full SQL: 85 Node passed, 96 Python passed / seven
+native-only skips, exit 0. Native/hosted/browser/real-Storage acceptance remains
+unverified; near-capacity SQL latency is being profiled, not timeout-relaxed.
+
+## Earlier committed checkpoint — 2:02 a.m. CDT
 
 Latest frozen combined verification: NFL `0ea4b003` full gate exit 0 with
 **2,381 feature tests**, contracts, smoke and four model gates; browser step 8

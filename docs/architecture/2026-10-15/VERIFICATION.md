@@ -2,7 +2,29 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Frozen combined checkpoint — October 16, 2026, 2:02 a.m. CDT
+## Current follow-up — October 16, 2026, 2:50 a.m. CDT
+
+Task credit is **49/99 (49.5%)** after reopening S016-T1. Original 33 documented
+holds are retained, but a genuine same-ID OUT report was missed through the
+legacy name join. Full frozen input/code blobs are verified; producer correction
+and independent same-input comparative audit remain unfinished.
+
+NFL `db531f44` participation mechanics: 14 focused tests passed, no skips.
+Generation foundation `398d3b54`: 17 author/independent tests passed, no skips.
+The combined full NFL gate is running; no green/release claim yet.
+
+Engine foundation `1ac7325`, evidence `a5fc61a`: 1,127 core/API tests passed,
+38/38 critical files >90%, 7,235/7,538 = 95.9804% executable lines. Subsequent
+review fixed typed-error redaction, serialization allocation and readable-history
+capacity. Current full Python suite is 1,156 passed, zero skipped, exit 0;
+refreshed coverage is pending. Complete SQL before those follow-ups: 85 Node
+passed, 96 Python passed / seven native-only skipped, exit 0. Current SQL capacity
+and latency checks are still being finalized, not a hosted-performance pass.
+
+All source remains local, off by default where applicable, and unactivated.
+The earlier dated sections below describe historical, not current, task credit.
+
+## Earlier frozen combined checkpoint — October 16, 2026, 2:02 a.m. CDT
 
 NFL source `0ea4b003` (including preview `a40393a3`, privacy `3fe68c73` and
 current-input `1a27db5f`): full gate exit **0**, **2,381 feature tests**, data

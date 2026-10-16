@@ -2,8 +2,10 @@
 
 Monorepo for three workstreams that share one self-learning spine.
 
-NFL integration checkpoint, October 16, 2026, 1:43 a.m. America/Chicago:
-[50/99 whole local-build tasks (50.5%)](docs/architecture/2026-10-15/progress.json).
+NFL integration checkpoint, October 16, 2026, 2:50 a.m. America/Chicago:
+[49/99 whole local-build tasks (49.5%)](docs/architecture/2026-10-15/progress.json).
+The current-input eligibility task was reopened after the full frozen data
+revealed a same-player-ID injury join miss; its correction/audit is in progress.
 See the [overnight handoff](docs/architecture/2026-10-15/OVERNIGHT_2026-10-16.md)
 and [verification boundaries](docs/architecture/2026-10-15/VERIFICATION.md).
 This work is local and unreleased; task completion is not production readiness,

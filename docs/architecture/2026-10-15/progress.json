@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "as_of": "2026-10-16T01:43:00-05:00",
+  "as_of": "2026-10-16T02:50:00-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "requested_target": "2026-10-16T07:00:00-05:00",
@@ -38,10 +38,14 @@
     "NFL2026_current_eligibility_acceptance": "1a27db5f",
     "SelfLearning_parity_attachment": "0cb777d",
     "SelfLearning_empty_journal_intake_verification": "624dc83",
-    "SelfLearning_trace_bridge_verification": "744cef8"
+    "SelfLearning_trace_bridge_verification": "744cef8",
+    "SelfLearning_owner_intent_foundation": "1ac7325",
+    "SelfLearning_owner_intent_first_coverage": "a5fc61a",
+    "NFL2026_final_participation_candidate": "db531f44",
+    "NFL2026_generation_semantic_foundation": "398d3b54"
   },
-  "original_scope": {"epics": 12, "tasks": 93, "completed": 44, "partial": 34, "open": 15},
-  "expanded_scope": {"tasks": 99, "completed": 50, "partial": 34, "open_or_in_progress": 15},
+  "original_scope": {"epics": 12, "tasks": 93, "completed": 43, "partial": 35, "open": 15},
+  "expanded_scope": {"tasks": 99, "completed": 49, "partial": 35, "open_or_in_progress": 15},
   "extra_tasks": {
     "epic": "E02",
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
@@ -55,7 +59,7 @@
     {"id":"E02","completed":["S007-T1","S007-T2","S007-T3","S008-T1","S008-T2","S009-T1","S009-T2","S009-T3"],"partial":["S008-T3"],"open":[]},
     {"id":"E03","completed":["S010-T1","S010-T2","S010-T3","S011-T1","S011-T2","S011-T3","S012-T1","S012-T2","S012-T3"],"partial":[],"open":[]},
     {"id":"E04","completed":["S013-T1","S013-T2","S013-T3","S014-T1","S014-T2","S014-T3"],"partial":["S015-T1","S015-T3"],"open":["S015-T2"]},
-    {"id":"E05","completed":["S016-T1","S016-T2","S016-T3","S017-T1"],"partial":[],"open":["S017-T2","S017-T3"]},
+    {"id":"E05","completed":["S016-T2","S016-T3","S017-T1"],"partial":["S016-T1"],"open":["S017-T2","S017-T3"]},
     {"id":"E06","completed":["S018-T1","S018-T2","S018-T3"],"partial":["S019-T1","S019-T2","S019-T3"],"open":[]},
     {"id":"E07","completed":[],"partial":["S020-T3","S021-T1","S021-T2","S021-T3"],"open":["S020-T1","S020-T2"]},
     {"id":"E08","completed":["S022-T1","S022-T2","S022-T3","S024-T3"],"partial":["S024-T1","S024-T2"],"open":["S023-T1","S023-T2","S023-T3"]},
@@ -63,6 +67,14 @@
     {"id":"E10","completed":[],"partial":["S027-T1","S027-T2","S027-T3","S028-T1","S028-T2","S028-T3"],"open":[]},
     {"id":"E11","completed":["S029-T1","S029-T2","S029-T3"],"partial":["S031-T1","S031-T2","S031-T3"],"open":["S030-T1","S030-T2","S030-T3"]}
   ],
+  "reopened_tasks": {
+    "S016-T1": {
+      "reopened_utc": "2026-10-16T07:50:00Z",
+      "previous_checkpoint": "NFL2026 1a27db5f",
+      "reason": "The prior audit checked documented holds but missed the reverse invariant that each unambiguous same-ID negative report must be gated. Frozen main0d49 contains athlete3126486 Deebo Samuel Sr. canonicalOUT while espn-3126486 has no availability/eligibility/this_week gate and week6pts10.77. Full original blobs and independent name-vs-ID comparison reproduce the miss; provider completeness and actual ticket membership are separate questions.",
+      "reacceptance": "Implement consistent ID-first producer and independently checked validator joins, preserve historical33=19status+14depth evidence/codehashes, then compare exact same full frozen inputs with reviewed candidate code and document every eligibility/candidate delta. Do not merely change the old sourcehash assertion or refit on outcomes."
+    }
+  },
   "completed_task_evidence": {
     "S001-T1": "b9ecd3f; IMPLEMENTATION_HANDOFF.md source preservation and hosted reconciliation",
     "S001-T2": "services/web/application.py, security.py, nfl_ingestion.py; pinned requirements; tests/hosted",

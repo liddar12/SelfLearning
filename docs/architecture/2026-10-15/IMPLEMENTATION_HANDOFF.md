@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-1:43 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+2:50 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -56,10 +56,10 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 16, 2026, 1:43 a.m. CDT (America/Chicago). **50/99 = 50.5% local-build
+October 16, 2026, 2:50 a.m. CDT (America/Chicago). **49/99 = 49.5% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
-The original R1 plan is 44/93 (47.3%); six explicitly added D1/D2 tasks expand
+The original R1 plan is 43/93 (46.2%); six explicitly added D1/D2 tasks expand
 E02 and the total denominator. Do not hide those tasks to inflate progress.
 The ID-by-ID classification and evidence are in [progress.json](progress.json).
 
@@ -70,7 +70,7 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | E02 Ingestion/outcome corrections | 14/15 | 93% | Runtime activation, retention and native/hosted acceptance; sealed multi-batch executor verified locally |
 | E03 Evaluation/honest records | 9/9 | 100% | Local tasks complete, not story/live acceptance: default reporting hookup and historical coverage still limited |
 | E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
-| E05 Eligibility/freshness | 4/6 | 67% | Last-FINAL/clearance shadow guard and frozen replay; current-input validation complete locally |
+| E05 Eligibility/freshness | 3/6 | 50% | S016-T1 reopened: same-ID injury join miss; source fix and fresh comparative audit pending; FINAL/clearance evidence still incomplete |
 | E06 Parlay selection/concentration | 3/6 | 50% | Full Game/Week/MY objective comparison and owner portfolio-policy decision |
 | E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
 | E08 Dashboard/application MCP | 4/9 | 44% | Real-browser/mobile acceptance, evaluation/candidate journeys and sessions |
@@ -85,13 +85,19 @@ synthetic election fixture and identical two-domain boundary tests are built/tes
 a real election adapter is not. S029-T2 is testing-task credit, not S029 story
 acceptance: legacy prediction IDs still require domain-qualified task names and
 do not establish universal cross-owner isolation.
-The progress audit does not award deployment credit to local branches.
+The progress audit does not award deployment credit to local branches. S016-T1
+was reopened: the original 33 documented holds were real, but the reverse
+same-ID status-to-gate check was incomplete. Frozen main `0d49a948` marks
+athlete `3126486` / “Deebo Samuel Sr.” OUT while weekly `espn-3126486` retains
+10.77 points without an availability/eligibility/this-week block. Preserve that
+historical audit; do not change its source hashes to bless a new candidate.
 
 ### Current parallel team
 
 Four concurrent agents maximum: one coordinator/integrator and three file-owned
-lanes. Current lanes cover intake orchestration, independent adversarial QA and
-display-only parity attachment. Independent QA reviews new authority boundaries
+lanes. Current lanes cover exact-generation capture/publication plumbing,
+ID-first injury producer/audit correction, and SQL authority/capacity QA.
+Independent QA reviews new authority boundaries
 while the coordinator integrates and
 maintains audited evidence. Do not increase shared-file collisions or run two
 NFL gates. Claude Code is not a live connected fifth lane.
@@ -100,7 +106,27 @@ Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
 authorized actions. No weekly manual SQL is required by the intended pipeline.
 
-## Frozen combined checkpoint
+## Current follow-up — October 16, 2026, 2:50 a.m. CDT
+
+Local NFL participation mechanics `db531f44` pass 14 focused tests; generation
+binding foundation `398d3b54` passes 17 author/independent tests. Their combined
+NFL gate is running, not yet claimed green. They are not hooked into production;
+QB depth and in-window inactive policies remain held, not invented.
+
+Owner-intent foundation `1ac7325`, evidence `a5fc61a`, had 1,127 passing core/API
+tests and 38/38 critical files >90%. Follow-up fixes are independently verified
+but not yet committed: typed-provider-error redaction, pre-serialization byte
+accounting and readable-history capacity. Full current Python suite passes
+1,156 tests, no skips; coverage for the changed source must be rerun. Complete
+pre-follow-up SQL: 85 Node passed; 96 Python passed / seven native-only skipped.
+Near-capacity SQL exceeded the 12-second budget; duplicate validation is being
+removed and profiled without relaxing the timeout or claiming hosted readiness.
+
+All new source is local and unreleased. No new whole-task credit is awarded for
+these foundations. See `OWNER_INTENT_JOURNAL.md`, `progress.json` and the newest
+verification section; earlier dated checkpoints below are historical.
+
+## Earlier frozen combined checkpoint
 
 October 16, 2026, 2:02 a.m. CDT. NFL `0ea4b003` passes the complete dependency-
 free gate: **2,381 feature tests**, contracts, smoke and four model regression
