@@ -2,6 +2,13 @@
 
 Monorepo for three workstreams that share one self-learning spine.
 
+NFL integration checkpoint, October 16, 2026, 1:18 a.m. America/Chicago:
+[49/99 whole local-build tasks (49.5%)](docs/architecture/2026-10-15/progress.json).
+See the [overnight handoff](docs/architecture/2026-10-15/OVERNIGHT_2026-10-16.md)
+and [verification boundaries](docs/architecture/2026-10-15/VERIFICATION.md).
+This work is local and unreleased; task completion is not production readiness,
+an operational self-learning loop or a prediction-accuracy claim.
+
 | Workstream | Package / app | What it is | Status |
 |---|---|---|---|
 | **B (spine)** | `packages/selflearn-core` | Log predictions, resolve outcomes, score, feed back. The honesty layer every other flow depends on. | Gate 1 scaffolded |

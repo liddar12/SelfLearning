@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
-Revision 1 design, implementation follow-up October 15, 2026,
-11:43 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+Revision 1 design, implementation follow-up October 16, 2026,
+1:18 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -56,10 +56,10 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 15, 2026, 11:43 p.m. CDT (America/Chicago). **47/99 = 47.5% local-build
+October 16, 2026, 1:18 a.m. CDT (America/Chicago). **49/99 = 49.5% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
-The original R1 plan is 42/93 (45.2%); six explicitly added D1/D2 tasks expand
+The original R1 plan is 43/93 (46.2%); six explicitly added D1/D2 tasks expand
 E02 and the total denominator. Do not hide those tasks to inflate progress.
 The ID-by-ID classification and evidence are in [progress.json](progress.json).
 
@@ -67,8 +67,8 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | --- | ---: | ---: | --- |
 | E00 Foundation/security | 2/9 | 22% | Live schema/history, helper permissions, credentials and deployed identity |
 | E01 Forecast/publication lineage | 5/9 | 56% | Deployment identity, live observation and exact-generation prepublication gate |
-| E02 Ingestion/outcome corrections | 13/15 | 87% | Sealed multi-batch executor, runtime activation, retention and native/hosted acceptance |
-| E03 Evaluation/honest records | 8/9 | 89% | Independent full NFL/engine same-cohort comparator; real historical coverage remains unavailable |
+| E02 Ingestion/outcome corrections | 14/15 | 93% | Runtime activation, retention and native/hosted acceptance; sealed multi-batch executor verified locally |
+| E03 Evaluation/honest records | 9/9 | 100% | Local tasks complete, not story/live acceptance: default reporting hookup and historical coverage still limited |
 | E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
 | E05 Eligibility/freshness | 3/6 | 50% | Current-input eligibility verification, clearance guard and frozen replay |
 | E06 Parlay selection/concentration | 3/6 | 50% | Full Game/Week/MY objective comparison and owner portfolio-policy decision |
@@ -90,9 +90,9 @@ The progress audit does not award deployment credit to local branches.
 ### Current parallel team
 
 Four concurrent agents maximum: one coordinator/integrator and three file-owned
-lanes. D1 and the bounded publication slice are committed; the lanes rotate to
-strict frozen-candidate replay and generic bounded evidence-chunk primitives. Independent QA
-reviews the new authority boundaries while the coordinator integrates and
+lanes. Current lanes cover intake orchestration, independent adversarial QA and
+display-only parity attachment. Independent QA reviews new authority boundaries
+while the coordinator integrates and
 maintains audited evidence. Do not increase shared-file collisions or run two
 NFL gates. Claude Code is not a live connected fifth lane.
 
@@ -100,7 +100,78 @@ Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
 authorized actions. No weekly manual SQL is required by the intended pipeline.
 
-## Current bounded implementation slices
+## V2 whole-group and full-cohort checkpoint
+
+October 16, 2026, 1:18 a.m. CDT. This section supersedes earlier checkpoint
+counts and earlier statements that D2-T3 is incomplete. Historical sections
+below describe their named source revisions only.
+
+The v2 execution chain is locally committed: engine `682d400`, `c757b19`,
+`aa3a558`, `47ee1e4`; NFL sender `e7e76355`, checker `4838daf0` and independent
+oracle `5ecc3bc4`. No changes have been pushed or deployed. The additive v2
+protocol seals complete player/game/stat/side groups across rungs and model
+vintages, persists per-batch and terminal results, and recovers original
+operations after lost replies. V1 functions and default protocol stay unchanged.
+See [CAPTURE_APPLICATION_V2.md](CAPTURE_APPLICATION_V2.md).
+
+Actual original-producer evidence contains 1,088 receipts and 185 groups.
+Sender → in-process ASGI → real PostgreSQL-WASM → original-result recovery
+passes with whole-group batches **400/398/290**. Real quota is charged before
+explicit fake private Storage. Pausing after one batch, resuming in a fresh
+invocation, lost registration/middle/final replies, original source-free
+recovery, omitted groups and rehashed undercounted terminals are tested. The
+last two refuse full success; corrected transport recovers the original.
+
+The complete observed SQL snapshot, including unchanged confirmations, is
+validated before projection into the independent NFL/engine comparator. Its
+1,088 receipts produce **370 canonical first-eligible contracts** with identical
+sets and numeric scores. Scope is eligible MY player-yardage forecasts, not
+Game/Week cards or an improved historical hit count. Supplied namespace,
+watermark and completeness are not authenticated by a successful comparison.
+Default `build_review` and app reporting are not replaced. Independent audit
+confirms S010-T2's exact compare-sets task is locally complete; requiring a
+live-report hookup for this task would conflate task text with broader story
+acceptance. No live/historical accuracy or authenticated completeness is credited.
+
+Current checks: **1,033 core/API tests, zero skips**; **33/33 designated critical
+Python files >90%**, **6,570/6,863 = 95.7307%** executable lines, stable hashes.
+Full Python SQL suite **89 passed / 7 native-only skipped**; full Node SQL
+suite **74 passed / zero skipped**. The Python SQL run includes the final
+1,088→370 assertions. See [VERIFICATION.md](VERIFICATION.md) and the
+[generated coverage report](../../reviews/2026-10-16-critical-coverage.json).
+
+**D2-T3 receives one whole local-build task credit**, independently reviewed.
+Together with S010-T2 the total is **49/99 (49.5%)**, E02 **14/15 (93.3%)**,
+E03 **9/9 local tasks**. It is not full D2
+story acceptance: native concurrent sessions, hosted PostgREST/permissions,
+real private Storage, retention/GC, production configuration and activation are
+still required. Finite cache accounting is 256 rows/128 MiB serialized, not
+physical disk usage; at capacity cold work fails closed. There is no GC policy
+or hosted performance acceptance. The measured local cold prewarm of 10.844s
+remains close to the unchanged 12s SQL transport timeout.
+
+The new R127 pure shadow collector/grader, committed locally as NFL `25fcafbc`,
+passed **20** author/independent tests
+after fixes for invalid earliest receipts, quarantine denominator loss and
+hidden unknown metadata. It is inactive at this checkpoint:
+weight **0.0**, activation **false**, complete prior-game inventory unverified.
+No live pre-kickoff persistence or real two-week prospective evidence exists.
+The opt-in intake runner is committed as NFL `165402d2`. Independent QA found
+three credential echoes could reach child ACK files; all three are now blocked
+before persistence. Its author/independent tests pass **24/24** and root's
+combined intake/shadow run passes **44/44**. A final full NFL gate is running.
+This is actual-child/wire-fake local evidence, not actual SQL-orchestrator or
+live-learning verification. Neither slice earns extra task credit here.
+
+Real browser verification remains blocked by the host environment. A
+no-listener browser→ASGI harness initializes four forecasts/twelve SQL revisions,
+but Chromium fails at macOS sandbox startup; no UI assertions/screenshots ran.
+Existing functional DOM tests are not a browser/layout acceptance substitute.
+The pre-final full NFL gate passed **2,339 feature tests**, data contracts,
+smoke and all four model gates, exit **0**. Browser step 8 skipped. Intake
+privacy hardening still needs a final frozen-source re-run; no release claim.
+
+## Historical bounded implementation slices
 
 | Slice | Files | Evidence and limits |
 | --- | --- | --- |

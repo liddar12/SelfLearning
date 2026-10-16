@@ -2,7 +2,40 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-Latest local integrity evidence, October 15, 2026, 11:43 p.m. CDT:
+## Current local checkpoint — October 16, 2026, 1:18 a.m. CDT
+
+Source: engine `47ee1e4`, NFL `4838daf0`, plus explicitly hashed test/evidence
+files in the [coverage report](../../reviews/2026-10-16-critical-coverage.json).
+See the [overnight handoff](OVERNIGHT_2026-10-16.md) for unreleased work.
+
+| Check | Exit | Result and boundary |
+| --- | ---: | --- |
+| Full core/hosted coverage run | 0 | **1,033 passed, 0 skipped**; **33/33 critical files >90%**, 6,570/6,863 executable lines = **95.7307%**. Source, test inventory and measurement-tool hashes stable. |
+| Complete Python PostgreSQL suite | 0 | **89 passed, 7 native-concurrency tests skipped** because a native test database is not configured. Real single-connection PostgreSQL-WASM; not hosted/native sign-off. |
+| Complete Node SQL suite | 0 | **74 passed, 0 skipped**; existing v1 tests retained, new v2 registration/batch/terminal/cache tests included. |
+| New read-view HTTP tests | 0 | **9 passed** independently; with existing API tests, 18 passed and API executable coverage 154/154. View fixtures are explicit fakes; SQL suites separately verify persistence. |
+| Actual large integration and comparison | 0 | Original NFL producer 1,088 receipts/185 groups → sender → ASGI → SQL/quota → 400/398/290 whole-group batches. Full SQL snapshot yields **370** canonical contracts with exact independent producer/engine parity. Private Storage is fake. |
+| R127 pure shadow collector/grader | 0 | **20 passed**, including unchanged independent adversarial regressions; 351/361 = 97.2299% source lines. No durable live collector, real future graded weeks, complete prior inventory or model activation. |
+| Real browser/layout | blocked | Listener creation denied; no-listener ASGI harness reaches Chromium macOS sandbox startup failure. No viewport assertions/screenshots ran and no security restrictions were bypassed. |
+
+The 66.83-second large-run timing probe predates its final parity assertions.
+The final full Python SQL suite includes those assertions. Neither probe is a
+hosted latency/concurrency acceptance test. SQL timeouts remain 12 seconds.
+V2 is opt-in; the default protocol and live review are unchanged.
+
+The new intake orchestrator NFL `165402d2` passes **24/24** author/independent
+tests after three credential-echo fixes; root's combined intake/shadow run
+passes **44/44**. A full NFL gate passed as a pre-final baseline (2,339 feature
+tests, contracts, smoke and four model gates, exit 0; browser step 8 skipped);
+the final frozen-source gate is running. No release pass,
+live learning, source/namespace authentication, model adoption or accuracy gain
+is established. Local task credit is **49/99**, with all six D1/D2 implementation
+tasks and supported exact cohort comparison complete; story/release/native/
+retention gates remain open. E03's 9/9 local tasks is not 100% story acceptance.
+
+## Historical checkpoints
+
+Local integrity evidence, October 15, 2026, 11:43 p.m. CDT:
 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#first-forecast-and-configuration-checkpoint-1143-pm-cdt).
 Engine `a5c4707`: **913 core/API, 47 Python-to-SQL, 43 SQL and 15 functional
 DOM tests pass**; coverage/progress tools pass 21. All **26 critical Python

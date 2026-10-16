@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "as_of": "2026-10-15T23:43:36-05:00",
+  "as_of": "2026-10-16T01:18:00-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "requested_target": "2026-10-16T07:00:00-05:00",
@@ -24,22 +24,29 @@
     "SelfLearning_capacity_planner": "b8a70e3",
     "SelfLearning_staging_quota": "bd29ff7",
     "SelfLearning_scoped_capture_and_trace": "44895b9",
-    "SelfLearning_first_forecast_and_capture_configuration": "a5c4707"
+    "SelfLearning_first_forecast_and_capture_configuration": "a5c4707",
+    "SelfLearning_capture_application_sql_v2": "682d400",
+    "SelfLearning_capture_application_runtime_v2": "c757b19",
+    "SelfLearning_whole_group_recovery": "aa3a558",
+    "SelfLearning_full_snapshot_parity": "47ee1e4",
+    "NFL2026_capture_application_sender_v2": "e7e76355",
+    "NFL2026_independent_cohort_oracle": "5ecc3bc4",
+    "NFL2026_full_snapshot_parity_checker": "4838daf0"
   },
-  "original_scope": {"epics": 12, "tasks": 93, "completed": 42, "partial": 36, "open": 15},
-  "expanded_scope": {"tasks": 99, "completed": 47, "partial": 36, "open_or_in_progress": 16},
+  "original_scope": {"epics": 12, "tasks": 93, "completed": 43, "partial": 35, "open": 15},
+  "expanded_scope": {"tasks": 99, "completed": 49, "partial": 35, "open_or_in_progress": 15},
   "extra_tasks": {
     "epic": "E02",
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
     "ids": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2", "D2-T3"],
-    "completed": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2"],
-    "note": "D1, D2-T1 raw/frozen-member binding and D2-T2 scoped authenticated sender/receiver with bounded requests/retries and immutable destination outbox/original ACK are independently reviewed and locally verified. D2-T2 evidence: engine44895b9/NFL8561210c, actual sender-to-ASGI-to-PostgreSQL-WASM5tests plus scoped intake13tests. Storage is fake in SQL integration. a5c4707 adds explicit default-off SELFLEARN_CAPTURE_BACKEND=supabase configuration; no environment was changed and configured_unverified is never live learning. T2 is whole LOCAL-BUILD credit, not automatic production configuration or full D2 acceptance. D2-T3 remains incomplete: current executor holds complete captures above500; b8a70e3 only previews whole-group capacity, with no multi-batch RPC/ACK. Hosted/native verification, retention/GC and runtime activation remain story/release gates. These six tasks do not silently change the original R1 PDF/backlog."
+    "completed": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2", "D2-T3"],
+    "note": "All six D1/D2 implementation tasks are independently reviewed and locally verified. D2-T3 v2 executes the entire durable player/game/stat/side membership across rungs/vintages in sealed whole-group batches, with immutable per-batch and complete terminal reports. Actual original-producer1088members/185groups run through sender, ASGI, quota and PostgreSQL-WASM in400/398/290 batches; interrupted runs, lost replies, original recovery and incomplete/tampered-report refusal pass. Storage is explicitly fake. V1 and default protocol remain unchanged; configured_unverified is never live learning. Task credit is LOCAL-BUILD only: hosted/native concurrency, real Storage/provider authentication, retention/GC, production configuration and activation remain story/release gates. These six tasks do not silently change the original R1 PDF/backlog."
   },
   "epics": [
     {"id":"E00","completed":["S001-T1","S001-T2"],"partial":["S001-T3","S002-T1","S002-T2","S002-T3","S003-T1","S003-T2","S003-T3"],"open":[]},
     {"id":"E01","completed":["S004-T1","S004-T2","S004-T3","S005-T1","S005-T3"],"partial":["S005-T2","S006-T1","S006-T2","S006-T3"],"open":[]},
     {"id":"E02","completed":["S007-T1","S007-T2","S007-T3","S008-T1","S008-T2","S009-T1","S009-T2","S009-T3"],"partial":["S008-T3"],"open":[]},
-    {"id":"E03","completed":["S010-T1","S010-T3","S011-T1","S011-T2","S011-T3","S012-T1","S012-T2","S012-T3"],"partial":["S010-T2"],"open":[]},
+    {"id":"E03","completed":["S010-T1","S010-T2","S010-T3","S011-T1","S011-T2","S011-T3","S012-T1","S012-T2","S012-T3"],"partial":[],"open":[]},
     {"id":"E04","completed":["S013-T1","S013-T2","S013-T3","S014-T1","S014-T2","S014-T3"],"partial":["S015-T1","S015-T3"],"open":["S015-T2"]},
     {"id":"E05","completed":["S016-T2","S016-T3","S017-T1"],"partial":["S016-T1"],"open":["S017-T2","S017-T3"]},
     {"id":"E06","completed":["S018-T1","S018-T2","S018-T3"],"partial":["S019-T1","S019-T2","S019-T3"],"open":[]},
@@ -66,6 +73,7 @@
     "S009-T2": "journal append_resolution; SQL immediate-parent, server-clock, immutable correction and VOID tests",
     "S009-T3": "nfl_calibration.py cohort revision pinning; journal history/latest and as-of correction tests",
     "S010-T1": "nfl_calibration.py canonical first forecast before outcome selection; unresolved/source-missing cases",
+    "S010-T2": "Independent NFL5ecc3bc4 oracle and enginee98f9be comparator compare exact source_receipt_id/receipt_id/contract_id/revision_id/revision_hash/base_prob/served_prob/hit sets plus numeric scores. Full observed-snapshot validation47ee1e4/NFL4838daf0 precedes projection and keeps all confirmations/fences. Actual SQL1088 receipts ->370 first-eligible contracts test67811aa passes exact complete set/scalar parity. Independently audited against task wording. Supported eligible MY-yardage scope only; no live-review replacement, Game/Week/offered support, authenticated completeness, historical accuracy gain or storyrelease credit.",
     "S010-T3": "test_nfl_adapter.py independent Brier/log-loss oracles; test_nfl_calibration.py actual NFL serving parity",
     "S011-T1": "cohort/artifact cutoff, received-time, revision/dataset hashes; late/future perturbation tests",
     "S011-T2": "walk_forward_report chronological folds/game overlap rejection; clustered paired interval tests",
@@ -96,12 +104,13 @@
     "D1-T2": "NFLObservedJournal complete pinned keyset reads; SQL indexed enumeration, historical fences and no fixture-owned ID list",
     "D1-T3": "atomic indexed-observation/revision CAS RPC plus bounded re-read/re-resolve helper; true NFL-producer Python-to-SQL correction/replay/conflict tests; native evidence still outstanding",
     "D2-T1": "e154f84+9f29350+41d7063+62defd6: immutable canonical chunks and private hash pointers, fixed-profile raw capture verification, complete durable frozen-member label binding and full CAS rebind; original680core/API checkpoint17critical targets>=90%; actual raw-to-PostgreSQL-WASM lifecycle/correction/new-vintage CAS/tamper3tests plus2oldatomic pass. That historical checkpoint alone has no source auth/public API/originaldeliveryACK or hosted claim.",
-    "D2-T2": "44895b9+483bd95+33e09c1+bd29ff7 and NFL8561210c: distinct outcome credential/three scope-bound routes, 3MiB content/stream limits, private quota-before-upload, fixed-origin/exact-route redacted sender, immutable presend and original-result ACK; root37Python-to-SQL and43NodeSQL tests, including5actual NFLsender->ASGI->SQL tests,14focused sender tests,13intake tests. Root808core/API pass,24critical targets>=90%,4936/5166=95.5478%. API factory remains injected/defaultdisabled; no hosted/native/real Storage or full D2 story acceptance."
+    "D2-T2": "44895b9+483bd95+33e09c1+bd29ff7 and NFL8561210c: distinct outcome credential/three scope-bound routes, 3MiB content/stream limits, private quota-before-upload, fixed-origin/exact-route redacted sender, immutable presend and original-result ACK; root37Python-to-SQL and43NodeSQL tests, including5actual NFLsender->ASGI->SQL tests,14focused sender tests,13intake tests. Root808core/API pass,24critical targets>=90%,4936/5166=95.5478%. API factory remains injected/defaultdisabled; no hosted/native/real Storage or full D2 story acceptance.",
+    "D2-T3": "682d400+c757b19+aa3a558+47ee1e4 and NFLe7e76355/4838daf0: complete sealed v2 member/group/batch partition, atomic batch writes and original terminal ACK, source/code-invalidated bounded membership cache, strict pinned paged reads and source-free original recovery. FullSQL89pass/7native-skips and NodeSQL74pass. Actual1088-member/185-group producer->sender->ASGI->PostgreSQL-WASM/quota runs400/398/290; lost registration/middle/final replies, max-step pause/fresh resume, omitted-group and rehashed terminal refusal tested. Same actual1088 SQL snapshot yields370 first-eligible contracts with exact independent NFL/engine parity. Storage fake, native/hosted/retention/activation unverified; no adoption or accuracy gain."
   },
   "limitations": [
     "Whole source/task completion is not the same as all story acceptance criteria satisfied.",
     "Hosted/native concurrency, production migration, current-main reconciliation, browser acceptance and release readiness are unverified or not released.",
-    "E02 includes six new D1/D2 tasks in its expanded denominator: 13/15, not the misleading original-only 8/9.",
+    "E02 includes six new D1/D2 tasks in its expanded denominator: 14/15, not the misleading original-only 8/9.",
     "Zero completed tasks can contain significant partial work; this metric intentionally awards no fractional credit.",
     "No accuracy improvement, future hit count, completion date or autonomous model promotion is inferred.",
     "S029-T2 test-task completion does not satisfy universal owner/adapter namespace story AC2: legacy prediction_id uses task plus source ID without domain; domain-qualified tasks remain required.",
