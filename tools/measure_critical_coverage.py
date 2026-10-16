@@ -31,6 +31,8 @@ CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/adapters/nfl_observed_resolution.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_observed_job.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_capture_evidence.py",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_capture_labels.py",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_capture_job.py",
     "packages/selflearn-core/selflearn_core/outcome_revisions.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_calibration.py",
     "services/web/nfl_ingestion.py",
