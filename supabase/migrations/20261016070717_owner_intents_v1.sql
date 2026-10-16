@@ -214,12 +214,19 @@ begin
   or (command->'effective_from_utc'<>'null'::jsonb and selflearn_private.owner_clock_v1(command->>'effective_from_utc')<new.stored_utc)) then
   raise sqlstate 'PT422' using message='expired_owner_command'; end if;
  new.namespace_sequence:=pg_catalog.jsonb_array_length(history)+1; new.previous_event_id:=previous;
- new.command_id:=command->>'command_id'; new.ledger_seq:=pg_catalog.nextval('selflearn_private.owner_intent_sequence_v1'::regclass);
+ new.command_id:=command->>'command_id';
  event:=pg_catalog.jsonb_build_object('version',1,'kind','selflearn.owner_intent_event.v1','authority_id',new.authority_id,
   'actor_ref',new.actor_ref,'namespace',command->'namespace','sequence',new.namespace_sequence,'previous_event_id',previous,
   'command',command,'recorded_utc',pg_catalog.to_char(new.stored_utc at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
   'effective_from_utc',coalesce(command->>'effective_from_utc',pg_catalog.to_char(new.stored_utc at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')));
  new.event_id:=selflearn_private.digest_json_v1(event::json); event:=event||pg_catalog.jsonb_build_object('event_id',new.event_id);
+ -- A durable event must not make the complete Python ensure_ascii history
+ -- unreadable. Reserve8192bytes for snapshot framing inside its3MiB limit.
+ -- jsonb::text counts raw UTF8 and would undercharge supplementary Unicode.
+ -- Check BEFORE nextval too: quota failures do not consume owner sequences.
+ if pg_catalog.octet_length(selflearn_private.canonical_json_v1((history||pg_catalog.jsonb_build_array(event))::json))>3137536 then
+  raise sqlstate 'PT429' using message='owner_intent_capacity_exceeded'; end if;
+ new.ledger_seq:=pg_catalog.nextval('selflearn_private.owner_intent_sequence_v1'::regclass);
  new.event_json:=selflearn_private.canonical_json_v1(event::json);
  new.result_json:=selflearn_private.canonical_json_v1(selflearn_private.owner_ack_v1(event)::json);
  return new;
@@ -235,12 +242,14 @@ begin
  if pg_catalog.current_setting('transaction_isolation')<>'read committed' then raise sqlstate 'PT422' using message='owner_requires_read_committed'; end if;
  perform pg_catalog.pg_advisory_xact_lock(619044,1);
  command:=selflearn_private.owner_command_v1(p_command_json,p_authority_id); ns:=selflearn_private.owner_namespace_v1(command->'namespace');
- perform selflearn_private.owner_history_v1(p_authority_id,ns,9223372036854775807);
  select * into old from selflearn_private.owner_intent_events_v1 where authority_id=p_authority_id and namespace_json=ns and command_id=command->>'command_id';
  if found then
+  perform selflearn_private.owner_history_v1(p_authority_id,ns,9223372036854775807);
   if old.command_json is distinct from p_command_json then raise sqlstate 'PT409' using message='owner_command_conflict'; end if;
   return old.result_json::json; -- Original historical ACK BEFORE current CAS/expiry.
  end if;
+ -- Novel commands MUST go through the mandatory input INSERT trigger, which
+ -- validates the complete history under this SAME lock. Do not scan it twice.
  insert into selflearn_private.owner_intent_events_v1(authority_id,actor_ref,command_json) values(p_authority_id,p_actor_ref,p_command_json) returning result_json into result;
  return result::json;
 end $$;

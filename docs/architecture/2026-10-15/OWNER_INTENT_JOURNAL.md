@@ -1,6 +1,6 @@
 # Owner-intent journal — local implementation boundary
 
-Revision 1 · October 16, 2026, 2:26 a.m. America/Chicago (CDT).
+Revision 2 · October 16, 2026, 2:53 a.m. America/Chicago (CDT).
 
 This additive journal records an operator's intent. It does **not** approve a
 statistical conclusion, activate an NFL calibrator or change serving. Local
@@ -69,10 +69,18 @@ and may advance that store's own watermark.
 ## Limits and failure behavior
 
 Commands are limited to 128 KiB, references to 16 and history to 256 events per
-authority/namespace. Read pages have at most 100 events and a 3 MiB response
-limit. The existing application boundary independently bounds actual streamed
+authority/namespace. A new event must also keep canonical ASCII history within
+3,137,536 bytes, leaving 8 KiB for complete-snapshot framing inside its 3 MiB
+limit. Unicode escaping, keys and containers are counted before serialization.
+The count ceiling is not a promise that every maximal-size command fits.
+Read pages have at most 100 events and a 3 MiB response limit. The existing
+application boundary independently bounds actual streamed
 request bytes to 256 KiB. Capacity refusal does not remove old history. These
 limits are not a total disk-quota, retention or garbage-collection policy.
+Capacity can prevent any new intent, including revocation; no silent rollover
+or deletion is implemented. Before any adoption integration, the consumer must
+define fail-closed handling for an unwritable authority instead of implying that
+revocation is always available or falling back to an older approval.
 
 The additive Postgres migration uses invoker functions, an empty search path,
 private RLS-enabled tables, service-role input-column-only inserts,
@@ -121,7 +129,7 @@ Independent focused SQL checks: 11 passed, none skipped, exit 0. Actual Python
 port/application-to-PostgreSQL-WASM checks: 3 passed, none skipped, exit 0. An
 independent raw-RPC test initially reproduced SQL accepting `24:00:00` while
 Python rejected it. The SQL regex now limits hours/minutes explicitly, and the
-unchanged negative regression passes. Final migration SHA-256:
+unchanged negative regression passes. Migration SHA-256 at that checkpoint:
 `68be3ab4c02801ceb70fa4046c820e0e703fbe0c531c0015b8b9d3a66263cf98`.
 
 Independent SQLite checks include real separate-connection competing writers
@@ -130,3 +138,37 @@ capacity, separate namespaces and post-expiry revocation. SQLite concurrency
 and PostgreSQL-WASM are not native Postgres concurrency or hosted authorization
 proof. These focused additions do not replace a fresh complete SQL regression
 run, current-main reconciliation or release/browser acceptance.
+
+### Independent follow-up after the first checkpoint
+
+The complete SQL rerun passed at the first foundation revision: 85 Node tests
+(no skips) and 96 Python tests (seven native-only skips), both exit 0. SQL and
+test harnesses were unchanged throughout those runs.
+
+Further independent review reproduced three defects: typed provider errors
+could contain private status/message text; aliased oversized inputs could
+allocate their fully expanded JSON before the cap; and large Unicode reasons
+could exhaust the full-history read budget before the event-count limit. The
+follow-up reconstructs public errors with only bounded integer statuses and
+static text, charges canonical bytes before encoding, and refuses unreadable
+new heads before inserting or consuming a Postgres sequence value. Original
+retries still precede capacity, expiry and current-head checks.
+
+Root full current Python suite: 1,156 passed, none skipped, exit 0. Independent
+29-case follow-up and related core/API set: 97 passed, exit 0. A seeded genuine
+230-event SQLite prefix remains readable; its overcapacity append fails without
+a write and the first original acknowledgement is still recoverable. The SQL
+analogue verifies pages, both RPC/direct-insert refusal and unchanged rows,
+watermark and sequence. No history is silently truncated.
+
+An initial worst-capacity local PostgreSQL-WASM RPC took 12,204.860 ms, exceeding
+the existing 12-second HTTP budget. Removing duplicate validation in the new
+public function reduced the measured local rejection to 7,297.118 ms. New writes
+still undergo complete validation in the mandatory insert trigger under the
+same lock; exact retries validate history before returning their old result.
+All 12 focused SQL tests pass. These are in-process local timings, not native,
+HTTP or hosted Supabase performance proof; the timeout was not increased.
+
+The 1,127-test/38-file report above is retained as a **pre-follow-up** checkpoint.
+Refreshed complete coverage and full SQL regressions for the changed source are
+still required; older source hashes do not describe the follow-up revision.

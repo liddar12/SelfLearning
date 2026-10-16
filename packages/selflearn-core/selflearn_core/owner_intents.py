@@ -14,6 +14,9 @@ from .probability_receipts import fingerprint, instant
 MAX_COMMAND_BYTES = 128 * 1024
 MAX_EVENTS = 256
 MAX_PAGE_BYTES = 3 * 1024 * 1024
+# Leave a fixed framing reserve for a complete history response (namespace,
+# watermark, clocks, flags and hashes). Count and byte ceilings are independent.
+MAX_HISTORY_BYTES = MAX_PAGE_BYTES - 8192
 FLAGS = {"scope": "owner_intent_record_only", "content_hash_verified": True,
          "domain_pin_binding_verified": False, "current_serving_verified": False,
          "activation": False}
@@ -21,6 +24,7 @@ HASH = re.compile(r"sha256:[0-9a-f]{64}\Z")
 SEQ = re.compile(r"(?:0|[1-9][0-9]{0,18})\Z")
 NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}\Z")
 CLOCK = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-5][0-9](?:\.[0-9]{1,6})?(?:Z|[+-](?:0[0-9]|1[0-5]):[0-5][0-9])\Z")
+JSON_ESCAPES = re.compile(r'["\\\x00-\x1f\x7f-\U0010ffff]')
 PIN_KEYS = {"candidate_id", "artifact_id", "evaluation_report_id", "policy_id",
             "generation_context_id", "expected_previous_current_id", "evidence_object_ids"}
 COMMAND_KEYS = {"version", "kind", "namespace", "action", "expected_head_event_id",
@@ -42,29 +46,49 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
 
 
-def snapshot(value, *, limit=MAX_PAGE_BYTES):
-    """Bound and detach strict JSON before hashing or invoking trusted callbacks."""
-    count = 0
+def _bound_json(value, *, limit):
+    """Check canonical byte/work limits without constructing expanded JSON."""
+    need(type(limit) is int and 0 < limit <= MAX_PAGE_BYTES, "owner_intent_byte_limit")
+    count, used = 0, 0
+    def charge(size):
+        nonlocal used
+        used += size
+        need(used <= limit, "owner_intent_byte_limit")
     def visit(item, depth=0):
         nonlocal count
         count += 1
         need(depth <= 24 and count <= 50000, "owner_intent_work_limit")
         if type(item) is dict:
             need(len(item) <= 1024)
+            charge(2 + max(0, len(item) - 1) + len(item))  # braces, commas, colons
             for key, child in item.items():
                 need(type(key) is str and len(key) <= limit)
+                visit(key, depth + 1)
                 visit(child, depth + 1)
         elif type(item) is list:
             need(len(item) <= 10000)
+            charge(2 + max(0, len(item) - 1))
             for child in item:
                 visit(child, depth + 1)
         elif type(item) is str:
-            need(len(item) <= limit and "\x00" not in item and not any(0xD800 <= ord(c) <= 0xDFFF for c in item))
+            charge(2 + len(item))  # quoted ASCII lower bound, before encoding
+            # Count ensure_ascii JSON expansion without constructing an escaped
+            # string. Plain ASCII hashes use the regex's fast no-match path.
+            for match in JSON_ESCAPES.finditer(item):
+                char = match.group(); code = ord(char)
+                need(code != 0 and not 0xD800 <= code <= 0xDFFF)
+                charge(1 if char in '\\"\b\f\n\r\t' else 11 if code > 0xFFFF else 5)
         else:
             need(item is None or type(item) in (bool, int))
             if type(item) is int:
                 need(abs(item) <= 9223372036854775807)
+            charge(len(canonical(item)))
     visit(value)
+
+
+def snapshot(value, *, limit=MAX_PAGE_BYTES):
+    """Bound and detach strict JSON before hashing or invoking trusted callbacks."""
+    _bound_json(value, limit=limit)
     encoded = canonical(value)
     need(len(encoded.encode("utf-8")) <= limit, "owner_intent_byte_limit")
     return json.loads(encoded)
@@ -225,6 +249,12 @@ def make_event(command, history, *, authority_id, actor_ref, recorded_utc):
         "effective_from_utc": command["effective_from_utc"] or recorded_utc}
     event["event_id"] = fingerprint(event)
     validate_history(history + [event], authority_id=authority_id, expected_namespace=command["namespace"])
+    try:
+        _bound_json(history + [event], limit=MAX_HISTORY_BYTES)
+    except ValueError as exc:
+        if str(exc) == "owner_intent_byte_limit":
+            raise ValueError("owner_intent_capacity_exceeded") from None
+        raise
     return event
 
 
@@ -235,6 +265,7 @@ def acknowledgement(event):
 
 
 def complete_snapshot(events, *, authority_id, expected_namespace, watermark, observed_utc):
+    digest(authority_id)
     events = snapshot(events)
     validate_history(events, authority_id=authority_id, expected_namespace=expected_namespace)
     sequence(watermark); observed = _clock(observed_utc)
@@ -243,5 +274,6 @@ def complete_snapshot(events, *, authority_id, expected_namespace, watermark, ob
         "namespace": namespace(expected_namespace), "events": events, "complete": True,
         "watermark": watermark, "head_event_id": events[-1]["event_id"] if events else None,
         "head_sequence": len(events), "observed_utc": observed_utc, **FLAGS}
+    _bound_json(result, limit=MAX_PAGE_BYTES)
     result["snapshot_id"] = fingerprint(result)
-    return result
+    return snapshot(result)

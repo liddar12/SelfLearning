@@ -90,6 +90,20 @@ test('authority scoping and original recovery preserve immutable bytes; higher i
   } finally {await db.exec('ROLLBACK');}} finally {await db.exec('RESET ROLE');}
  }
  assert.deepEqual(await append(db,command()),first);assert.equal(await size(db),1);
+ const head=await append(db,command({head:first.event_id,action:'revoke'}));
+ // Deliberately privileged corruption, not an available service operation.
+ // Both the exact-retry branch AND novel/direct input writer must still check
+ // the full chain; removing the duplicate novel scan must create no bypass.
+ await db.exec('ALTER TABLE selflearn_private.owner_intent_events_v1 DISABLE TRIGGER owner_intent_immutable_v1');
+ try {await db.query('DELETE FROM selflearn_private.owner_intent_events_v1 WHERE event_id=$1',[first.event_id]);}
+ finally {await db.exec('ALTER TABLE selflearn_private.owner_intent_events_v1 ENABLE TRIGGER owner_intent_immutable_v1');}
+ const novel=command({head:head.event_id});
+ const sequenceBefore=(await db.query('SELECT last_value::text value FROM selflearn_private.owner_intent_sequence_v1')).rows[0].value;
+ await rejectsCode(()=>append(db,novel),'PT503');
+ await rejectsCode(()=>append(db,command({head:first.event_id,action:'revoke'})),'PT503');
+ await rejectsCode(()=>asRole(db,'service_role',()=>db.query('INSERT INTO selflearn_private.owner_intent_events_v1(authority_id,actor_ref,command_json) VALUES($1,$2,$3)',[AUTHORITY,ACTOR,canonical(novel)])),'PT503');
+ assert.equal(await size(db),1);
+ assert.equal((await db.query('SELECT last_value::text value FROM selflearn_private.owner_intent_sequence_v1')).rows[0].value,sequenceBefore);
 }));
 
 test('raw clock tokens cannot use PostgreSQL normalization or hidden precision beyond the Python profile',async()=>database(async db=>{
@@ -101,4 +115,59 @@ test('raw clock tokens cannot use PostgreSQL normalization or hidden precision b
  const valid='2099-01-01T23:59:59.999999-15:59';
  const ack=await append(db,command({effective_from_utc:valid,expires_utc:'2100-12-01T00:00:00Z'}));
  assert.equal(ack.durable,true);assert.equal((await read(db)).rows[0].event.effective_from_utc,valid);
+}));
+
+test('canonical ASCII history quota holds BEFORE commit/sequence while a full validated near-cap prefix and original ACK stay readable',async()=>database(async db=>{
+ const MAX_HISTORY=3145728-8192,reason='😀'.repeat(1000);
+ const timings=[];
+ async function timed(operation,run) {
+  const started=performance.now();
+  try {return await run();}
+  finally {timings.push({operation,elapsed_ms:Math.round((performance.now()-started)*1000)/1000});}
+ }
+ const first=await timed('append_initial',()=>append(db,command({reason})));
+ const original=(await db.query('SELECT * FROM selflearn_private.owner_intent_events_v1')).rows[0];
+ const history=[JSON.parse(original.event_json)],seed=[];
+ let overflow;
+ for(let ordinal=2;ordinal<=256;ordinal++) {
+  const candidate=command({head:history.at(-1).event_id,reason});
+  const event={...history[0],sequence:ordinal,previous_event_id:history.at(-1).event_id,command:candidate};
+  delete event.event_id;event.event_id=digest(event);
+  if(Buffer.byteLength(canonical([...history,event]),'utf8')>MAX_HISTORY) {overflow=candidate;break;}
+  history.push(event);seed.push(event);
+ }
+ assert.ok(overflow&&history.length>200&&history.length<256,'bytecap can precede event-count cap');
+ // Privileged fixture setup ONLY: seed a fully canonical, parent-linked prefix
+ // in O(n) work instead of exercising n quadratic appends. Runtime service
+ // output-column grants and direct-insert trigger are tested separately.
+ await db.exec('ALTER TABLE selflearn_private.owner_intent_events_v1 DISABLE TRIGGER owner_intent_insert_v1');
+ try {
+  for(const event of seed) {
+   const ack={...first,command_id:event.command.command_id,event_id:event.event_id,sequence:event.sequence};
+   await db.query('INSERT INTO selflearn_private.owner_intent_events_v1(authority_id,actor_ref,command_json,namespace_json,namespace_sequence,command_id,event_id,previous_event_id,event_json,result_json,ledger_seq,stored_utc) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
+    [AUTHORITY,ACTOR,canonical(event.command),canonical(NS),event.sequence,event.command.command_id,event.event_id,event.previous_event_id,canonical(event),canonical(ack),event.sequence,event.recorded_utc]);
+  }
+  await db.query("SELECT pg_catalog.setval('selflearn_private.owner_intent_sequence_v1'::regclass,$1,true)",[history.length]);
+ } finally {await db.exec('ALTER TABLE selflearn_private.owner_intent_events_v1 ENABLE TRIGGER owner_intent_insert_v1');}
+ const pages=[];let cursor=null,watermark=null,pageNumber=0;
+ do {
+  const page=await timed('read_pinned_page_'+(++pageNumber),()=>read(db,{limit:100,after:cursor,watermark}));
+  if(watermark===null)watermark=page.watermark;
+  assert.equal(page.head_sequence,history.length);assert.equal(page.head_event_id,history.at(-1).event_id);
+  pages.push(...page.rows);cursor=page.next_after;
+ } while(cursor!==null);
+ assert.deepEqual(pages.map(row=>row.event),history,'actual SQL validates every canonical hash/parent/clock before paging');
+ assert.ok(Buffer.byteLength(canonical(history),'utf8')<=MAX_HISTORY);
+ const before=await size(db),sequenceBefore=(await db.query('SELECT last_value::text value FROM selflearn_private.owner_intent_sequence_v1')).rows[0].value;
+ await timed('append_over_history_limit',()=>rejectsCode(()=>append(db,overflow),'PT429'));
+ assert.equal(await size(db),before);
+ assert.equal((await db.query('SELECT last_value::text value FROM selflearn_private.owner_intent_sequence_v1')).rows[0].value,sequenceBefore);
+ // Direct input-only inserts cannot bypass the identical quota/rollback guard.
+ await timed('direct_insert_over_history_limit',()=>rejectsCode(()=>asRole(db,'service_role',()=>db.query('INSERT INTO selflearn_private.owner_intent_events_v1(authority_id,actor_ref,command_json) VALUES($1,$2,$3)',[AUTHORITY,ACTOR,canonical(overflow)])),'PT429'));
+ assert.equal(await size(db),before);
+ assert.equal((await db.query('SELECT last_value::text value FROM selflearn_private.owner_intent_sequence_v1')).rows[0].value,sequenceBefore);
+ assert.deepEqual(await timed('retry_original_before_quota',()=>append(db,command({reason}))),first,'original retry precedes byte/count quota and current head CAS');
+ assert.equal((await timed('read_head_after_capacity_hold',()=>read(db,{limit:1}))).watermark,watermark);
+ console.log(JSON.stringify({scope:'local-WASM-canonical-history-capacity-only',events:history.length,history_ascii_bytes:Buffer.byteLength(canonical(history),'utf8'),max_history_bytes:MAX_HISTORY,
+  timings,maximum_elapsed_ms:Math.max(...timings.map(row=>row.elapsed_ms)),timing_scope:'actual in-process PostgreSQL-WASM calls including local role/query overhead; NO HTTP/native/hosted timing proof'}));
 }));

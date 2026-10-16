@@ -23,8 +23,16 @@ class SupabaseOwnerIntentJournal(SupabaseReceiptJournal):
             return dto.snapshot(response)
         except StoreConflict:
             raise JournalConflict("owner_head_conflict") from None
-        except (StoreError, JournalConflict):
-            raise
+        except StoreError as exc:
+            # Even a typed exception from an injected provider is not a trusted
+            # public message/status. Do not expose its text or chained traceback.
+            try:
+                status = exc.status
+            except Exception:
+                status = 503
+            raise StoreError(status if type(status) is int and 400 <= status <= 599 else 503) from None
+        except JournalConflict:
+            raise JournalConflict("owner_head_conflict") from None
         except Exception:
             raise StoreError(503) from None
 
