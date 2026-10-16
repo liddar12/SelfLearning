@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 15, 2026, 7:14 p.m. CDT: use the
+Implementation status updated October 15, 2026, 11:25 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -16,7 +16,7 @@ Use the existing Vercel Python backend and Supabase project, preserve NFL2026's 
 - [Delivery backlog](BACKLOG.md): 12 epics, 31 features, 31 user stories, 93 tasks and 92 acceptance criteria, with effort/risk, owners and dependency mapping.
 - [Spreadsheet-friendly backlog](BACKLOG.csv): one row per task, including parent story and acceptance/test references.
 - [Implementation handoff](IMPLEMENTATION_HANDOFF.md): current branches, local changes, exact verification and next file-owned workstreams.
-- [Audited progress by epic](IMPLEMENTATION_HANDOFF.md#audited-completion-by-epic): 38/99 whole local-build tasks complete (38.4%), including the explicitly added D1/D2 work; not deployment readiness. [Task/evidence inventory](progress.json).
+- [Audited progress by epic](IMPLEMENTATION_HANDOFF.md#audited-completion-by-epic): 46/99 whole local-build tasks complete (46.5%), including the explicitly added D1/D2 work; not deployment readiness. [Task/evidence inventory](progress.json).
 
 Editable visual source: [architecture.html](architecture.html), [render.mjs](render.mjs), [portable PDF exporter](export-vector-pdf.mjs). Editable backlog source: [backlog-source.mjs](backlog-source.mjs). These are repository documentation tools, not an NFL app build step.
 
@@ -36,7 +36,7 @@ The pilot is single-owner, not multi-tenant. Preview requires a separate staging
 
 The full historical R130 reference series remains unverified here because the shared NFL Git repository is shallow. Frozen Week 5 settlement is verified separately; the UI must show unavailable history rather than invented prospective counts.
 
-Latest local integrity checkpoint `e154f84`: 680 core/API tests pass; all 17
+Historical local integrity checkpoint `e154f84`: 680 core/API tests pass; all 17
 critical Python targets exceed 90% line coverage (94.9976% aggregate). Generic
 chunks/private pointers, raw profile verification and independent frozen-member
 label binding compose with the internal atomic persistence job. Actual raw-to-
@@ -47,6 +47,20 @@ ACK. D2 remains incomplete. Audited whole local-build task completion is 42/99
 and release limitations retained.
 See the handoff for the requested October 16, 7:00 a.m. CDT target and remaining
 production, native/hosted, complete browser and prospective-evidence gates.
+
+Latest completed local runtime checkpoint: engine `44895b9` / NFL `8561210c`.
+**808 core/API tests, 37 Python-to-PostgreSQL tests, 43 SQL tests and 15 DOM tests
+pass**. All 24 critical Python targets exceed 90% executable-line coverage
+(95.5478% aggregate). NFL's 2,277-feature/data/smoke/model gate passes but
+**browser step 8 skips**. The sender → in-process API → actual SQL quota/ledger
+flow is tested with fake private Storage; no native/hosted proof is claimed.
+The authenticated outcome receiver remains default disabled with explicit
+factory injection. Its complete-capture executor still caps at 500 members;
+the 1,088-rung planner is a capacity preview, not a multi-batch ACK or activation.
+Audited whole local-build progress is **46/99 (46.5%)**, not completed story
+acceptance, release readiness or an accuracy gain. See the handoff's
+[scoped capture checkpoint](IMPLEMENTATION_HANDOFF.md#scoped-capture-and-forecast-trace-checkpoint-1125-pm-cdt)
+for source pins, redaction/auth fixes, limitations and the next work.
 
 ## Rebuild and verify the planning artifacts
 

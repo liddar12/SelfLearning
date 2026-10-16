@@ -2,7 +2,21 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-Latest local integrity evidence, October 15, 2026, 10:26 p.m. CDT:
+Latest local integrity evidence, October 15, 2026, 11:25 p.m. CDT:
+[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#scoped-capture-and-forecast-trace-checkpoint-1125-pm-cdt).
+Engine `44895b9` / NFL `8561210c`: **808 core/API tests, 37 Python-to-SQL,
+43 SQL and 15 functional DOM tests pass**, plus five coverage-tool and sixteen
+progress-ledger tests. All **24 critical Python targets** exceed 90%
+executable-line coverage: **4,936/5,166 = 95.5478%**, with stable source hashes
+and heads. NFL contracts/smoke/four model gates and **2,277 feature tests pass**;
+**browser step 8 skips**, so no full browser/release pass. Python-to-SQL uses
+PostgreSQL-WASM, in-process HTTP and explicit fake private Storage, not native
+concurrent sessions, real network HTTP, Supabase Storage or hosted credentials.
+No production migration, activation, two-cycle approved learner or accuracy gain
+is established. The default receiver is still disabled; >500-member execution
+is held whole, and the separate capacity planner makes no durable ACK.
+
+Historical local integrity evidence, October 15, 2026, 10:26 p.m. CDT:
 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#complete-raw-to-label-internal-composition-1026-pm-cdt)
 supersedes the historical code-checkpoint counts and corresponding outstanding
 items below. R1 planning/PDF acceptance is unchanged. Runtime source `e154f84`:

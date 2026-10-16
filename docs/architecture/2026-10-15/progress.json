@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "as_of": "2026-10-15T22:26:00-05:00",
+  "as_of": "2026-10-15T23:23:18-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "requested_target": "2026-10-16T07:00:00-05:00",
@@ -11,21 +11,28 @@
     "NFL2026_publication": "4cd7e1e6",
     "NFL2026_replay_audit": "5a4b057b",
     "NFL2026_on_card_reference": "bed4a3b4",
+    "NFL2026_archive_semantics": "ca18132f",
+    "NFL2026_capture_exporter": "8561210c",
     "SelfLearning_kernel": "7204ebd",
     "SelfLearning_observed_journal": "3ed4cae",
     "SelfLearning_chunk_integrity": "62defd6",
     "SelfLearning_capture_integrity": "41d7063",
     "SelfLearning_private_evidence_staging": "9f29350",
-    "SelfLearning_capture_binding_job": "e154f84"
+    "SelfLearning_capture_binding_job": "e154f84",
+    "SelfLearning_original_delivery_results": "483bd95",
+    "SelfLearning_original_delivery_job": "33e09c1",
+    "SelfLearning_capacity_planner": "b8a70e3",
+    "SelfLearning_staging_quota": "bd29ff7",
+    "SelfLearning_scoped_capture_and_trace": "44895b9"
   },
-  "original_scope": {"epics": 12, "tasks": 93, "completed": 38, "partial": 40, "open": 15},
-  "expanded_scope": {"tasks": 99, "completed": 42, "partial": 40, "open_or_in_progress": 17},
+  "original_scope": {"epics": 12, "tasks": 93, "completed": 41, "partial": 37, "open": 15},
+  "expanded_scope": {"tasks": 99, "completed": 46, "partial": 37, "open_or_in_progress": 16},
   "extra_tasks": {
     "epic": "E02",
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
     "ids": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2", "D2-T3"],
-    "completed": ["D1-T1", "D1-T2", "D1-T3", "D2-T1"],
-    "note": "D1 whole local-build tasks at 3ed4cae and D2-T1 raw/chunk/private-pointer/profile/frozen-member/normalized-label binding at 62defd6,41d7063,9f29350,e154f84 are independently reviewed and locally verified. T1 credit is a local-build task, not full D2 acceptance. 64MiB is an aggregate transport ceiling, not acceptance of every source shape or hosted performance. D2-T2/T3 remain incomplete: scoped sender/receiver, durable delivery/group results, quota/GC, recovery and oversized-group isolation. Native/hosted and full story acceptance remain unverified. These six tasks do not silently change the original R1 PDF/backlog."
+    "completed": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2"],
+    "note": "D1, D2-T1 raw/frozen-member binding and D2-T2 scoped authenticated sender/receiver with bounded requests/retries and immutable destination outbox/original ACK are independently reviewed and locally verified. D2-T2 evidence: engine44895b9/NFL8561210c, actual sender-to-ASGI-to-PostgreSQL-WASM5tests plus scoped intake13tests. Storage is fake in SQL integration; runtime factory remains explicit injection/default disabled. T2 is whole LOCAL-BUILD credit, not automatic production configuration or full D2 acceptance. D2-T3 remains incomplete: current executor holds complete captures above500; b8a70e3 only previews whole-group capacity, with no multi-batch RPC/ACK. Hosted/native verification, retention/GC and runtime activation remain story/release gates. These six tasks do not silently change the original R1 PDF/backlog."
   },
   "epics": [
     {"id":"E00","completed":["S001-T1","S001-T2"],"partial":["S001-T3","S002-T1","S002-T2","S002-T3","S003-T1","S003-T2","S003-T3"],"open":[]},
@@ -36,7 +43,7 @@
     {"id":"E05","completed":["S016-T2","S016-T3","S017-T1"],"partial":["S016-T1"],"open":["S017-T2","S017-T3"]},
     {"id":"E06","completed":["S018-T1","S018-T2","S018-T3"],"partial":["S019-T1","S019-T2","S019-T3"],"open":[]},
     {"id":"E07","completed":[],"partial":["S020-T3","S021-T1","S021-T2","S021-T3"],"open":["S020-T1","S020-T2"]},
-    {"id":"E08","completed":["S024-T3"],"partial":["S022-T1","S022-T2","S022-T3","S024-T1","S024-T2"],"open":["S023-T1","S023-T2","S023-T3"]},
+    {"id":"E08","completed":["S022-T1","S022-T2","S022-T3","S024-T3"],"partial":["S024-T1","S024-T2"],"open":["S023-T1","S023-T2","S023-T3"]},
     {"id":"E09","completed":[],"partial":["S025-T1","S026-T1"],"open":["S025-T2","S025-T3","S026-T2","S026-T3"]},
     {"id":"E10","completed":[],"partial":["S027-T1","S027-T2","S027-T3","S028-T1","S028-T2","S028-T3"],"open":[]},
     {"id":"E11","completed":["S029-T1","S029-T3"],"partial":["S029-T2","S031-T1","S031-T2","S031-T3"],"open":["S030-T1","S030-T2","S030-T3"]}
@@ -77,18 +84,22 @@
     "S018-T1": "NFL bed4a3b4/0dd2bf48; pinned RCA reference fb8830ae, recovered last-retained pre-kickoff on-card unions with exact source/correlation/code/policy hashes; historical acceptance false, not full candidate authority",
     "S018-T2": "Persisted 2026-10-15-on-card-reference.json: 63 games, per-week59/188 to72/189 settlement reproduction, full hits48 to61 separate; 5a4b057b source audit explicitly nulls unavailable complete-pool metrics",
     "S018-T3": "Opt-in replay_on_card_reference.py --gate passes actual report, planted losing/missing/pending controls fail; 9 new tests,320/337 line coverage, root19 related tests and2252-feature/data/smoke/4model gate exit0; browserSKIP",
-    "S024-T3": "hosted MCP allowlist/read-only tests and OwnerBoundary: untrusted content cannot authorize intake/promotion",
+    "S022-T1": "44895b9; searchable responsive forecast-trace screen and owner-only pinned API; root15functionalDOM tests,45traceHTTP/MCP/actualSQL tests. Real-browser/mobile layout acceptance remains unverified.",
+    "S022-T2": "44895b9; exact manifest/envelope/original-source and complete ACK partition validation, generation/event/source/model claims, full correction/VOID history; source freshness/publication/adoption explicitly unverified, not inferred from connectivity.",
+    "S022-T3": "44895b9; loading/empty/unsupported/backend-offline/auth-lock/partial-upload-outage and retry states; independent stale rejection/success/401 auth-epoch regressions, XSS-safe text and memory-only owner key; no real browser acceptance claim.",
+    "S024-T3": "hosted MCP exact four-read-tool allowlist/read-only tests and OwnerBoundary: untrusted content cannot authorize intake/promotion",
     "S029-T1": "test_probability_receipts.py real deterministic elections/election.binary synthetic fixture; not a real-domain pilot",
     "S029-T3": "generic receipts/revisions/store/scoring do not import NFL; AST boundary regression enforces domain policy in adapters",
     "D1-T1": "3ed4cae; CLI-generated additive migration 20261015233134, service-only grants/RLS/immutability and legacy compatibility SQL tests",
     "D1-T2": "NFLObservedJournal complete pinned keyset reads; SQL indexed enumeration, historical fences and no fixture-owned ID list",
     "D1-T3": "atomic indexed-observation/revision CAS RPC plus bounded re-read/re-resolve helper; true NFL-producer Python-to-SQL correction/replay/conflict tests; native evidence still outstanding",
-    "D2-T1": "e154f84+9f29350+41d7063+62defd6: immutable canonical chunks and private hash pointers, fixed-profile raw capture verification, complete durable frozen-member label binding and full CAS rebind; root680core/API tests,17critical targets>=90%; actual raw-to-PostgreSQL-WASM lifecycle/correction/new-vintage CAS/tamper3tests plus2oldatomic pass. No source auth/public API/originaldeliveryACK or hosted claim."
+    "D2-T1": "e154f84+9f29350+41d7063+62defd6: immutable canonical chunks and private hash pointers, fixed-profile raw capture verification, complete durable frozen-member label binding and full CAS rebind; original680core/API checkpoint17critical targets>=90%; actual raw-to-PostgreSQL-WASM lifecycle/correction/new-vintage CAS/tamper3tests plus2oldatomic pass. That historical checkpoint alone has no source auth/public API/originaldeliveryACK or hosted claim.",
+    "D2-T2": "44895b9+483bd95+33e09c1+bd29ff7 and NFL8561210c: distinct outcome credential/three scope-bound routes, 3MiB content/stream limits, private quota-before-upload, fixed-origin/exact-route redacted sender, immutable presend and original-result ACK; root37Python-to-SQL and43NodeSQL tests, including5actual NFLsender->ASGI->SQL tests,14focused sender tests,13intake tests. Root808core/API pass,24critical targets>=90%,4936/5166=95.5478%. API factory remains injected/defaultdisabled; no hosted/native/real Storage or full D2 story acceptance."
   },
   "limitations": [
     "Whole source/task completion is not the same as all story acceptance criteria satisfied.",
     "Hosted/native concurrency, production migration, current-main reconciliation, browser acceptance and release readiness are unverified or not released.",
-    "E02 includes six new D1/D2 tasks in its expanded denominator: 12/15, not the misleading original-only 8/9.",
+    "E02 includes six new D1/D2 tasks in its expanded denominator: 13/15, not the misleading original-only 8/9.",
     "Zero completed tasks can contain significant partial work; this metric intentionally awards no fractional credit.",
     "No accuracy improvement, future hit count, completion date or autonomous model promotion is inferred.",
     "This local checkpoint has not been pushed to GitHub. New in-progress files are not credited until reviewed and verified."

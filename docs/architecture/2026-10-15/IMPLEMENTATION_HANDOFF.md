@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 15, 2026,
-10:26 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+11:23 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -12,6 +12,15 @@ planning baseline; the progress table below supersedes its older status text.
 - Shared engine worktree: `/Users/jliddar/code/SelfLearning-feedback-runtime`, branch `build/nfl-feedback-runtime-20261015`, starting at adapter checkpoint `4587231`.
 - Preserve dirty hosted foundation at `/Users/jliddar/code/SelfLearning` and all concurrent Claude/user work. It is not included merely because the adapter branch exists.
 - PR #172 is already merged. Do not propose merging that old draft again. Before a future release, refresh current main, reconcile new data/history and re-gate the exact new revision. This environment's GitHub fetch currently fails DNS resolution.
+
+Later read-only update, October 15, 10:30 p.m. CDT: the connected GitHub
+integration could verify remote main without shell fetch. NFL main is
+`0d49a94868142b4e6e888b927363d42270ed23c0`, seven commits after the local
+release baseline, with 55 changed paths **all under data/** and no code/workflow
+changes. SelfLearning main is `aa5bbaeddca4138399a21c1894b4aed4bacb52b4`.
+See `docs/reviews/2026-10-15-remote-baseline-check.json`. No remote data was
+merged locally and the exact newer data tree was not release-gated. This
+point-in-time read is not deploy verification or permission to publish.
 
 Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04c2d6`, NFL exporter `ed2f9668`, NFL evidence-grading fix `ac8b1083`; SelfLearning prospective journal `30fde77`, architecture package `46f87cf`, hosted/shadow checkpoint `b9ecd3f`, Supabase journal/configuration/native-gate source `7225b84`. These SHAs are local references until the owner separately authorizes a push.
 
@@ -47,10 +56,10 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 15, 2026, 10:26 p.m. CDT (America/Chicago). **42/99 = 42.4% local-build
+October 15, 2026, 11:23 p.m. CDT (America/Chicago). **46/99 = 46.5% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
-The original R1 plan is 38/93 (40.9%); six explicitly added D1/D2 tasks expand
+The original R1 plan is 41/93 (44.1%); six explicitly added D1/D2 tasks expand
 E02 and the total denominator. Do not hide those tasks to inflate progress.
 The ID-by-ID classification and evidence are in [progress.json](progress.json).
 
@@ -58,13 +67,13 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | --- | ---: | ---: | --- |
 | E00 Foundation/security | 2/9 | 22% | Live schema/history, helper permissions, credentials and deployed identity |
 | E01 Forecast/publication lineage | 5/9 | 56% | Deployment identity, live observation and exact-generation prepublication gate |
-| E02 Ingestion/outcome corrections | 12/15 | 80% | Scoped outcome transport, durable results/recovery and native/hosted acceptance |
+| E02 Ingestion/outcome corrections | 13/15 | 87% | Sealed multi-batch executor, runtime activation, retention and native/hosted acceptance |
 | E03 Evaluation/honest records | 8/9 | 89% | Independent full NFL/engine same-cohort comparator; real historical coverage remains unavailable |
 | E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
 | E05 Eligibility/freshness | 3/6 | 50% | Current-input eligibility verification, clearance guard and frozen replay |
 | E06 Parlay selection/concentration | 3/6 | 50% | Full Game/Week/MY objective comparison and owner portfolio-policy decision |
 | E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
-| E08 Dashboard/application MCP | 1/9 | 11% | Searchable journal trace, evaluation/candidate journeys and sessions |
+| E08 Dashboard/application MCP | 4/9 | 44% | Real-browser/mobile acceptance, evaluation/candidate journeys and sessions |
 | E09 Screenshots/questions | 0/6 | 0% | Private lifecycle, OCR/draft confirmation and evidence-based question routing |
 | E10 Jobs/operations/release | 0/6 | 0% | Resumable leases/checkpoints, alert drills, exact-SHA browser/hosted release |
 | E11 Reusable/new domains | 2/9 | 22% | Full second-domain boundary suite and one real-domain pilot; finance separate |
@@ -554,6 +563,92 @@ incomplete: authenticated capture-producer/sender/receiver, immutable original
 delivery/group results, safe recovery/statuses, quota/retention/GC, independent
 oversized-group survival and hosted/native evidence. No API route, backend
 selection, cloud resource or production behavior is enabled by this checkpoint.
+
+### Scoped capture and forecast trace checkpoint, 11:25 p.m. CDT
+
+October 15, 2026, America/Chicago. Independently reviewed runtime commits:
+engine `483bd95` (immutable original delivery result), `33e09c1` (lost-reply
+recovery), `b8a70e3` (offline complete-group capacity planner), `bd29ff7`
+(durable staging quota), `44895b9` (scoped capture API and forecast trace);
+NFL `ca18132f` (archive semantic diagnostic correction), `8561210c`
+(fixed-origin, exact-route, redacted outcome sender). All remain local only.
+
+| Root verification on engine `44895b9` / NFL `8561210c` | Exit | Result / limit |
+| --- | ---: | --- |
+| `tools/measure_critical_coverage.py --output docs/reviews/2026-10-15-critical-coverage.json`, actual NFL checkout enabled | 0 | **808 core/hosted tests**, zero skips; **24/24 targets above 90%**, **4,936/5,166 = 95.5478%** executable lines; source hashes and both heads stable. Not branch/acceptance coverage. |
+| Eleven explicit non-native `tests/postgres/test_*.py` suites | 0 | **37 passed**, including the actual NFL sender → in-process API → SQL quota + immutable delivery ledger. Storage is a named fake. |
+| `node --test tests/postgres/journal.test.mjs tests/postgres/observed_journal.test.mjs tests/postgres/capture_delivery.test.mjs tests/postgres/capture_staging.test.mjs` | 0 | **43 PostgreSQL-WASM tests**, zero skips. Not native concurrent sessions or hosted PostgREST. |
+| `node --test tests/web/nfl-trace-ui.test.mjs` | 0 | **15 functional DOM tests**; trace module V8 **9/9 functions, 42/42 block ranges**. Static responsive/CSP checks are not actual mobile/browser layout acceptance. |
+| NFL focused exporter suite with `SELFLEARNING_CHECKOUT` set | 0 | **14 passed**, zero skips; measured source **324/329 = 98.4802%**. No actual network send. |
+| NFL `bash tests/run_gate.sh`, Python 3.12, explicit shared-engine checkout | 0 | **2,277 feature tests**, contracts, smoke and four model gates pass. **Browser step 8 skipped**: Playwright is absent. This is not a full release/browser acceptance pass. |
+| Coverage-tool tests / progress arithmetic tests | 0 | **5 / 16 passed**. Progress validation pins the exact original task-to-epic mapping and prevents missing tasks, duplicate IDs, inflated counts and silently shrinking the frozen 99-task denominator; it does not certify substantive completion. |
+
+`docs/reviews/2026-10-15-critical-coverage.json` is generated from the exact
+runtime checkpoint above. Later documentation or in-progress configuration work
+is not silently included in that measurement. One existing Starlette/anyio
+deprecation warning remains. No native suite or real Storage test was run.
+
+The scoped API requires a **third**, distinct
+`SELFLEARN_NFL_OUTCOME_INGEST_TOKEN`; owner and forecast-ingest credentials cannot
+write or inspect captures. Tokens alone do not enable the current receiver:
+its server-owned factory is still explicit injection/default disabled. The
+next local slice is an explicit default-off backend selector, not an automatic
+production rollout. Do not add the operator key to NFL or enable a backend
+before reviewing migrations, private storage, quota provisioning and release.
+
+Staging first verifies exact chunk bytes and durably reserves namespace space,
+then performs private authenticated Storage upload/readback. Staging ACKs stay
+`learning_accepted:false` / `durable_ack:false`. Failed/orphan uploads remain
+charged; there is **no refund, quota reset, retention job or GC claim**. Admin
+limit changes must quiesce the producer and acquire transaction advisory lock
+`(619044,3)` before editing the exact namespace row; arbitrary administrator
+updates are not an instant credential-revocation or linearizable-config API.
+The quota rejects higher transaction isolation instead of assuming a waiting
+advisory lock refreshes an old snapshot. Its intended READ COMMITTED/volatile
+function behavior follows the [PostgreSQL snapshot contract](https://www.postgresql.org/docs/17/xfunc-volatility.html);
+native multi-session verification is still outstanding.
+
+The delivery transaction stores observations, revisions **and** the original
+exhaustive group result together. Lost replies recover that original immutable
+result **before** today's clock/raw reads/CAS; accepting a later vintage or
+correction never reinterprets or overwrites the old ACK. Actual SQL tests cover
+the initial/confirmation/correction/restore/VOID chain (**20 observations,
+16 revisions**), a pinned original **4/4** history, and later membership
+expansion **4 → 6**. These are synthetic raw fixtures processed by the actual
+NFL producer/sender, not proof of real provider authenticity or live accuracy.
+
+**D2-T3 remains incomplete.** The current executor still holds a complete
+capture above 500 members. The independently reviewed planner processes one
+full raw/frozen-membership bind, then previews complete groups without splitting
+rungs/vintages. An actual-producer synthetic workload shaped as 1,088 rungs /
+185 groups / maximum eight members produces **496 / 496 / 96** capacity batches;
+largest modeled request **2,337,708 bytes**, manifest **475,051 bytes**. Its
+prospective multi-batch RPC is explicitly **not implemented**, execution/ACK
+flags are false, and no preview is sent to the old whole-capture RPC. A sealed
+application/per-batch transaction/recovery protocol is still required.
+
+The read-only dashboard/API/MCP exposes original forecasts, sealed generation
+and ACK membership, event/model claims and the full correction/VOID chain.
+Publication, source freshness, approved adoption and production connection
+remain explicitly unverified. QA found and fixed a re-sealed envelope attaching
+new policy claims to an unchanged generation ID, plus stale sign-in rejection,
+success and 401 continuations crossing a newer auth epoch. The sender's
+unexpected-exception redaction and exported transport authority-override gaps
+were also independently reproduced and fixed before this final gate.
+
+NFL's S006 diagnostic initially applied live-card Q-chip rules to the closed MY
+archive format. That was a **diagnostic false alarm**, not missing live chips:
+actual live rendering showed **155 Questionable legs / 155 Q chips**. The
+diagnostic now checks the exact target frozen pool and reports archive/UI
+coverage honestly, without altering historic records. Current input's sparse
+weekly eligibility fields remain **unknown**, not 185 invented injuries or a
+green eligibility result. The prepublication gate is not yet fully wired.
+
+Independent task audit credits only **S022-T1/T2/T3 and D2-T2** for this slice:
+**46/99 = 46.5%** whole local-build completion, original scope **41/93**, E02
+**13/15**, E08 **4/9**. No story/browser/hosted/activation/accuracy percentage is
+inferred. R127/weather remain shadow; do not refit Week-5/TNF outcomes or claim
+15/18. R1 PDF/backlog design remains unchanged; no routine whiteboard rebuild.
 
 ### Next delivery order and owner actions
 
