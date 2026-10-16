@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 12:07 p.m. CDT: use the
+Implementation status updated October 16, 2026, 12:50 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -27,14 +27,17 @@ No additional `SELFLEARN_OPERATOR_TOKEN` setup is needed. If convenient, confirm
 
 The implementation team should perform the authenticated API/database test, reconcile migration history, create narrow pipeline credentials and prepare the reviewed release. A separate `SELFLEARN_NFL_INGEST_TOKEN` is needed for the Vercel verifier and NFL GitHub Actions when delivery is enabled; never reuse the operator token. The new journal selector is an explicit rollout switch, not a setting to enable before migration/release checks. The owner remains the authority for production migrations/deployment, changing the portfolio objective and model activation. The plan does not require buying another provider or enabling automatic promotion.
 
-## Current local checkpoint October 16 12:07 p.m. CDT
+## Current local checkpoint October 16 12:50 p.m. CDT
 
-Engine `d3a5693`, evidence `59d54a6`: **1,232 core/API tests passed, zero skips**;
-**43/43 critical Python files >90%**, **96.2167%** executable-line coverage with
-stable measured hashes. Complete SQL: **93 Node passed, zero skips**; **100 Python
-passed / seven native-only skipped**, all terminal exit 0. Durable jobs/fitter
-recovery work locally, while triggers, hard bounds, authoritative data assembly,
-alerts and hosted rollout remain incomplete. No new whole-task or live-loop
+Engine runtime `419c73a`, test hardening `e087541`, evidence `605afd4`:
+**1,353 core/API tests passed, zero skips**;
+**46/46 critical Python files >90%**, **96.3377%** executable-line coverage with
+stable measured hashes. Complete SQL: **93 Node passed, zero skips**; **101 Python
+passed / seven native-only skipped**, all terminal exit 0. SQL uses `419c73a`;
+runtime, services and SQL tests remain byte-identical to `e087541`. Durable jobs and the
+bounded isolated NFL shadow fitter work locally, while triggers, authoritative
+data assembly, evaluator authority, alerts and hosted rollout remain incomplete.
+No new whole-task or live-loop
 credit: **50/99 (50.5%)**. See the job guide for contracts and the next work.
 
 ## Earlier local checkpoint October 16 11:18 a.m. CDT

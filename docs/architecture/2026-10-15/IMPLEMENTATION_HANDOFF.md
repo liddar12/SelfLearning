@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-12:07 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+12:50 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -68,7 +68,7 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 16, 2026, 12:07 p.m. CDT (America/Chicago). **50/99 = 50.5% local-build
+October 16, 2026, 12:50 p.m. CDT (America/Chicago). **50/99 = 50.5% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
 The original R1 plan is 44/93 (47.3%); six explicitly added D1/D2 tasks expand
@@ -87,7 +87,7 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
 | E08 Dashboard/application MCP | 4/9 | 44% | Real-browser/mobile acceptance, evaluation/candidate journeys and sessions |
 | E09 Screenshots/questions | 0/6 | 0% | Private lifecycle, OCR/draft confirmation and evidence-based question routing |
-| E10 Jobs/operations/release | 0/6 | 0% | Durable jobs/shadow reports built locally; triggers, hard worker bounds, alerts and browser/hosted release remain |
+| E10 Jobs/operations/release | 0/6 | 0% | Durable jobs and bounded shadow fitter built locally; complete datasets, triggers, alerts and browser/native/hosted release remain |
 | E11 Reusable/new domains | 3/9 | 33% | Universal cross-owner/adapter identity story acceptance and one real-domain pilot; finance separate |
 
 Zero completed tasks can include substantial partial code. R126 ranking was
@@ -123,7 +123,41 @@ Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
 authorized actions. No weekly manual SQL is required by the intended pipeline.
 
-## Current durable jobs checkpoint October 16 12:07 p.m. CDT
+## Current bounded worker checkpoint October 16 12:50 p.m. CDT
+
+Engine runtime `419c73a`, test hardening `e087541`, evidence `605afd4`: a v2 immutable policy runs the fixed
+NFL shadow fitter in isolated Python with explicit CPU/wall/pipe bounds and no
+database credential inheritance. Real timeout, CPU termination, file-growth
+refusal, exited-leader descendant cleanup, cancellation and durable recovery
+tests pass. Normal failures record static reasons and release only a still-live
+matching lease; cancellation performs no later database write. V1 inline policy
+and result shapes remain unchanged and never claim these execution controls.
+
+Frozen broad results on `e087541`, terminal exit **0**: **1,353 core/API passed / zero
+skips**, **46/46 critical files >90%**, **8,181/8,492 = 96.3377%** executable
+lines with source/test/tool/head stability. Separate SQL on `419c73a`, all exit
+**0**: **93 Node SQL passed / zero skips**;
+**101 Python-to-SQL passed / seven native-only skipped**. The latter includes
+an actual isolated 330-receipt fitter persisted/recovered through the complete
+SQL chain. The existing dependency warning is not suppressed. Child execution
+is tested separately, not counted by in-process trace coverage.
+[Report](../../reviews/2026-10-16-critical46-bounded-compute-r2-coverage.json) pins
+NFL `383fbd63`; its 2,453-feature source gate is unchanged, not rerun or promoted.
+Runtime, services and PostgreSQL tests are byte-identical between the two engine
+test heads. CPU proof now requires a started-loop marker and CPU-limit signal;
+file-growth proof requires EFBIG. The earlier weaker test inventory is preserved,
+not retroactively called the stronger proof.
+
+S027 remains partial and completion stays **50/99 (50.5%)**. Next: assemble
+complete authoritative journal cohorts with scalable immutable chunks and
+independent parity; connect ingestion/manual triggers to canonical job identity;
+add a distinct evaluator credential/API, namespace metrics/alerts and hosted/
+native worker acceptance. No arbitrary-code sandbox, whole-machine cost/memory
+ceiling, autonomous model adoption, live learning loop or accuracy gain is
+claimed. [Contracts and verification](LEARNING_JOBS.md). Nothing was pushed,
+migrated or deployed. Later evidence/handoff commits are not exact-tested SHAs.
+
+## Earlier durable jobs checkpoint October 16 12:07 p.m. CDT
 
 Source `d3a5693a6dbed2436f00191a89f93257cde8ef70`, evidence `59d54a6`, adds
 durable generic SQLite/Supabase jobs and actual NFL shadow-fitter report/artifact

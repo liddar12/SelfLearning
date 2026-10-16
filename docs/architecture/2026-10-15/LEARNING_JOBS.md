@@ -1,10 +1,12 @@
 # Durable learning jobs and NFL shadow evaluation
 
-Revision 2 · October 16, 2026, 12:07 p.m. America/Chicago (CDT).
+Revision 3 · October 16, 2026, 12:50 p.m. America/Chicago (CDT).
 
 The shared engine can now persist a bounded evaluation job, resume its saved
 checkpoint with a replacement worker, and store an actual NFL shadow report and
-typed artifact. This is a local Python and PostgreSQL-WASM implementation, not
+typed artifact. An explicit v2 policy now runs the fixed fitter in a separate
+bounded POSIX process, keeping database credentials in its parent. This is a
+local Python and PostgreSQL-WASM implementation, not
 a scheduled or deployed learning loop. The application still reports learning
 jobs as not configured; model activation remains false.
 
@@ -62,6 +64,45 @@ accuracy-improvement indicators remain false.
 
 ## Limits and operational gaps
 
+### Bounded compute execution
+
+`nfl_bounded_evaluation.run_bounded_shadow_job` requires a v2 policy with an
+immutable execution profile. It never silently upgrades or falls back to the
+legacy v1 inline worker. Profiles bound wall and CPU seconds to 1–300, request
+bytes to 4 MiB, response bytes to 3 MiB and charged stderr to 16 KiB. The normal
+profile uses 30 seconds. Effective compute time is capped by the earlier saved
+server lease/runtime deadline, subtracting local preparation time. Parent
+database calls are outside this compute deadline; their final lease checks
+still reject late persistence.
+
+The parent starts fixed trusted Python code with `-I -S -B -u`, an explicit
+package root, a fresh working directory and only locale/timezone environment
+variables. It passes no database credentials, storage path or uploaded command.
+The child applies and reads back Unix CPU, zero core-dump and zero regular-file
+growth limits before parsing the bounded input. The fitter uses exactly the
+same source-pinned inputs, policy and chronological evaluation as v1. A v2
+result binds the report to the job, definition, code and profile with pipe
+hashes, effective budgets and observed limits. These are local observations,
+not authenticated execution or clocks; those authority flags remain false.
+
+The supervisor drains both output pipes while writing input and charges every
+byte. Stderr content is discarded, including on success. It kills the owned
+worker group and reaps its leader on success, refusal, timeout or cancellation, even if its
+leader has exited and a descendant still holds a pipe. Ordinary compute
+refusals return static reason codes and attempt a fenced `worker_error` release
+while preserving the checkpoint. A changed/expired lease is never released by
+the old worker. Cancellation propagates after process cleanup without a later
+database write. An unsupported platform fails closed.
+
+These are compute-process controls, not an arbitrary-code sandbox, aggregate
+machine memory/cost ceiling or filesystem/network prohibition. OS process
+creation itself may not be interruptible (see the
+[Python subprocess timeout contract](https://docs.python.org/3.12/library/subprocess.html#subprocess.run)); late-created workers are killed and
+their results refused. A deliberately escaping descendant is outside the
+trusted-worker contract. Production worker/runtime support remains unverified.
+
+### Durable job and dataset limits
+
 Metadata is strict ASCII JSON: 16 KiB per document and 256 KiB per complete
 history. A definition permits at most eight claims, 32 work steps including
 completion, a 1–300 second lease and a 1–3,600 second overall runtime. The runtime
@@ -77,9 +118,10 @@ Multiple forecast vintages and genuine multiweek input sets can exceed these
 caps. They must use complete canonical-cohort/chunk contracts, not truncation
 or a conveniently smaller sample merely to make a job pass.
 
-Database clocks reject late state writes, but do not preempt a blocking fitter
-or IO callback. Hard worker/process/cost limits, failure recording, bounded
-trigger delivery, a distinct evaluator credential/API, GitHub Actions wiring,
+V1 database clocks reject late state writes without preempting its inline
+fitter. V2 adds the process controls above, but does not bound parent IO or total
+memory/operating cost. Complete journal assembly, bounded trigger delivery,
+a distinct evaluator credential/API, GitHub Actions wiring,
 backlog metrics and alerts remain S027 work. A lease can expire between immutable
 object append and job completion, leaving an unreferenced object. Retention and
 quota treatment remain required; exactly-once computation is not claimed.
@@ -103,6 +145,46 @@ hosted PostgREST/credentials and production migration remain unverified. No
 cloud migration or enablement was performed.
 
 ## Local verification and next integration
+
+Source `419c73a057b8059a3c0d10065a958e14f2ad07a4` adds real child CPU termination
+and file-growth refusal tests, real hung
+worker and exited-leader descendant cleanup tests, credential isolation,
+versioned-policy/receipt adversarial checks and original-result recovery.
+After test hardening `e087541`, frozen broad verification completes with
+terminal exit **0**:
+
+- **1,353 core/API passed, zero skips**; **46/46 critical files >90%**,
+  **8,181/8,492 = 96.3377%** executable lines, source/test/tool/head hashes stable.
+- On source `419c73a`, **93 Node SQL passed, zero skips** across the full additive migration chain.
+- On that same source, **101 Python-to-SQL passed / seven native-only skipped**, including five actual
+  job-port cases and one isolated 330-receipt fitter with v2 result/receipt
+  persistence and completed retry without another process. The existing
+  dependency deprecation warning remains unsuppressed.
+
+[Current coverage report](../../reviews/2026-10-16-critical46-bounded-compute-r2-coverage.json),
+evidence commit `605afd4`, pins engine `e087541` and NFL dependency head
+`383fbd63`. Runtime, services and PostgreSQL tests are byte-identical to the
+earlier SQL-tested `419c73a`; those SQL suites were not rerun for test-only
+hardening. Complete logs:
+`/private/tmp/selflearning-critical46-bounded-compute-root-r2-20261016.log`,
+`/private/tmp/selflearning-bounded-compute-all-node-sql-root-20261016.log` and
+`/private/tmp/selflearning-bounded-compute-all-python-sql-root-20261016.log`.
+Child execution is not counted by in-process line coverage; pure worker tests
+with fake kernel limits and separate actual child enforcement tests serve
+different purposes. Later documentation/evidence commits are not new tested
+release SHAs. The earlier focused 167-test run preceded the final static parent
+directory refusal case; the broad run includes that case too.
+
+Final evidence review tightened the dedicated resource tests in `e087541`:
+the CPU case must now observe a marker created after successful limit readback
+and termination by SIGXCPU/SIGKILL after the busy loop starts. An import/resource
+setup error can no longer count as CPU enforcement. The file-growth case must
+observe EFBIG, not just any failed write. These 40 worker tests and the final
+**1,353-test** core/API rerun pass, exit 0. The [earlier 419c73a report](../../reviews/2026-10-16-critical46-bounded-compute-coverage.json)
+and `c0b552a` evidence remain the earlier test inventory, not silently relabeled
+with the stronger proof.
+
+### Earlier v1 checkpoint
 
 Focused Python verification: **54 passed, zero skipped, exit 0**, including four
 actual Python-to-SQL tests and a synthetic 330-receipt real-fitter run. The
@@ -136,9 +218,10 @@ Later evidence/documentation commits are not new exact-tested release SHAs.
 | Package helper changes | Pinned job refuses changed code | New/changed/removed helper and symlink tests |
 | Private state is forged or mutated | Request fails; complete history still reexecutes | RPC tamper, direct INSERT and SQL catalog tests |
 
-The next implementation must connect ingestion-completion and manual triggers
-to this same canonical job definition, add hard execution bounds and safe
-observability, and test failure/recovery with the intended worker. S027 tasks
+The next implementation must assemble complete authoritative journal cohorts,
+connect ingestion-completion and manual triggers to this same canonical job
+definition, add scoped evaluator authority and safe observability, and test
+failure/recovery with the intended hosted/native worker. S027 tasks
 remain partial; the audited total stays **50/99 local-build tasks (50.5%)**.
 This is backend implementation under the existing R1 architecture, not a new
 architecture package or model promotion.

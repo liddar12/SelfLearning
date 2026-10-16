@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "as_of": "2026-10-16T12:07:15-05:00",
+  "as_of": "2026-10-16T12:50:24-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "requested_target": "2026-10-16T07:00:00-05:00",
@@ -52,19 +52,23 @@
     "SelfLearning_owner_shadow_evidence": "58ea096",
     "SelfLearning_owner_shadow_coverage": "5314ca8",
     "SelfLearning_durable_shadow_jobs": "d3a5693",
-    "SelfLearning_durable_jobs_coverage": "59d54a6"
+    "SelfLearning_durable_jobs_coverage": "59d54a6",
+    "SelfLearning_bounded_compute": "419c73a",
+    "SelfLearning_bounded_compute_first_coverage": "c0b552a",
+    "SelfLearning_bounded_compute_resource_test_hardening": "e087541",
+    "SelfLearning_bounded_compute_coverage": "605afd4"
   },
   "latest_local_verification": {
     "NFL2026": {"source_head": "6aafdfcf4b321f1085837766f3489c6340818c11", "exit_code": 0, "feature_passed": 2453, "feature_skipped": 0, "contracts_smoke_and_four_model_gates": "pass", "browser_step_8": "skipped", "release_accepted": false, "log": "/private/tmp/nfl-injury-capture-full-gate-root-r5-20261016.log"},
-    "SelfLearning": {"measured_head": "d3a5693a6dbed2436f00191a89f93257cde8ef70", "NFL_dependency_head": "383fbd6388084103e54628bdcfd4f1c03cc3d7d6", "core_API_passed": 1232, "skipped": 0, "pytest_exit_code": 0, "critical_targets_above_90_percent": "43/43", "executable_lines": "7884/8194", "evidence_commit": "59d54a6", "report": "docs/reviews/2026-10-16-critical43-durable-jobs-coverage.json"},
-    "complete_Node_SQL": {"passed": 93, "skipped": 0, "exit_code": 0},
-    "complete_Python_SQL": {"passed": 100, "native_only_skipped": 7, "exit_code": 0, "native_job_concurrency_verified": false},
+    "SelfLearning": {"measured_head": "e087541d74747672bf59eccb43b0f110f25ed316", "runtime_introduced_head": "419c73a", "NFL_dependency_head": "383fbd6388084103e54628bdcfd4f1c03cc3d7d6", "core_API_passed": 1353, "skipped": 0, "pytest_exit_code": 0, "critical_targets_above_90_percent": "46/46", "executable_lines": "8181/8492", "evidence_commit": "605afd4", "report": "docs/reviews/2026-10-16-critical46-bounded-compute-r2-coverage.json"},
+    "complete_Node_SQL": {"source_head": "419c73a", "runtime_services_SQL_tests_identical_to_e087541": true, "passed": 93, "skipped": 0, "exit_code": 0},
+    "complete_Python_SQL": {"source_head": "419c73a", "runtime_services_SQL_tests_identical_to_e087541": true, "passed": 101, "native_only_skipped": 7, "exit_code": 0, "native_job_concurrency_verified": false},
     "separate_ledger_and_coverage_tool_tests": {"passed": 32, "exit_code": 0, "included_in_core_API_count": false}
   },
   "partial_task_evidence": {
-    "S027-T1": "d3a5693/59d54a6: durable generic job definitions/events on real SQLite and PostgreSQL-WASM, logical input/policy/code/namespace identity, separately pinned immutable controls, fenced claims/checkpoints/completion, original ACK recovery, actual process-crash resume and actual330-receipt NFL fitter report/artifact persistence. Ingestion-completion/manual workflow wiring, canonical complete-journal dataset assembly, distinct scoped evaluator API/credential and hard worker execution bounds remain incomplete; no task credit.",
+    "S027-T1": "d3a5693 plus419c73a/e087541/605afd4: durable generic job definitions/events on real SQLite and PostgreSQL-WASM, immutable identity/controls and fenced checkpoint/recovery. An explicit v2 policy now runs the fixed real330-receipt NFL fitter in isolated credential-free Python with CPU/wall/pipe limits and original durable result recovery. Ingestion-completion/manual workflow wiring, canonical complete-journal scalable dataset assembly and distinct scoped evaluator API/credential remain incomplete; no task credit.",
     "S027-T2": "Current job reads expose explicit due/expired/busy/attempt/runtime/terminal state and immutable reason codes. Namespace backlog metrics, last-success/age dashboards, alerts and operational drills remain incomplete; no task credit.",
-    "S027-T3": "Duplicate-trigger timing cannot create a new logical run or reset its window; stale lease/head, late cron, attempts, completion reserve, old ACK recovery, source changes and late-fitter commit refusal pass. Maximum legal47-event history passes. Native concurrent SQL and hard process/CPU/cost bounds remain unverified/incomplete; database rejection of a late commit is not preemption of computation; no task credit."
+    "S027-T3": "419c73a/e087541/605afd4: duplicate identity/deadline, lease/head, late cron, attempts, completion reserve, original ACK, source changes and maximum legal47-event history pass. Actual v2 child CPU termination requires started-loop marker plus CPU-limit signal; file-growth refusal requires EFBIG, not an unrelated error. Wall timeout, bounded pipes, exited-leader descendant cleanup, cancellation and checkpoint-preserving worker_error release pass. Database-only late-commit rejection is not presented as preemption of v1. Native concurrent SQL, intended hosted runtime, parent IO/global memory/cost ceilings and operational drills remain incomplete; no task credit."
   },
   "original_scope": {"epics": 12, "tasks": 93, "completed": 44, "partial": 34, "open": 15},
   "expanded_scope": {"tasks": 99, "completed": 50, "partial": 34, "open_or_in_progress": 15},

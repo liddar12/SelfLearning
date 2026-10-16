@@ -2,7 +2,49 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Current durable jobs verification October 16 12:07 p.m. CDT
+## Current bounded worker verification October 16 12:50 p.m. CDT
+
+Runtime introduced in `419c73a`; frozen test-hardening source
+`e087541d74747672bf59eccb43b0f110f25ed316`, evidence `605afd4`:
+**1,353 core/API passed, zero skips**, pytest/process exit **0**;
+**46/46 critical files >90%**, **8,181/8,492 = 96.3377%** executable lines with
+source/test/tool/head stability. [Report](../../reviews/2026-10-16-critical46-bounded-compute-r2-coverage.json)
+pins NFL dependency `383fbd6388084103e54628bdcfd4f1c03cc3d7d6`. Separate complete
+SQL runs on `419c73a`: **93 Node passed, zero skips**, exit **0**; **101 Python passed / seven
+native-only skipped**, exit **0**. Runtime, services and SQL tests are
+byte-identical between both engine test heads; SQL was not rerun for test-only
+hardening. The existing dependency warning remains.
+
+Actual child tests enforce CPU termination, file-growth refusal, wall deadlines,
+exited-leader descendant cleanup and cancellation. SQLite and Python-to-SQL
+cases persist/recover the real 330-receipt shadow report and bounded execution
+receipt without refitting completed jobs. Strict integer limits reject boolean
+and floating zero substitutions. V1 behavior and default-disabled application
+configuration remain unchanged. Parent database calls, native/hosted concurrency,
+browser acceptance, complete source authority and live adoption are not covered
+by these compute controls. Child code is not traced by the coverage tool;
+direct pure-worker tests use fake limits, not fake claims of kernel enforcement.
+The strengthened CPU test requires a marker after successful resource readback
+and SIGXCPU/SIGKILL termination, not any nonzero exit. The file-growth test
+requires EFBIG. The earlier report remains pinned to its original weaker tests.
+
+Commands ran from the engine worktree using its existing Python 3.12 venv and
+explicit installed PostgreSQL-WASM module, without installing dependencies:
+
+```bash
+NFL2026_CHECKOUT=/Users/jliddar/code/NFL2026-learning-runtime PYTHONPATH=packages/selflearn-core:. python tools/measure_critical_coverage.py --output docs/reviews/2026-10-16-critical46-bounded-compute-r2-coverage.json
+SELFLEARN_PGLITE_MODULE=/Users/jliddar/.npm/_npx/ba4f1959e38407b5/node_modules/@electric-sql/pglite/dist/index.js node --test --test-concurrency=1 tests/postgres/*.test.mjs
+SELFLEARN_PGLITE_MODULE=/Users/jliddar/.npm/_npx/ba4f1959e38407b5/node_modules/@electric-sql/pglite/dist/index.js NFL2026_CHECKOUT=/Users/jliddar/code/NFL2026-learning-runtime PYTHONPATH=packages/selflearn-core:. python -m pytest -q -rs tests/postgres
+```
+
+Logs are `/private/tmp/selflearning-critical46-bounded-compute-root-r2-20261016.log`,
+`/private/tmp/selflearning-bounded-compute-all-node-sql-root-20261016.log` and
+`/private/tmp/selflearning-bounded-compute-all-python-sql-root-20261016.log`.
+[Job contracts and remaining integration](LEARNING_JOBS.md). S027 remains partial;
+**50/99 (50.5%)** local tasks, no deployment or accuracy credit. Later evidence/
+documentation commits are not newly tested releases. No production writes.
+
+## Earlier durable jobs verification October 16 12:07 p.m. CDT
 
 Source `d3a5693`, evidence `59d54a6`: **1,232 core/API passed, zero skips**,
 **43/43 critical files >90%**, **7,884/8,194 = 96.2167%** executable lines and

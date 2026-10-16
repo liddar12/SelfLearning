@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 8 · October 16, 2026, 12:07 p.m. America/Chicago (CDT).
+Revision 9 · October 16, 2026, 12:50 p.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; **not met**.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -16,6 +16,25 @@ No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
 ## Latest follow-up
+
+Engine runtime `419c73a`, strengthened tests `e087541`, evidence `605afd4`:
+explicit v2 policies now run the actual NFL
+fitter in bounded isolated Python, without database credentials. Real CPU/wall/
+pipe, descendant cleanup and cancellation controls pass, as does durable
+SQLite/PostgreSQL-WASM result recovery. Frozen broad results: **1,353 core/API
+passed, zero skips**, **46/46 critical files >90%**, **96.3377%** executable lines,
+stable measured source/test/tool/head hashes. Complete SQL: **93 Node passed,
+zero skips** and **101 Python passed / seven native-only skipped**, all terminal
+exit **0**. SQL ran on `419c73a`; runtime, services and SQL tests are byte-identical
+to `e087541`. CPU proof now requires a started-loop marker/CPU-limit signal and
+file-growth proof requires EFBIG; the earlier test report is preserved separately.
+Existing dependency warning remains. [Contracts and evidence](LEARNING_JOBS.md).
+Complete journal assembly, triggers, evaluator authority, alerts and hosted/native
+release still remain; no new whole-task credit. Completion stays **50/99**.
+Nothing was pushed, migrated, deployed or activated. The existing NFL gate is
+unchanged; this engine-only work does not establish additional accuracy.
+
+## Earlier follow-up 12:07 p.m. CDT
 
 Engine `d3a5693`, evidence `59d54a6`: durable jobs now resume actual NFL shadow
 evaluation and preserve the original report/artifact without refitting on retry.
