@@ -1,16 +1,17 @@
 {
   "version": 1,
-  "as_of": "2026-10-15T19:02:00-05:00",
+  "as_of": "2026-10-15T19:09:00-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "source_checkpoints": {
     "NFL2026_runtime": "1bd076ac",
-    "NFL2026_evidence": "34fb9ea1",
+    "NFL2026_evidence": "d85de971",
+    "NFL2026_publication": "4cd7e1e6",
     "SelfLearning_kernel": "7204ebd",
     "SelfLearning_observed_journal": "3ed4cae"
   },
-  "original_scope": {"epics": 12, "tasks": 93, "completed": 33, "partial": 43, "open": 17},
-  "expanded_scope": {"tasks": 99, "completed": 36, "partial": 43, "open_or_in_progress": 20},
+  "original_scope": {"epics": 12, "tasks": 93, "completed": 35, "partial": 42, "open": 16},
+  "expanded_scope": {"tasks": 99, "completed": 38, "partial": 42, "open_or_in_progress": 19},
   "extra_tasks": {
     "epic": "E02",
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
@@ -20,7 +21,7 @@
   },
   "epics": [
     {"id":"E00","completed":["S001-T1","S001-T2"],"partial":["S001-T3","S002-T1","S002-T2","S002-T3","S003-T1","S003-T2","S003-T3"],"open":[]},
-    {"id":"E01","completed":["S004-T1","S004-T2","S004-T3"],"partial":["S005-T1","S005-T3","S006-T1","S006-T2","S006-T3"],"open":["S005-T2"]},
+    {"id":"E01","completed":["S004-T1","S004-T2","S004-T3","S005-T1","S005-T3"],"partial":["S005-T2","S006-T1","S006-T2","S006-T3"],"open":[]},
     {"id":"E02","completed":["S007-T1","S007-T2","S007-T3","S008-T1","S008-T2","S009-T1","S009-T2","S009-T3"],"partial":["S008-T3"],"open":[]},
     {"id":"E03","completed":["S010-T1","S010-T3","S011-T1","S011-T2","S011-T3","S012-T1","S012-T2","S012-T3"],"partial":["S010-T2"],"open":[]},
     {"id":"E04","completed":["S013-T1","S013-T2","S013-T3","S014-T1","S014-T2","S014-T3"],"partial":["S015-T1","S015-T3"],"open":["S015-T2"]},
@@ -38,6 +39,8 @@
     "S004-T1": "NFL scripts/build_my_cards.py, learning_journal.py; week6_learning_journal.test.mjs before-dedupe cases",
     "S004-T2": "NFL learning_journal.py immutable manifests/source objects; publisher race and conflict tests",
     "S004-T3": "NFL offered_cards vs eligible pool population; prospective/cohort offered-membership tests",
+    "S005-T1": "NFL 4cd7e1e6; immutable plan/content-observation contract, exact served prop receipt membership, generation/schema/capture-clock validation; deployment identity explicitly unsupported",
+    "S005-T3": "NFL actual fetch-completion clock, old display-dedupe lineage and no historical reconstruction; 15 focused/38 related tests, actual 7 MB archive dry-run truthfully has 0 members",
     "S007-T1": "adapters/nfl.py adapt_prospective; test_nfl_prospective.py card/pool/journal cases",
     "S007-T2": "NFL source/kickoff validation and real producer integration with NFL2026_CHECKOUT",
     "S007-T3": "ReceiptJournal/SupabaseReceiptJournal independent receipt append without outcome; ingestion tests",

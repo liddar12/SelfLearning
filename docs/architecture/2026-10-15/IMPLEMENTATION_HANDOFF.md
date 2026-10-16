@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 15, 2026,
-7:02 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+7:09 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -18,21 +18,22 @@ Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04
 Later local checkpoints: NFL immutable capture/producer/opt-in consumers
 `1bd076ac`, evidence/handoff `34fb9ea1`; SelfLearning observed-clock kernel
 `7204ebd`; indexed observation/atomic CAS checkpoint `3ed4cae`. No production
-behavior is enabled by those commits.
+behavior is enabled by those commits. NFL public-content observation runtime
+`4cd7e1e6`, evidence/handoff `d85de971`, is also local only.
 
 ## Audited completion by epic
 
-October 15, 2026, 7:02 p.m. CDT (America/Chicago). **36/99 = 36.4% local-build
+October 15, 2026, 7:09 p.m. CDT (America/Chicago). **38/99 = 38.4% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
-The original R1 plan is 33/93 (35.5%); six explicitly added D1/D2 tasks expand
+The original R1 plan is 35/93 (37.6%); six explicitly added D1/D2 tasks expand
 E02 and the total denominator. Do not hide those tasks to inflate progress.
 The ID-by-ID classification and evidence are in [progress.json](progress.json).
 
 | Epic | Local complete | Percentage | Main remaining boundary |
 | --- | ---: | ---: | --- |
 | E00 Foundation/security | 2/9 | 22% | Live schema/history, helper permissions, credentials and deployed identity |
-| E01 Forecast/publication lineage | 3/9 | 33% | Verified public observation and exact-generation prepublication gate |
+| E01 Forecast/publication lineage | 5/9 | 56% | Deployment identity, live observation and exact-generation prepublication gate |
 | E02 Ingestion/outcome corrections | 11/15 | 73% | D2 provenance-bound transport, native/hosted checks and full acceptance |
 | E03 Evaluation/honest records | 8/9 | 89% | Independent full NFL/engine same-cohort comparator; real historical coverage remains unavailable |
 | E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
@@ -53,8 +54,8 @@ The progress audit does not award deployment credit to local branches.
 ### Current parallel team
 
 Four concurrent agents maximum: one coordinator/integrator and three file-owned
-lanes. D1 database/Python work is committed; those lanes rotate to NFL
-publication implementation and D2 transport-contract design. Independent QA
+lanes. D1 and the bounded publication slice are committed; the lanes rotate to
+strict frozen-candidate replay and generic bounded evidence-chunk primitives. Independent QA
 reviews the new authority boundaries while the coordinator integrates and
 maintains audited evidence. Do not increase shared-file collisions or run two
 NFL gates. Claude Code is not a live connected fifth lane.
@@ -68,6 +69,7 @@ authorized actions. No weekly manual SQL is required by the intended pipeline.
 | Slice | Files | Evidence and limits |
 | --- | --- | --- |
 | NFL journal | `scripts/learning_journal.py`, `scripts/build_my_cards.py`, `tests/feature/week6_learning_journal.test.mjs` | Captures supported pool receipts before both display-dedupe boundaries, snapshots exact consumer inputs, uses immutable paths and publisher conflict protection. Source null/empty timestamp mismatch was independently found and fixed. No public-publication claim or live probability change. |
+| Content observations | NFL `scripts/publication_observations.py`, feature/fixture tests; runtime `4cd7e1e6` | Exact served prop-leg membership and real fetch-completion time, separate from original receipt. No deployment identity/whole-card attestation or historical backfill. Default local plan never fetches or writes. 38 related tests and the 2,235-feature dependency-free gate pass; browser skipped. The actual 7 MB Week 6 archive has zero verifiable members: 7,817 prop occurrences lack original receipts and 4,378 market occurrences are unsupported; these are not independent bets. |
 | Prospective adapter and local persistence | `selflearn_core/adapters/nfl.py`, `store/receipt_journal.py`, `tests/test_nfl_prospective.py`, `tests/test_receipt_journal.py`, `docs/nfl-adapter.md` | Captures unresolved receipts and journals; validates actual NFL producer parity. SQLite append-only store tests receipt/revision idempotency and rejects mutation/forks. This is a local contract implementation, not the hosted Supabase port. |
 | R130 report | `scripts/as_offered_record.py`, `scripts/build_review.py`, `app/review.js`, optional review schema and tests | Separates pre-kickoff cohort from settlement, push/reduced/refund/loss counts and late exclusions. Full-history headline unavailable in this shallow checkout. Actual frozen Week 5 settlement reproduces 16/65 including push; its Week cards contain 1 full + 3 reduced + 19 losses / 23. |
 | Architecture/backlog | This directory | Seven-page PDF plus editable sources, technical plan, pipeline/security model, roadmap and traced backlog. No assertion that the backlog is implemented. |
@@ -99,7 +101,7 @@ migration, deploy or model activation has occurred.
 | S008 durable journal | `SupabaseReceiptJournal`, canonical JSON text, atomic generation ACK/partition, server-owned timestamps, immutable receipts and correction history; additive CLI-generated migration `supabase/migrations/20261015222425_receipt_journal_v1.sql`. | Native CI results, hosted PostgREST/grants and persistence/recovery checks, production migration approval, exporter/workflow wiring and backlog alerting. |
 | S009 outcome authority | Pure FINAL bridge, frozen capture/producer, observed-v2 kernel and reviewed local D1 indexed journal/atomic CAS at `3ed4cae`. | D2 provenance-bound public transport, native concurrency and hosted verification. Do not invent upstream update or exact game-finish clocks. |
 | S010/S011/S013/S014 evaluation/typed return | Canonical first-forecast cohort, database-as-of revision fence, chronological shadow reconstruction, typed immutable-base-logit transform and synthetic second cycle. | Actual future source cohort parity, scheduled/persisted runs and candidates, independently implemented NFL approval/consumer/rollback. No production adoption. |
-| S005/S006 publication/generation | Generation journal and local semantic checks exist. | Verified public first-observation, exact published manifest and complete pipeline prepublication gate. |
+| S005/S006 publication/generation | Generation journal plus reviewed exact public-content observation contract at NFL `4cd7e1e6`; no live observation performed. | Deployment identity, hosted public observation and complete pipeline prepublication gate. Existing legacy cards cannot be retroactively attested. |
 
 The new private tables are `journal_receipts`, `journal_objects`,
 `journal_generation_commits` and `journal_revisions` in `selflearn_private`.
@@ -344,6 +346,43 @@ Line coverage is only one check: consumer-change coverage, native concurrency,
 hosted transport, browser acceptance and the full two-cycle workflow remain
 separate evidence. No D1/D2 production readiness is inferred from the local
 fixture or pure-kernel pass.
+
+#### D2 reviewed implementation boundary, October 15, 7:09 p.m. CDT
+
+The first bounded build is a **generic pure chunk/pointer integrity helper**,
+not a mounted intake route or durable upload service: 1 MiB raw chunks,
+3 MiB maximum serialized request, 64 MiB object/aggregate cap, strict canonical
+base64, per-chunk and ordered whole-object SHA256. Streaming callbacks are
+staging only; bytes can reach a staging sink before final digest verification.
+Any result remains `uploaded_only`, never authenticated, accepted training
+evidence or a durable ACK. D2-T1 remains partial until capture-to-label binding
+is implemented and independently tested.
+
+The complete receiver must package a small versioned NFL raw-evidence verifier
+inside the engine adapter, independently checking producer parity against raw
+fixtures. Do not import a live NFL checkout, serving model or uploaded code.
+Read frozen player/schedule identities from durable generation/source objects.
+Hashes and allowlisted profiles establish integrity/interpretation, not source
+authenticity or a provider clock. A separately scoped authenticated capture
+producer attests retrieval; server received time stays separate. Screenshots
+and general uploads can never provide this authority.
+
+Derive group membership server-side at one watermark for
+`(season, game_id, player_id, market, side)` across all rungs and model vintages.
+On CAS conflict, re-read and recompute membership. Initially block any complete
+group beyond 500 items / 8 MiB; never ACK fragments. An immutable delivery/group
+result ledger must commit in the same transaction as observations/revisions;
+"commit outcomes, then save ACK" cannot recover the original lost response.
+Quota, retention/reference-safe GC and measured runtime/memory are required
+before hosted activation. Private Postgres chunks versus private Storage remain
+a persistence decision, not a newly provisioned resource or R1 visual redesign.
+
+Historical R126 source inspection also found that the earlier 59/188 → 72/189
+comparison used the union of on-card legs, not a complete archived candidate
+universe. A new read-only replay/audit lane must keep missing historical metrics
+null and explicitly label synthetic fixtures. Git timestamps are internal
+claims, not independent proof of pre-kickoff public availability. No ranking
+policy, refit, current calibration substitution or archive rewrite is authorized.
 
 ### Next delivery order and owner actions
 

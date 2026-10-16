@@ -158,7 +158,7 @@ The first production integration should support only declared tasks, reject unkn
 2. Generate projections and probabilities from approved model/base artifacts. Keep NFL sportsbook/prediction-market prices display/benchmark only.
 3. Freeze supported receipts before MY display deduplication. Freeze raw Game/Week offers and their selection/joint-model versions without claiming shared calibration coverage.
 4. Run a prepublication semantic gate bound to the exact generation: eligible identities, source freshness, game/week joins, base-feature parity, correction exactly once, no duplicate filler and manifest integrity. Keep R102 postpublication checks and R106 archive protection.
-5. Publish the tested NFL code/data generation. Verify fetched production hashes and append a separate publication observation; never retrofit the original generated receipt to claim public publication.
+5. Publish the tested NFL code/data generation. Verify fetched production hashes and append a separate publication observation; never retrofit the original generated receipt to claim public publication. Local NFL `4cd7e1e6` implements a bounded exact-content observer for supported MY prop legs, not a deployment-identity verifier. No live observation has been performed; first-publication time remains unknown and legacy missing receipts are never reconstructed.
 6. Export immutable envelopes to SelfLearning. Persist acknowledgements; alert on unacknowledged records approaching kickoff. An outage leaves the outbox intact and the original offered probabilities unchanged.
 
 ### Outcome and learning pipeline
