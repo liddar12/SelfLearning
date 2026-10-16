@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 
 
 CRITICAL_FILES = (
+    "packages/selflearn-core/selflearn_core/evidence_chunks.py",
     "packages/selflearn-core/selflearn_core/store/receipt_journal.py",
     "packages/selflearn-core/selflearn_core/store/supabase_journal.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_observed_journal.py",
