@@ -1,6 +1,6 @@
 # NFL owner-journal evidence binding
 
-Revision 1 · October 16, 2026, 10:35 a.m. America/Chicago (CDT).
+Revision 2 · October 16, 2026, 11:18 a.m. America/Chicago (CDT).
 Local read-only implementation. No route, workflow, production configuration,
 database migration or model activation is enabled by this component.
 
@@ -81,7 +81,10 @@ Tests cover genuine revoke/original retry, forged rehashed metrics, mid-evaluati
 head/runtime changes, actor/scope/content/expiry/type errors, no journal/training
 mutation, pre-encoding alias expansion, static errors and cancellation.
 
-The new adapter is added to the 39-target critical inventory. Full current
-core/API coverage, native/hosted/Supabase-port integration, independent new-source
-review and an actual NFL consumer are not established by those focused tests.
-This component earns no S015 whole-task or accuracy credit on its own.
+The subsequent full frozen run at `58ea096` passes **1,182 core/API tests, zero
+skips, exit 0**, **39/39 critical targets >90%**, **7,480/7,790 = 96.0205%**
+executable lines. This adapter reaches **218/222 = 98.1982%**. Evidence is
+committed as `5314ca8`; the NFL dependency checkout is detached `27b43fd5`.
+Native/hosted/Supabase-port integration, independent new-source review and an
+actual NFL consumer remain unverified. This component earns no S015 whole-task
+or accuracy credit on its own.

@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-3:10 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+11:18 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -22,6 +22,14 @@ See `docs/reviews/2026-10-15-remote-baseline-check.json`. No remote data was
 merged locally and the exact newer data tree was not release-gated. This
 point-in-time read is not deploy verification or permission to publish.
 
+Latest read-only GitHub check, October 16, 10:29 a.m. CDT: NFL main is
+`45b3cac4a0356b7e91b11121265ae1b84067fe93`, four commits after `0d49a948`;
+56 changed paths comprise 55 data files and one RCA document, no runtime or
+workflow changes. Engine main remains `aa5bbaeddca4138399a21c1894b4aed4bacb52b4`.
+Thirteen exact new raw files are frozen in the NFL test fixtures with Git,
+SHA256 and length checks. The removed latest `inactives.json` is not replaced
+with the old TNF feed. No remote data was merged into the worktree or deployed.
+
 Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04c2d6`, NFL exporter `ed2f9668`, NFL evidence-grading fix `ac8b1083`; SelfLearning prospective journal `30fde77`, architecture package `46f87cf`, hosted/shadow checkpoint `b9ecd3f`, Supabase journal/configuration/native-gate source `7225b84`. These SHAs are local references until the owner separately authorizes a push.
 
 Later local checkpoints: NFL immutable capture/producer/opt-in consumers
@@ -38,8 +46,8 @@ recovered on-card reference replay is a subsequent in-progress slice.
 ## Overnight target and completion rules
 
 Owner-requested target: **Friday, October 16, 2026, 7:00 a.m. CDT
-(America/Chicago)**. This is a requested target, not verified completion or a
-promise of release readiness. The full 99-task scope remains intact.
+(America/Chicago)**. That target was **not met**. The full 99-task scope remains
+intact; neither the requested time nor the local builds authorize a release.
 
 Prioritize the complete NFL capture → bounded transport → independently
 verified raw/frozen-identity labels → atomic observation/revision persistence →
@@ -56,10 +64,10 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 16, 2026, 2:50 a.m. CDT (America/Chicago). **49/99 = 49.5% local-build
+October 16, 2026, 11:18 a.m. CDT (America/Chicago). **50/99 = 50.5% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
-The original R1 plan is 43/93 (46.2%); six explicitly added D1/D2 tasks expand
+The original R1 plan is 44/93 (47.3%); six explicitly added D1/D2 tasks expand
 E02 and the total denominator. Do not hide those tasks to inflate progress.
 The ID-by-ID classification and evidence are in [progress.json](progress.json).
 
@@ -70,7 +78,7 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | E02 Ingestion/outcome corrections | 14/15 | 93% | Runtime activation, retention and native/hosted acceptance; sealed multi-batch executor verified locally |
 | E03 Evaluation/honest records | 9/9 | 100% | Local tasks complete, not story/live acceptance: default reporting hookup and historical coverage still limited |
 | E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
-| E05 Eligibility/freshness | 3/6 | 50% | S016-T1 reopened: same-ID injury join miss; source fix and fresh comparative audit pending; FINAL/clearance evidence still incomplete |
+| E05 Eligibility/freshness | 4/6 | 67% | ID-first fix/current comparative audit accepted locally; FINAL/clearance/provider completeness still incomplete |
 | E06 Parlay selection/concentration | 3/6 | 50% | Full Game/Week/MY objective comparison and owner portfolio-policy decision |
 | E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
 | E08 Dashboard/application MCP | 4/9 | 44% | Real-browser/mobile acceptance, evaluation/candidate journeys and sessions |
@@ -86,27 +94,72 @@ a real election adapter is not. S029-T2 is testing-task credit, not S029 story
 acceptance: legacy prediction IDs still require domain-qualified task names and
 do not establish universal cross-owner isolation.
 The progress audit does not award deployment credit to local branches. S016-T1
-was reopened: the original 33 documented holds were real, but the reverse
-same-ID status-to-gate check was incomplete. Frozen main `0d49a948` marks
-athlete `3126486` / “Deebo Samuel Sr.” OUT while weekly `espn-3126486` retains
-10.77 points without an availability/eligibility/this-week block. Preserve that
-historical audit; do not change its source hashes to bless a new candidate.
+was reopened for a genuine missed same-ID OUT and is now reaccepted only as a
+local current-eligibility task: 29 current/frozen/adversarial cases pass, no
+skips, exit 0. Historical `0d49a948` 33 holds become 34 on common inputs; newer
+`45b3cac4` 32 become 33, only Deebo OUT added and no previous refusal relaxed.
+The actual pool producer removes his seven receiving rungs and one ATD leg,
+preserving other numeric prices within that pair. Rounded/scaled fantasy inputs
+and shared neutral Elo are controlled comparisons, not original upstream reads.
+An original rung's one-ULP cross-runtime difference remains unblessed. Preserve
+the original audit and all raw hashes; see the NFL injury-identity RCA revision 2.
+Provider completeness, independently rederived depth and full publication are
+not accepted by this task result.
 
 ### Current parallel team
 
-Four concurrent agents maximum: one coordinator/integrator and three file-owned
-lanes. Current lanes cover exact-generation capture/publication plumbing,
-ID-first injury producer/audit correction, and SQL authority/capacity QA.
-Independent QA reviews new authority boundaries
-while the coordinator integrates and
-maintains audited evidence. Do not increase shared-file collisions or run two
-NFL gates. Claude Code is not a live connected fifth lane.
+The planned maximum remains four concurrent agents. The three workers now fail
+with “workspace is out of credits”; the coordinator continues alone. Do not
+claim parallel throughput, repeatedly retry stopped workers or change billing.
+The earlier independent QA evidence remains historical; coordinator follow-ups
+are not new independent signoff. Never run two NFL gates concurrently. Claude
+Code is not a live connected lane.
 
 Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
 authorized actions. No weekly manual SQL is required by the intended pipeline.
 
-## Current follow-up — October 16, 2026, 3:10 a.m. CDT
+## Current follow-up — October 16, 2026, 11:18 a.m. CDT
+
+NFL ID-first correction `02612c4f`, latest-data audit `41a56a09`, cleanup-fixture
+fix `2f6e5dcf`, capture dependency fix `6aafdfcf` are local commits. The capture
+now pins all local Python files, including transitive injury-duration helpers,
+rejects same-byte symlink modes, and batch-reads exact HEAD blobs without raising
+the existing limits. Fourteen focused capture cases and one separate batch-byte
+case pass. Earlier frozen full run `27b43fd5` passed 2,446 features; `41a56a09`
+then passed 2,449/2,450 but failed the cleanup fixture, exit 1. Six focused cleanup
+cases subsequently pass with unchanged production code/timeouts. One frozen
+full gate on `6aafdfcf4b321f1085837766f3489c6340818c11` now passes **2,453
+features, zero failed/skipped**, data contracts, smoke and four model gates,
+terminal exit **0**. Browser step 8 **SKIP**, not waived. Log:
+`/private/tmp/nfl-injury-capture-full-gate-root-r5-20261016.log`.
+No runtime/test/data edits or HEAD changes occurred during that run; a later
+handoff-only document edit is outside its exact source SHA. No new S006/S028
+whole-task credit or current-main release-data reconciliation is claimed.
+
+Engine `58ea096` adds a read-only typed owner-shadow-evidence reader; evidence
+commit `5314ca8` records **1,182 core/API passed, zero skips, exit 0**;
+**39/39 critical files >90%**, **7,480/7,790 = 96.0205%** executable lines.
+[Pinned report](../../reviews/2026-10-16-critical39-owner-evidence-coverage.json)
+uses detached NFL `27b43fd5` and 29 enumerated source hashes, not current NFL
+inventory changes. Actual SQLite history plus a synthetic 330-receipt fitter
+prove local reexecution/tamper refusal. This new reader has not run through the
+Supabase port or an atomic NFL consumer; every result still holds adoption.
+All owner/model/serving/release authority flags remain false. No S015 task credit.
+Separate ledger/coverage-tool tests initially had 31 pass / one stale expected
+inventory-count failure; after retaining exact counts and requiring the new
+owner-evidence/capture-runtime entries, all **32 pass**, exit 0. The measurement
+tool and runtime did not change. Those 32 are not included in the 1,182 count.
+
+Existing storage suites remain 86 Node passed / 96 Python passed with seven
+native-only skips, exit 0. They do not prove the new evidence reader's hosted
+composition. Hosted/native concurrency, real private Storage, source/label
+authority, browser acceptance, current-main release reconciliation and genuine
+future graded weeks remain open. Next implementation lane is resumable bounded
+jobs, separate from forecasts/outcomes/owner intent; no job migration or workflow
+has been created or enabled. All changes are local and unpushed.
+
+## Earlier follow-up — October 16, 2026, 3:10 a.m. CDT
 
 Local NFL participation mechanics `db531f44` pass 14 focused tests; generation
 binding foundation `398d3b54` passes 17 author/independent tests. Their combined

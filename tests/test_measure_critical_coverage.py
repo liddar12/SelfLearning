@@ -80,12 +80,12 @@ def test_collection_hook_counts_items_before_pytest_updates_session_total():
 
 
 def test_v2_and_independent_comparator_are_not_excluded_from_critical_inventory():
-    assert len(CRITICAL_FILES) == 38 and len(set(CRITICAL_FILES)) == 38
+    assert len(CRITICAL_FILES) == 39 and len(set(CRITICAL_FILES)) == 39
     for name in ("nfl_capture_application_v2.py", "nfl_capture_application_contracts.py",
                  "nfl_capture_application_journal.py", "nfl_capture_application_job.py",
                  "nfl_capture_applications.py", "compare_nfl_cohort.py", "nfl_review_parity.py",
                  "nfl_review_attachment.py", "owner_intents.py", "owner_intent_journal.py",
-                 "supabase_owner_intents.py"):
+                 "supabase_owner_intents.py", "nfl_owner_evidence.py"):
         assert any(path.endswith("/" + name) for path in CRITICAL_FILES)
     assert "packages/selflearn-core/selflearn_core/owner_intents.py" in CRITICAL_FILES
     assert "services/web/owner_intents.py" in CRITICAL_FILES
@@ -98,10 +98,11 @@ def test_v2_and_independent_comparator_are_not_excluded_from_critical_inventory(
     assert "scripts/build_review_parity.py" in NFL_PRODUCER_FILES
     assert "scripts/materialize_calibrator.py" in NFL_PRODUCER_FILES
     assert "scripts/build_review.py" in NFL_PRODUCER_FILES
-    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 28
+    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 29
     for name in ("generation_semantic_gate", "capture_final_participation", "shadow_participation_guard",
                  "build_leg_pool", "build_weekly", "build_predictions", "availability",
-                 "validate_data", "excluded_games", "prepublication_semantics", "publication_observations"):
+                 "validate_data", "excluded_games", "prepublication_semantics", "publication_observations",
+                 "generation_capture_runtime"):
         assert "scripts/" + name + ".py" in NFL_PRODUCER_FILES
     assert "scripts/models/parlay_builder.py" in NFL_PRODUCER_FILES
     assert "scripts/models/my_cards.py" in NFL_PRODUCER_FILES

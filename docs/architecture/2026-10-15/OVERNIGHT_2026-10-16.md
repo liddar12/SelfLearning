@@ -1,19 +1,47 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 6 · October 16, 2026, 3:10 a.m. America/Chicago (CDT).
-Requested target: October 16, 2026, 7:00 a.m. CDT; not a completion guarantee.
+Revision 7 · October 16, 2026, 11:18 a.m. America/Chicago (CDT).
+Requested target: October 16, 2026, 7:00 a.m. CDT; **not met**.
 
 This is local branch work, not a production release or an accuracy claim.
-The audited task ledger is **49/99 (49.5%)**. D2-T3 whole-group batching and
+The audited task ledger is **50/99 (50.5%)**. D2-T3 whole-group batching and
 S010-T2 exact cohort comparison retain independent local-build approval.
-S016-T1 is reopened: full pinned data confirms the name-based injury join misses
-same-ID “Deebo Samuel Sr.” OUT. The old 33/19/14 audit remains historical truth,
-but did not check all negative source rows in the reverse direction. A consistent
-ID-first producer/independent validator fix and fresh comparative audit are next.
+S016-T1 is reaccepted locally after the ID-first correction and 29 passing
+current/frozen/adversarial checks. The old 33/19/14 audit remains historical
+truth; the common-input candidate adds only the missed Deebo OUT. The latest
+45b3 comparison adds the same one hold, 32→33, removes his seven receiving rungs
+and one ATD leg, and changes no other numeric prices within the controlled pair.
+Provider completeness and original upstream fantasy/Elo reads remain unverified.
 No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
 ## Latest follow-up
+
+NFL current local source is `6aafdfcf`: conservative full-Python dependency
+capture, regular Git modes and bounded raw-blob batching are tested. Fourteen
+focused capture cases plus a separate framing case pass. Combined run at
+`27b43fd5` passed 2,446 feature tests; the newer `41a56a09` run remained red at
+2,449/2,450 on one cleanup-fixture assertion. That fixture now passes six cases
+without changing production supervisor code/timeouts. The single full gate on
+`6aafdfcf` now completes **2,453 features, zero failed/skipped**, contracts,
+smoke and four model gates, terminal exit **0**. Browser step 8 skips; this is
+not release acceptance. Separate ledger/coverage-tool checks pass **32/32**
+after a stale exact-count assertion was updated without removing any target.
+
+Engine `58ea096`, evidence `5314ca8`: **1,182 core/API tests pass, no skips**;
+**39/39 critical files >90%**, **7,480/7,790 = 96.0205%** executable lines.
+[Report](../../reviews/2026-10-16-critical39-owner-evidence-coverage.json) uses
+frozen NFL `27b43fd5`; it does not include current inventory changes. The typed
+owner-evidence reader reexecutes the actual fitter on durable SQLite evidence
+but always holds adoption; Supabase/native/hosted and atomic NFL consumer proof
+remain incomplete. No new adoption/story/release task credit is awarded.
+
+All three worker lanes stopped with workspace-credit errors. The coordinator
+continues alone; no billing change or repeated worker retry is authorized.
+All changes are local and unpushed. No new architecture package was generated
+for these implementation updates; the existing R1 design remains the baseline.
+
+## Earlier follow-up — 3:10 a.m. CDT
 
 Participation mechanics `db531f44` (14 focused tests) and MY generation binding
 `398d3b54` (17 focused tests) are committed locally; their combined NFL gate passes

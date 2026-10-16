@@ -1,6 +1,6 @@
 # Owner-intent journal — local implementation boundary
 
-Revision 3 · October 16, 2026, 3:10 a.m. America/Chicago (CDT).
+Revision 4 · October 16, 2026, 11:12 a.m. America/Chicago (CDT).
 
 This additive journal records an operator's intent. It does **not** approve a
 statistical conclusion, activate an NFL calibrator or change serving. Local
@@ -154,7 +154,7 @@ static text, charges canonical bytes before encoding, and refuses unreadable
 new heads before inserting or consuming a Postgres sequence value. Original
 retries still precede capacity, expiry and current-head checks.
 
-Root full current Python suite: 1,156 passed, none skipped, exit 0. Independent
+Root full Python suite at the hardening checkpoint: 1,156 passed, none skipped, exit 0. Independent
 29-case follow-up and related core/API set: 97 passed, exit 0. A seeded genuine
 230-event SQLite prefix remains readable; its overcapacity append fails without
 a write and the first original acknowledgement is still recoverable. The SQL
@@ -174,8 +174,33 @@ The fresh hardened run at engine `45b2a93` passes **1,156 core/API tests, zero
 skips**, **38/38 critical files >90%**, **7,262/7,568 = 95.9567%** executable
 lines, with stable measured source/test/tool/head hashes. It uses detached NFL
 `398d3b54`; current injury/hook edits are not included.
-[Current report](../../reviews/2026-10-16-critical38-owner-hardened-coverage.json).
+[Hardened storage report](../../reviews/2026-10-16-critical38-owner-hardened-coverage.json).
 Complete hardened SQL reruns pass **86 Node tests, no skips**, and **96 Python
 tests / seven native-only skips**, exit 0. The storage foundation is local;
 domain authorization, a live consumer, native concurrency and hosted release
 acceptance remain incomplete.
+
+## Typed NFL shadow-evidence reader — local, always held
+
+Engine `58ea096` adds `adapters/nfl_owner_evidence.py`, separately documented in
+[NFL_OWNER_SHADOW_EVIDENCE.md](NFL_OWNER_SHADOW_EVIDENCE.md). Explicitly configured
+authority/actor/runtime readers load and rehash the complete owner history and
+seven-role immutable evidence manifest, then reexecute the actual NFL fitter
+rather than trust an uploaded PASS. End reads detect changed owner/runtime/code
+pins. They are **not atomic adoption/CAS** and leave a final read/use race; no
+production API, workflow or NFL serving consumer is connected.
+
+Every result remains held: authenticated complete source/label authority,
+prospective evidence for the fixed artifact, atomic NFL consumption and durable
+write capacity are not established. Generic recorded intent and original retry
+after revoke are never treated as current approval. Fit/report/content agreement
+can be true while adoption, activation, serving and release flags stay false.
+
+The 26 new cases use real SQLite and synthetic 330-receipt fitter inputs. A
+complete source-frozen run records **1,182 core/API tests passed, zero skipped,
+exit 0**; **39/39 critical files >90%**, **7,480/7,790 = 96.0205%** executable
+lines, report committed as `5314ca8` with measured engine `58ea096` and detached
+NFL `27b43fd5`. [New report](../../reviews/2026-10-16-critical39-owner-evidence-coverage.json).
+The older SQL suites do not establish this new reader through the Supabase
+port, native transactions, hosted authentication or a working adoption loop.
+No S015 task/story credit is granted for this foundation.

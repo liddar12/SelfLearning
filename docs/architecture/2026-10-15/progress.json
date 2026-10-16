@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "as_of": "2026-10-16T03:10:00-05:00",
+  "as_of": "2026-10-16T11:18:18-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "requested_target": "2026-10-16T07:00:00-05:00",
-  "target_note": "Owner-requested target, not a completion guarantee or release authorization; full scope unchanged and genuine future graded weeks still required for prospective acceptance.",
+  "target_note": "The owner-requested07:00CDT target was not met. It was not release authorization; full scope is unchanged and genuine future graded weeks remain required for prospective acceptance.",
   "source_checkpoints": {
     "NFL2026_runtime": "1bd076ac",
     "NFL2026_evidence": "d85de971",
@@ -44,10 +44,20 @@
     "SelfLearning_owner_intent_hardening": "615199d",
     "SelfLearning_expanded_dependency_inventory": "45b2a93",
     "NFL2026_final_participation_candidate": "db531f44",
-    "NFL2026_generation_semantic_foundation": "398d3b54"
+    "NFL2026_generation_semantic_foundation": "398d3b54",
+    "NFL2026_injury_id_correction": "02612c4f",
+    "NFL2026_latest_45b3_eligibility_evidence": "41a56a09",
+    "NFL2026_generation_dependency_inventory": "6aafdfcf",
+    "SelfLearning_owner_shadow_evidence": "58ea096",
+    "SelfLearning_owner_shadow_coverage": "5314ca8"
   },
-  "original_scope": {"epics": 12, "tasks": 93, "completed": 43, "partial": 35, "open": 15},
-  "expanded_scope": {"tasks": 99, "completed": 49, "partial": 35, "open_or_in_progress": 15},
+  "latest_local_verification": {
+    "NFL2026": {"source_head": "6aafdfcf4b321f1085837766f3489c6340818c11", "exit_code": 0, "feature_passed": 2453, "feature_skipped": 0, "contracts_smoke_and_four_model_gates": "pass", "browser_step_8": "skipped", "release_accepted": false, "log": "/private/tmp/nfl-injury-capture-full-gate-root-r5-20261016.log"},
+    "SelfLearning": {"measured_head": "58ea0964ad96eb63ff2383afb66a3667620269c6", "NFL_dependency_head": "27b43fd5bc18672a4f9b8e89e6f7d70277b19b47", "core_API_passed": 1182, "skipped": 0, "pytest_exit_code": 0, "critical_targets_above_90_percent": "39/39", "executable_lines": "7480/7790", "evidence_commit": "5314ca8", "report": "docs/reviews/2026-10-16-critical39-owner-evidence-coverage.json"},
+    "separate_ledger_and_coverage_tool_tests": {"passed": 32, "exit_code": 0, "included_in_core_API_count": false}
+  },
+  "original_scope": {"epics": 12, "tasks": 93, "completed": 44, "partial": 34, "open": 15},
+  "expanded_scope": {"tasks": 99, "completed": 50, "partial": 34, "open_or_in_progress": 15},
   "extra_tasks": {
     "epic": "E02",
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
@@ -61,7 +71,7 @@
     {"id":"E02","completed":["S007-T1","S007-T2","S007-T3","S008-T1","S008-T2","S009-T1","S009-T2","S009-T3"],"partial":["S008-T3"],"open":[]},
     {"id":"E03","completed":["S010-T1","S010-T2","S010-T3","S011-T1","S011-T2","S011-T3","S012-T1","S012-T2","S012-T3"],"partial":[],"open":[]},
     {"id":"E04","completed":["S013-T1","S013-T2","S013-T3","S014-T1","S014-T2","S014-T3"],"partial":["S015-T1","S015-T3"],"open":["S015-T2"]},
-    {"id":"E05","completed":["S016-T2","S016-T3","S017-T1"],"partial":["S016-T1"],"open":["S017-T2","S017-T3"]},
+    {"id":"E05","completed":["S016-T1","S016-T2","S016-T3","S017-T1"],"partial":[],"open":["S017-T2","S017-T3"]},
     {"id":"E06","completed":["S018-T1","S018-T2","S018-T3"],"partial":["S019-T1","S019-T2","S019-T3"],"open":[]},
     {"id":"E07","completed":[],"partial":["S020-T3","S021-T1","S021-T2","S021-T3"],"open":["S020-T1","S020-T2"]},
     {"id":"E08","completed":["S022-T1","S022-T2","S022-T3","S024-T3"],"partial":["S024-T1","S024-T2"],"open":["S023-T1","S023-T2","S023-T3"]},
@@ -74,7 +84,11 @@
       "reopened_utc": "2026-10-16T07:50:00Z",
       "previous_checkpoint": "NFL2026 1a27db5f",
       "reason": "The prior audit checked documented holds but missed the reverse invariant that each unambiguous same-ID negative report must be gated. Frozen main0d49 contains athlete3126486 Deebo Samuel Sr. canonicalOUT while espn-3126486 has no availability/eligibility/this_week gate and week6pts10.77. Full original blobs and independent name-vs-ID comparison reproduce the miss; provider completeness and actual ticket membership are separate questions.",
-      "reacceptance": "Implement consistent ID-first producer and independently checked validator joins, preserve historical33=19status+14depth evidence/codehashes, then compare exact same full frozen inputs with reviewed candidate code and document every eligibility/candidate delta. Do not merely change the old sourcehash assertion or refit on outcomes."
+      "reacceptance": "Implement consistent ID-first producer and independently checked validator joins, preserve historical33=19status+14depth evidence/codehashes, then compare exact same full frozen inputs with reviewed candidate code and document every eligibility/candidate delta. Do not merely change the old sourcehash assertion or refit on outcomes.",
+      "status": "reaccepted_local_task_only",
+      "reaccepted_utc": "2026-10-16T16:11:46Z",
+      "resolution": "ID-first joins and an independently implemented validator now pass29 current/frozen/adversarial tests, zero skips, exit0. Twenty exact old0d49 blobs preserve historical33; same-input candidate34 adds only DeeboOUT. Thirteen exact latest45b3 files preserve current32; paired candidate33 adds only DeeboOUT, with no prior refusal relaxed. Unknown-row injection changes only its target without medicalzero. The actual pool producer removes7 receiving rungs plus1 ATD leg while all other numeric prices are unchanged within the controlled pair. RCA revision2 records limited/rounded upstream inputs, missing original Elo/fantasy lineage, historical card timing and one-ULP cross-runtime receipt non-reproduction. This is task-level current eligibility evidence, not provider completeness, full-pipeline, published-card, accuracy or release acceptance. The last full combined gate is red2449/2450; its cleanup-fixture fix and new capture inventory await one frozen full rerun.",
+      "previous_evidence": "NFL1a27db5f; independent re-fetch verifies exact minimal projection of current-main0d49a948 injuryblob8bfc1db6 and weeklyblob250699dc: all800rows/all300players, everyplayable_this_week dependency, allfoureligibilityconsumer sourceGitblobs byte-identical to pinnedmain. Fournew/20relatedtests pass0skip; runtime33held=19exact-IDcanonicalstatus(4OUT/5D/10IR)+14documenteddepth,0undocumented. Identifiableunknown injectionchanges33->34onlytarget; missingprovider/wrongweek is explicit sourceuncertainty withoutmedicalzero/mutation. Task-local verification only: depth reasons not independently rederived, providerclock/completeness unauthenticated, >1MiBlegpool not downloaded, nofullpipeline/offeredcard orcompletefeed acceptance."
     }
   },
   "completed_task_evidence": {
@@ -108,7 +122,7 @@
     "S014-T1": "same-cohort as-served incumbent/base comparison in walk_forward_report",
     "S014-T2": "current_nfl_rules_reference separates existing R100 from versioned proposed shared 0.0015 margin; numeric tests",
     "S014-T3": "immutable shadow candidates, manifests and hold reasons; automatic promotion/public serving false",
-    "S016-T1": "NFL1a27db5f; independent re-fetch verifies exact minimal projection of current-main0d49a948 injuryblob8bfc1db6 and weeklyblob250699dc: all800rows/all300players, everyplayable_this_week dependency, allfoureligibilityconsumer sourceGitblobs byte-identical to pinnedmain. Fournew/20relatedtests pass0skip; runtime33held=19exact-IDcanonicalstatus(4OUT/5D/10IR)+14documenteddepth,0undocumented. Identifiableunknown injectionchanges33->34onlytarget; missingprovider/wrongweek is explicit sourceuncertainty withoutmedicalzero/mutation. Task-local verification only: depth reasons not independently rederived, providerclock/completeness unauthenticated, >1MiBlegpool not downloaded, nofullpipeline/offeredcard orcompletefeed acceptance.",
+    "S016-T1": "NFL02612c4f ID-first producer/independent validator correction plus41a56a09 latest-main evidence; docs/qa/RCA_2026-10-16_INJURY_IDENTITY_JOIN.md revision2. Root29 current/frozen/adversarial tests pass0skip/exit0 (log /private/tmp/nfl-eligibility-reacceptance29-root-20261016.log), related67 prior regressions pass on unchanged injury sources. Exact20 old0d49 blobs plus13 latest45b3 files retain Git/SHA256/length pins. Controlled full300-player audits33->34(old),32->33(latest), only missed same-ID DeeboOUT added, no prior refusal relaxed; unknown source row quarantines only its player and never becomes a medicalzero. Actual pool producer removes7 target receiving rungs and1 ATD leg, preserves all other numeric prices within the common-input pair. Current45b3 has no inactives file; old TNF evidence is not carried forward. Shared neutral Elo and original rounded/scaled fantasy components are explicit controlled inputs, not reconstructed original upstream reads. One original rung differs by1ULP across runtimes and is not rehashed/blessed as exact history. Task reacceptance only; provider completeness/depth authority/full historical pipeline/publication/release remain unverified.",
     "S016-T2": "NFL availability/retired consumer, duplicate and quarantine feature tests",
     "S016-T3": "NFL 12-hour freshness/authority reasons propagated to eligibility and UI; regression tests",
     "S017-T1": "NFL injury-fetch inventory and RCA document explicit 25/team cap and completeness limitations",

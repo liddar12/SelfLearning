@@ -2,7 +2,48 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Current follow-up — October 16, 2026, 3:10 a.m. CDT
+## Current follow-up — October 16, 2026, 11:18 a.m. CDT
+
+Whole local-build task credit is **50/99 (50.5%)**, not story, live, statistical
+or release completion. Only S016-T1 is reaccepted: ID-first injury producers and
+an independently implemented validator pass 29 frozen/current/adversarial cases,
+zero skips, exit 0. Full exact old/new data pins retain the historical audit;
+common-input holds are 33→34 on `0d49a948`, 32→33 on `45b3cac4`, with only the
+missed same-ID OUT added. Other numeric pool prices remain unchanged within the
+controlled pair. Original upstream Elo/fantasy reads, provider completeness,
+independently rederived depth, publication and accuracy are not proved.
+
+NFL `6aafdfcf` adds complete conservative local-Python capture identity and
+regular Git-mode checks. Fourteen focused capture cases plus one batch/framing
+case pass; six cleanup cases pass without changing production timeouts. Full
+run `27b43fd5` was green with 2,446 features, but subsequent `41a56a09` was red:
+2,449 passed / one cleanup-fixture failure, exit 1. The new frozen full gate on
+`6aafdfcf4b321f1085837766f3489c6340818c11` completes **2,453 feature tests,
+zero failed/skipped**, contracts, smoke and all four model gates, terminal
+exit **0**. Browser step 8 **SKIP**; no browser/native/hosted acceptance. Log:
+`/private/tmp/nfl-injury-capture-full-gate-root-r5-20261016.log`. Later handoff-only
+edits are not represented as another tested source/release generation.
+
+Engine `58ea096`, coverage evidence `5314ca8`: **1,182 passed, zero skipped,
+pytest exit 0**; **39/39 critical files >90%**, **7,480/7,790 = 96.0205%**
+executable lines; all measured source/test/tool/head identities stable.
+[Coverage report](../../reviews/2026-10-16-critical39-owner-evidence-coverage.json)
+uses unchanged detached NFL `27b43fd5` and 29 enumerated source hashes. The new
+typed reader's actual SQLite plus synthetic 330-receipt fitter reexecution does
+not establish authenticated inputs or atomic adoption. It always returns held;
+its Supabase-port composition is not verified by the older storage suites.
+Those remain 86 Node passed / 96 Python passed with seven native-only skips,
+exit 0. Separate progress/coverage-tool checks initially expose a stale count
+assertion (31 pass / one fail); exact 39-target / 29-NFL-entry membership plus
+explicit new-file requirements now pass all **32**, exit 0. They are not in the
+1,182 count. No runtime/measurement tool change, new S015/S006/S028 task credit
+or live-learning claim.
+
+Three workers are out of workspace credits; only the coordinator continues.
+The 7 a.m. CDT requested target was not met. No production migration, push,
+deployment, source-data rewrite or model activation has occurred.
+
+## Earlier follow-up — October 16, 2026, 3:10 a.m. CDT
 
 Task credit is **49/99 (49.5%)** after reopening S016-T1. Original 33 documented
 holds are retained, but a genuine same-ID OUT report was missed through the
