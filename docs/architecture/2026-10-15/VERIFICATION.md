@@ -2,19 +2,19 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-Latest local integrity evidence, October 15, 2026, 7:14 p.m. CDT:
-[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#d2-reviewed-implementation-boundary-october-15-709-pm-cdt)
+Latest local integrity evidence, October 15, 2026, 10:16 p.m. CDT:
+[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#independent-raw-capture-verification-checkpoint-1016-pm-cdt)
 supersedes the historical code-checkpoint counts and corresponding outstanding
-items below. R1 planning/PDF acceptance is unchanged. Runtime source `62defd6`:
-619 core/hosted tests and 5 coverage-tool tests pass; all 13 critical Python
-targets exceed 90% executable-line coverage (2,923/3,057 = 95.6166%). The new
-chunk helper alone is 176/181 = 97.2376%. Earlier D1 source `3ed4cae` passed
+items below. R1 planning/PDF acceptance is unchanged. Runtime source `41d7063`:
+637 core/hosted tests pass; all 14 critical Python targets exceed 90%
+executable-line coverage (3,336/3,496 = 95.4233%). The new raw-capture verifier
+is 413/439 = 94.0774%; focused verifier/tool checks pass 23 tests. Earlier D1 source `3ed4cae` passed
 32 PostgreSQL-WASM SQL and 14 Python/API/producer/job SQL tests; those unchanged
 SQL files were not rerun for the unrelated pure chunk addition. Five new native safety
 guards pass, but its actual transaction class is skipped (three cases); the
 combined old/new/tooling run is 17 passed and 7 native cases skipped. The helper
 adds no native or hosted evidence. NFL
-dependency-free gate on publication source `4cd7e1e6` passed with 2,235 feature
+dependency-free gate on replay source `5a4b057b` passed with 2,243 feature
 tests; browser step 8 skipped.
 The two new NFL capture/producer targets separately meet 90% (518/575 and
 316/346); all 57 measured fixture tests and 6 tooling self-tests passed.

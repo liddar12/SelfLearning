@@ -1,15 +1,19 @@
 {
   "version": 1,
-  "as_of": "2026-10-15T19:14:00-05:00",
+  "as_of": "2026-10-15T22:16:00-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
+  "requested_target": "2026-10-16T07:00:00-05:00",
+  "target_note": "Owner-requested target, not a completion guarantee or release authorization; full scope unchanged and genuine future graded weeks still required for prospective acceptance.",
   "source_checkpoints": {
     "NFL2026_runtime": "1bd076ac",
     "NFL2026_evidence": "d85de971",
     "NFL2026_publication": "4cd7e1e6",
+    "NFL2026_replay_audit": "5a4b057b",
     "SelfLearning_kernel": "7204ebd",
     "SelfLearning_observed_journal": "3ed4cae",
-    "SelfLearning_chunk_integrity": "62defd6"
+    "SelfLearning_chunk_integrity": "62defd6",
+    "SelfLearning_capture_integrity": "41d7063"
   },
   "original_scope": {"epics": 12, "tasks": 93, "completed": 35, "partial": 42, "open": 16},
   "expanded_scope": {"tasks": 99, "completed": 38, "partial": 42, "open_or_in_progress": 19},
@@ -18,7 +22,7 @@
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
     "ids": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2", "D2-T3"],
     "completed": ["D1-T1", "D1-T2", "D1-T3"],
-    "note": "D1 whole local-build tasks reviewed and committed at 3ed4cae; native concurrency, hosted grants/PostgREST and full story acceptance remain unverified. D2-T1 is partial: pure chunk integrity is committed at 62defd6, but capture/profile/manifest-to-label provenance binding remains incomplete. D2-T2/T3 remain open. No new whole-task credit. These tasks are not silently added to the unchanged R1 generated PDF/backlog."
+    "note": "D1 whole local-build tasks reviewed and committed at 3ed4cae; native concurrency, hosted grants/PostgREST and full story acceptance remain unverified. D2-T1 is partial: pure chunk integrity at 62defd6 and independent capture/profile verification at 41d7063 are committed, but frozen durable population-to-label binding remains incomplete. D2-T2/T3 remain open. No new whole-task credit. These tasks are not silently added to the unchanged R1 generated PDF/backlog."
   },
   "epics": [
     {"id":"E00","completed":["S001-T1","S001-T2"],"partial":["S001-T3","S002-T1","S002-T2","S002-T3","S003-T1","S003-T2","S003-T3"],"open":[]},

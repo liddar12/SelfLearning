@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 15, 2026,
-7:14 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+10:16 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -22,6 +22,28 @@ behavior is enabled by those commits. NFL public-content observation runtime
 `4cd7e1e6`, evidence/handoff `d85de971`, is also local only.
 Generic evidence-chunk integrity is locally committed as `62defd6`; it does
 not expose an upload route or complete D2 provenance-bound transport.
+NFL frozen-candidate audit/experiment tool is locally committed as `5a4b057b`;
+its historical full-pool metrics remain unavailable. The separately required
+recovered on-card reference replay is a subsequent in-progress slice.
+
+## Overnight target and completion rules
+
+Owner-requested target: **Friday, October 16, 2026, 7:00 a.m. CDT
+(America/Chicago)**. This is a requested target, not verified completion or a
+promise of release readiness. The full 99-task scope remains intact.
+
+Prioritize the complete NFL capture → bounded transport → independently
+verified raw/frozen-identity labels → atomic observation/revision persistence →
+pinned evaluation → shadow candidate/typed NFL return flow. In parallel, finish
+the recovered selection control and exact-generation semantic checks. Keep the
+default highest-hit objective, held calibration/weather policies and production
+behavior unchanged until separately approved release gates are met.
+
+The morning handoff must show the task-by-task epic ledger, actual local source
+commits, commands/exit codes, working end-to-end boundaries and unfinished work.
+Do not award fractional or unverified completion to meet the time target.
+Production writes/deployments still require separate authorization; genuine
+prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
@@ -409,6 +431,59 @@ universe. A new read-only replay/audit lane must keep missing historical metrics
 null and explicitly label synthetic fixtures. Git timestamps are internal
 claims, not independent proof of pre-kickoff public availability. No ranking
 policy, refit, current calibration substitution or archive rewrite is authorized.
+
+The accepted first replay tool at NFL `5a4b057b` audits four retained source
+classes per week and supports explicit synthetic/local-Git experiments with
+exact R74/R126 selection, thin-card behavior, actual-contract dedupe and separate
+full-hit/settlement metrics. Root focused tests: **10 passed**; independently
+verified new source **323/342 = 94.4444%** executable-line coverage. Full NFL
+dependency-free gate: **2,243 feature tests**, data, smoke and four model gates
+passed, exit **0**; browser step 8 skipped. Builders/data/workflows unchanged.
+Generated `docs/reviews/2026-10-15-r126-source-audit.json` on the NFL branch binds
+actual input hashes and explicitly null weeks 2–5 complete-candidate metrics.
+
+Original S018-AC1 separately requires recovery of the on-card reference replay;
+the first audit tool does not substitute for that acceptance. Retained Git has
+366 slate revisions with a shallow boundary on August 16, before the required
+weeks, so a clearly labeled available-history reconstruction is now being
+attempted. This does not remove the full-history/publication limitations or
+upgrade that union into the complete candidate universe. Preserve observed
+discrepancies rather than force 59/188 → 72/189.
+
+### Independent raw-capture verification checkpoint, 10:16 p.m. CDT
+
+Runtime `41d7063` adds `adapters/nfl_capture_evidence.py`, independently parsing
+the declared ESPN scoreboard and NFL stats/participation profiles from bounded,
+hash-verified raw frames. It validates the exact capture/manifest/observation
+closure, period, source order, FINAL/OT evidence and declared clocks without
+opening URLs or importing a serving model. It freezes metadata before source
+callbacks and imposes CSV field/header/record limits in addition to byte limits.
+Independent review caught and corrected a repeated-header memory amplification
+before acceptance. Unsupported receiver work limits hold evidence; they do not
+establish that a provider is corrupt.
+
+The returned scope is **capture_integrity_only**: source authentication is not
+performed, labels are not accepted and no durable learning ACK is emitted.
+Player labels still require a separately checked complete durable generation
+population, frozen identity joins and full raw-source rereads. Storage and API
+acceptance are not implied by this pure verifier.
+
+Root stable full measurement: **637 core/hosted tests passed, zero skips**,
+one existing Starlette/AnyIO warning. All **14 critical Python targets** exceed
+90% executable-line coverage: **3,336/3,496 = 95.4233%** aggregate; new verifier
+**413/439 = 94.0774%**. Focused verifier/tool tests: **23 passed**. Report
+`docs/reviews/2026-10-15-critical-coverage.json` pins stable runtime `41d7063`
+and NFL `7f72d750`. An earlier run changed HEAD midmeasurement and was discarded;
+the committed report is the successful stable rerun. No SQL/native/hosted or
+browser evidence was added. D2 remains partial; no whole-task credit yet.
+
+The next private-Storage adapter follows the R1 architecture, using an injected
+server-side client, an explicitly private bucket and hash-only namespace. It
+will require authenticated exact-byte readback even on duplicate-upload errors,
+and will report only uploaded staging, never accepted learning. Its source is
+currently under independent review. No bucket, route, environment setting,
+cloud write or production default is being created or enabled. Quotas, safe GC,
+scoped intake and atomic durable result persistence remain activation gates.
 
 ### Next delivery order and owner actions
 
