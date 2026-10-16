@@ -115,7 +115,9 @@ single-owner pilot uses a dedicated credential boundary and private journal
 schema. Its receipt/object/generation/revision tables preserve canonical JSON
 text, database-owned clocks and immediate-predecessor corrections. A global
 transaction advisory lock serializes writers; keyset reads pin one committed
-watermark across receipt, generation and revision views. This is a bounded
+watermark across receipt, generation and revision views. The subsequent local
+D1 checkpoint `3ed4cae` adds indexed observations and an observation-aware
+global fence/atomic commit; it is not selected by the hosted API. This is a bounded
 pilot, not a high-throughput or multi-tenant claim. Evaluation/candidate,
 publication, adoption and job-lease entities above remain proposed.
 
@@ -203,15 +205,15 @@ the complete record set to fence stale component clocks. Exact old delivery
 replays never revert a head; a genuinely newer A after B can be a new correction.
 Missing observation proof for an existing v2 revision fails closed.
 
-This pure interface is tested locally but **not a complete hosted pipeline**.
-Before exposing outcome ingestion, implement an authoritative indexed
-observation store, complete fenced reads and a single transaction committing
-observations with any corresponding revisions before ACK. Cross-repository SQL
-fixtures currently persist observation bodies as immutable generic source
-objects and use a fixture-owned list of IDs; that does not prove a production
-index, concurrent stale-write prevention or atomic fence/revision commit.
-Neither local SQLite nor an in-memory observation list may become Vercel's
-production state authority.
+This interface and subsequent local D1 checkpoint are **not a complete hosted
+pipeline**. Commit `3ed4cae` implements an indexed observation table, complete
+fenced reads and one transaction committing observations with revisions before
+ACK. Its explicit `NFLObservedJournal` and internal CAS job remain in the NFL
+adapter layer; generic stores/scoring do not import NFL policy. New actual
+Python-to-SQL fixtures enumerate the index, unlike the earlier fixture-owned ID
+list. Native separate-connection concurrency and hosted grants/PostgREST remain
+unverified; the required disposable-native CI gate is authored but not run here.
+Neither local SQLite nor an in-memory list may become Vercel's state authority.
 
 Outcome transport must also bind raw capture provenance, scope credentials and
 bounded payloads. Large source captures do not fit a single API request: use

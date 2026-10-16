@@ -2,19 +2,21 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-Later outcome-checkpoint evidence, October 15, 2026, 6:35 p.m. CDT:
-[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#latest-local-journal-and-evidence-checkpoint)
+Latest D1 checkpoint evidence, October 15, 2026, 7:02 p.m. CDT:
+[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#d1-indexed-observation-and-atomic-cas-checkpoint)
 supersedes the historical code-checkpoint counts and corresponding outstanding
-items below. R1 planning/PDF acceptance is unchanged. Latest root results:
-540 core/hosted tests, 4 coverage-tool tests, 16 PostgreSQL-WASM SQL tests,
-9 actual Python/API/adversarial SQL tests passed; 7 native connection-safety
-guards passed but 4 actual native tests skipped. All 10 critical Python
-targets exceed 90% executable-line coverage (2,451/2,567 = 95.4811%). NFL
+items below. R1 planning/PDF acceptance is unchanged. Runtime source `3ed4cae`:
+601 core/hosted tests, 5 coverage-tool tests, 32 PostgreSQL-WASM SQL tests,
+14 actual Python/API/producer/job SQL tests passed. Five new native safety
+guards pass, but its actual transaction class is skipped (three cases); the
+combined old/new/tooling run is 17 passed and 7 native cases skipped. All 12
+critical Python targets exceed 90% executable-line coverage (2,747/2,876 =
+95.5146%). NFL
 dependency-free gate passed with 2,220 feature tests; browser step 8 skipped.
 The two new NFL capture/producer targets separately meet 90% (518/575 and
 316/346); all 57 measured fixture tests and 6 tooling self-tests passed.
-This checkpoint precedes the in-progress D1 observation-store/atomic-commit
-work. It does not certify later uncommitted files or consumer branch coverage.
+The D1 checkpoint includes indexed observation reads and atomic CAS source;
+it does not certify later publication/transport work or consumer branch coverage.
 No hosted migration/round trip, native concurrency, complete browser gate,
 candidate adoption or accuracy gain is established by those checks.
 

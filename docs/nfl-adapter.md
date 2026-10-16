@@ -257,6 +257,35 @@ later model vintage would leave earlier training evidence stale.
 The bridge does not filter by offered-card membership, select only winners or
 discard unresolved forecasts: every original receipt remains in storage.
 
+## Observed-clock v2 persistence (local opt-in)
+
+October 15, 2026, 7:02 p.m. CDT; local runtime `3ed4cae`. The separate
+`nfl_observed_resolution` kernel does not invent provider update clocks or
+weaken strict v1. It records each accepted measurement observation, including
+unchanged confirmations, separately from outcome revisions.
+
+Explicit `selflearn_core.adapters.nfl_observed_journal.NFLObservedJournal`
+uses additive migration `20261015233134_observed_journal_v1.sql`. It reads every
+receipt/generation/revision/observation at one committed keyset fence, then
+atomically CAS-commits observations with any corresponding revisions. Payload
+clocks remain immutable; database-owned received times are separate wrappers.
+Old exact replay is a no-op and cannot revert a current head. Missing/stale
+proof, mixed legacy/v2 history and partial two-stream ACKs fail closed.
+
+Internal `adapters.nfl_observed_job.resolve_and_commit_observed` re-reads and
+re-resolves only on explicit CAS conflict, with bounded attempts. A lost
+response yields no success claim. It requires independently verified raw
+capture/identity inputs and complete underlying stat-group assembly; it is
+not a public intake route or a source-authentication substitute.
+
+The generic store/scoring layers remain domain-agnostic; a boundary regression
+prevents importing adapters there. Default hosted API configuration does not
+select this new port. Local actual PostgreSQL-WASM tests cover index reads,
+correction/replay/VOID and global CAS. Native concurrency and hosted
+Supabase/PostgREST remain unverified; no migration or backend switch is enabled.
+See the [implementation handoff](architecture/2026-10-15/IMPLEMENTATION_HANDOFF.md#d1-indexed-observation-and-atomic-cas-checkpoint)
+for exact evidence and remaining D2 transport scope.
+
 ## Verification
 
 Run the stdlib tests or the repository's existing pytest environment:

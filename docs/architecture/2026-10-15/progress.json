@@ -1,21 +1,22 @@
 {
   "version": 1,
-  "as_of": "2026-10-15T18:36:00-05:00",
+  "as_of": "2026-10-15T19:02:00-05:00",
   "timezone": "America/Chicago",
   "metric": "Unweighted whole local-build tasks; no fractional credit; not story acceptance or deployment readiness",
   "source_checkpoints": {
     "NFL2026_runtime": "1bd076ac",
     "NFL2026_evidence": "34fb9ea1",
-    "SelfLearning_kernel": "7204ebd"
+    "SelfLearning_kernel": "7204ebd",
+    "SelfLearning_observed_journal": "3ed4cae"
   },
   "original_scope": {"epics": 12, "tasks": 93, "completed": 33, "partial": 43, "open": 17},
-  "expanded_scope": {"tasks": 99, "completed": 33, "partial": 43, "open_or_in_progress": 23},
+  "expanded_scope": {"tasks": 99, "completed": 36, "partial": 43, "open_or_in_progress": 20},
   "extra_tasks": {
     "epic": "E02",
     "source": "IMPLEMENTATION_HANDOFF.md#s009-implementation-delta-work-packages",
     "ids": ["D1-T1", "D1-T2", "D1-T3", "D2-T1", "D2-T2", "D2-T3"],
-    "completed": [],
-    "note": "D1 implementation is in progress, not acceptance complete. D2 remains open. Neither is silently added to the unchanged R1 generated PDF/backlog."
+    "completed": ["D1-T1", "D1-T2", "D1-T3"],
+    "note": "D1 whole local-build tasks reviewed and committed at 3ed4cae; native concurrency, hosted grants/PostgREST and full story acceptance remain unverified. D2 remains open. These tasks are not silently added to the unchanged R1 generated PDF/backlog."
   },
   "epics": [
     {"id":"E00","completed":["S001-T1","S001-T2"],"partial":["S001-T3","S002-T1","S002-T2","S002-T3","S003-T1","S003-T2","S003-T3"],"open":[]},
@@ -64,7 +65,10 @@
     "S017-T1": "NFL injury-fetch inventory and RCA document explicit 25/team cap and completeness limitations",
     "S024-T3": "hosted MCP allowlist/read-only tests and OwnerBoundary: untrusted content cannot authorize intake/promotion",
     "S029-T1": "test_probability_receipts.py real deterministic elections/election.binary synthetic fixture; not a real-domain pilot",
-    "S029-T3": "generic receipts/revisions/store/scoring do not import NFL; domain policy remains in adapters"
+    "S029-T3": "generic receipts/revisions/store/scoring do not import NFL; AST boundary regression enforces domain policy in adapters",
+    "D1-T1": "3ed4cae; CLI-generated additive migration 20261015233134, service-only grants/RLS/immutability and legacy compatibility SQL tests",
+    "D1-T2": "NFLObservedJournal complete pinned keyset reads; SQL indexed enumeration, historical fences and no fixture-owned ID list",
+    "D1-T3": "atomic indexed-observation/revision CAS RPC plus bounded re-read/re-resolve helper; true NFL-producer Python-to-SQL correction/replay/conflict tests; native evidence still outstanding"
   },
   "limitations": [
     "Whole source/task completion is not the same as all story acceptance criteria satisfied.",

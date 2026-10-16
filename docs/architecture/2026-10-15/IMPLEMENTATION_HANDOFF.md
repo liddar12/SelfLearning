@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 15, 2026,
-6:25 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+7:02 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -17,11 +17,12 @@ Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04
 
 Later local checkpoints: NFL immutable capture/producer/opt-in consumers
 `1bd076ac`, evidence/handoff `34fb9ea1`; SelfLearning observed-clock kernel
-`7204ebd`. No production behavior is enabled by those commits.
+`7204ebd`; indexed observation/atomic CAS checkpoint `3ed4cae`. No production
+behavior is enabled by those commits.
 
 ## Audited completion by epic
 
-October 15, 2026, 6:36 p.m. CDT (America/Chicago). **33/99 = 33.3% local-build
+October 15, 2026, 7:02 p.m. CDT (America/Chicago). **36/99 = 36.4% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
 The original R1 plan is 33/93 (35.5%); six explicitly added D1/D2 tasks expand
@@ -32,7 +33,7 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | --- | ---: | ---: | --- |
 | E00 Foundation/security | 2/9 | 22% | Live schema/history, helper permissions, credentials and deployed identity |
 | E01 Forecast/publication lineage | 3/9 | 33% | Verified public observation and exact-generation prepublication gate |
-| E02 Ingestion/outcome corrections | 8/15 | 53% | D1 atomic indexed observations, D2 provenance-bound transport, native/hosted checks |
+| E02 Ingestion/outcome corrections | 11/15 | 73% | D2 provenance-bound transport, native/hosted checks and full acceptance |
 | E03 Evaluation/honest records | 8/9 | 89% | Independent full NFL/engine same-cohort comparator; real historical coverage remains unavailable |
 | E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
 | E05 Eligibility/freshness | 3/6 | 50% | Current-input eligibility verification, clearance guard and frozen replay |
@@ -52,12 +53,11 @@ The progress audit does not award deployment credit to local branches.
 ### Current parallel team
 
 Four concurrent agents maximum: one coordinator/integrator and three file-owned
-lanes. The database lane owns the additive D1 migration/SQL fault tests; the
-Python lane owns the explicit observed-journal port and wire tests; independent
-QA owns adversarial review and the progress audit. The coordinator owns the
-bounded internal resolve/CAS job and cross-repository integration. Rotate a
-freed slot into NFL publication work after D1 review; do not increase shared-file
-collisions or run two NFL gates. Claude Code is not a live connected fifth lane.
+lanes. D1 database/Python work is committed; those lanes rotate to NFL
+publication implementation and D2 transport-contract design. Independent QA
+reviews the new authority boundaries while the coordinator integrates and
+maintains audited evidence. Do not increase shared-file collisions or run two
+NFL gates. Claude Code is not a live connected fifth lane.
 
 Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
@@ -97,7 +97,7 @@ migration, deploy or model activation has occurred.
 | --- | --- | --- |
 | S001/S003 foundation/readiness | Hosted source reconciled; distinct operator/ingest scopes; explicit `SELFLEARN_JOURNAL_BACKEND=supabase`; per-request schema probe, sanitized failure and no SQLite fallback. | Current-main reconciliation, deployed identity/authentication, environment isolation and actual backend round trip. |
 | S008 durable journal | `SupabaseReceiptJournal`, canonical JSON text, atomic generation ACK/partition, server-owned timestamps, immutable receipts and correction history; additive CLI-generated migration `supabase/migrations/20261015222425_receipt_journal_v1.sql`. | Native CI results, hosted PostgREST/grants and persistence/recovery checks, production migration approval, exporter/workflow wiring and backlog alerting. |
-| S009 outcome authority | Pure FINAL bridge, revision persistence and SQL correction/VOID tests. Later local capture, frozen producer, opt-in consumers and observed-v2 kernel are described below. | Authoritative observation index, complete fenced reads, atomic observation/revision commit and supported transport route/exporter. Do not invent upstream update or exact game-finish clocks. |
+| S009 outcome authority | Pure FINAL bridge, frozen capture/producer, observed-v2 kernel and reviewed local D1 indexed journal/atomic CAS at `3ed4cae`. | D2 provenance-bound public transport, native concurrency and hosted verification. Do not invent upstream update or exact game-finish clocks. |
 | S010/S011/S013/S014 evaluation/typed return | Canonical first-forecast cohort, database-as-of revision fence, chronological shadow reconstruction, typed immutable-base-logit transform and synthetic second cycle. | Actual future source cohort parity, scheduled/persisted runs and candidates, independently implemented NFL approval/consumer/rollback. No production adoption. |
 | S005/S006 publication/generation | Generation journal and local semantic checks exist. | Verified public first-observation, exact published manifest and complete pipeline prepublication gate. |
 
@@ -215,17 +215,61 @@ unjoined statistics becoming zero, stale corrections after no-change evidence,
 equal-clock contradictions and report hardlink overwrites. Tests demonstrate
 those boundaries, not universal bug-freedom or higher observed NFL hit rate.
 
-At 6:35 p.m. CDT the next D1 additive SQL migration, explicit observed-journal
-Python port and bounded internal CAS job are **in progress locally**. Their
-early focused tests are not included in the frozen checkpoint above; do not
-apply the migration, select the backend or announce D1 acceptance yet. The
-application API and daily pipeline remain unwired to this new outcome path.
+The 6:35 p.m. CDT counts above are historical. D1 was subsequently reviewed,
+verified and locally committed as described next; its tests are not silently
+included in that older measurement.
+
+### D1 indexed-observation and atomic-CAS checkpoint
+
+October 15, 2026, 7:02 p.m. CDT. Local runtime commit **`3ed4cae`** adds:
+
+- CLI-generated additive migration
+  `supabase/migrations/20261015233134_observed_journal_v1.sql`, SHA256
+  `991e701a0b7e6d150378e3c4222f554309886d884d72ecec6cd02ddfb321bdd2`.
+  Append-only observation index, database-owned clocks, private service-only
+  grants, invoker RPCs, complete pinned pagination and shared writer lock/CAS.
+  The old migration/read RPC remains unchanged.
+- Explicit `selflearn_core.adapters.nfl_observed_journal.NFLObservedJournal`.
+  The default API still selects the legacy journal. NFL validation remains in
+  the adapter, not the reusable store; an AST test protects that boundary.
+- Internal `resolve_and_commit_observed`: complete durable history, bounded
+  re-read/re-resolve on explicit CAS conflict and exact two-stream ACK counts.
+  A lost response never becomes a durable-success claim. Raw capture validation,
+  authentication and complete stat-group assembly remain caller prerequisites.
+
+Root verification, exit **0** for each executed suite:
+
+- **601** core/hosted tests with the real NFL checkout, zero skips; **12** critical
+  Python targets above 90%, **2,747/2,876 = 95.5146%** executable-line coverage.
+  New journal **230/240 = 95.8333%**, internal job **66/69 = 95.6522%**.
+  Coverage tooling self-tests: **5 passed** separately. Source hashes are pinned
+  in `docs/reviews/2026-10-15-critical-coverage.json`.
+- **32** actual PostgreSQL-WASM SQL tests (16 baseline + 16 additive), including
+  a 720-case independent Python `.12g` identity oracle. **14** Python-to-SQL
+  adapter/producer/job integration tests. Four original receipts across two
+  vintages/two rungs produce 20 indexed observations and 16 immutable revisions;
+  unchanged confirmations, corrections, historical replay, restoration, inferred
+  VOID, pinned views and a real global-CAS conflict are covered.
+- **8** legacy adapter/adversarial tests rerun with the additive migration
+  enabled. No legacy reader or original source receipt was rewritten.
+- **5** new native safety/fixture guards pass. The actual native test class is
+  explicitly skipped here (three unexecuted transaction cases); combined old/new
+  native and tooling run: **17 passed, 7 native cases skipped**. A required fresh
+  PostgreSQL 17 CI job is authored, not executed on GitHub.
+
+Independent review closed malformed-record SQL/Python disagreements,
+historical-measurement ACK bypasses, missing/stale proof, legacy downgrade and
+false partial ACK paths. These are bounded local tests, not universal safety,
+hosted PostgREST proof, statistical improvement or completed D1 story acceptance.
+Do not apply the migration or select the new backend before release review.
+The public API and daily pipeline remain unwired to observed-v2 outcomes.
 
 ### S009 implementation-delta work packages
 
 These extend the R1 story without silently regenerating or changing the
-12-epic/31-story design baseline. They are remaining implementation, not done
-acceptance criteria. Planning estimates are not measured delivery velocity.
+12-epic/31-story design baseline. D1 whole local-build tasks are complete at
+`3ed4cae`; its native/hosted acceptance remains open. D2 is remaining
+implementation. Planning estimates are not measured delivery velocity.
 
 **S009-D1 — durable observation authority.** Shared-engine/storage lane;
 dependency: reviewed journal schema and observed-v2 contract; risk High;

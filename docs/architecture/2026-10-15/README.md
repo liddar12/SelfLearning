@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 15, 2026, 6:35 p.m. CDT: use the
+Implementation status updated October 15, 2026, 7:02 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -16,7 +16,7 @@ Use the existing Vercel Python backend and Supabase project, preserve NFL2026's 
 - [Delivery backlog](BACKLOG.md): 12 epics, 31 features, 31 user stories, 93 tasks and 92 acceptance criteria, with effort/risk, owners and dependency mapping.
 - [Spreadsheet-friendly backlog](BACKLOG.csv): one row per task, including parent story and acceptance/test references.
 - [Implementation handoff](IMPLEMENTATION_HANDOFF.md): current branches, local changes, exact verification and next file-owned workstreams.
-- [Audited progress by epic](IMPLEMENTATION_HANDOFF.md#audited-completion-by-epic): 33/99 whole local-build tasks complete (33.3%), including the newly identified D1/D2 work; not deployment readiness. [Task/evidence inventory](progress.json).
+- [Audited progress by epic](IMPLEMENTATION_HANDOFF.md#audited-completion-by-epic): 36/99 whole local-build tasks complete (36.4%), including the explicitly added D1/D2 work; not deployment readiness. [Task/evidence inventory](progress.json).
 
 Editable visual source: [architecture.html](architecture.html), [render.mjs](render.mjs), [portable PDF exporter](export-vector-pdf.mjs). Editable backlog source: [backlog-source.mjs](backlog-source.mjs). These are repository documentation tools, not an NFL app build step.
 
@@ -32,7 +32,7 @@ Supabase project `omavgimpnvrpuxqhfxpf`, four RLS-enabled foundation tables, app
 
 Local isolated branches include NFL generation receipts independent of MY display IDs, retry-safe export, hosted foundation reconciliation, scoped API intake, prospective adaptation, SQLite contracts and a Supabase journal/migration, immutable outcome revisions, typed offline shadow evaluation and R130 reporting. The later outcome checkpoint adds immutable raw capture, a frozen-identity producer, opt-in no-refetch graders and a separate observed-clock kernel. Root checkpoint checks: 540 core/hosted tests passed; ten critical Python targets above 90% executable-line coverage (2,451/2,567 = 95.4811%); 16 PostgreSQL-WASM SQL tests and 9 actual adapter/API/adversarial SQL tests passed. Native concurrency and hosted Supabase remain unverified. NFL's dependency-free gate passed 2,220 feature tests but skipped browser step 8. See the handoff for scope, source hashes and later in-progress work. No production migration, export, two-cycle hosted learner, candidate activation or measured accuracy improvement is claimed.
 
-The pilot is single-owner, not multi-tenant. Preview requires a separate staging database/project and separate credentials. Hosted outcome authority/transport, publication observations, scheduled evaluation, persisted candidate return and independent NFL approval/consumption remain implementation work. D1 indexed observation persistence and atomic commit are now being built locally; an unreviewed in-progress file is not completed acceptance. The old settled and prospective adapters have different envelope identities; the implemented pure bridge joins the original source receipt to the exact persisted envelope.
+The pilot is single-owner, not multi-tenant. Preview requires a separate staging database/project and separate credentials. D1 indexed observations and atomic CAS are reviewed and locally committed at `3ed4cae`: 601 core/API tests, 32 PostgreSQL-WASM SQL tests and 14 actual Python-to-SQL tests pass; all 12 critical Python targets exceed 90% line coverage (95.5146% aggregate). Native concurrency and hosted acceptance remain unverified. D2 provenance-bound transport, publication observations, scheduled evaluation, persisted candidate return and independent NFL approval/consumption remain work; the default API/pipeline is unchanged. The old settled and prospective adapters have different envelope identities; the bridge joins the original source receipt to the exact persisted envelope.
 
 The full historical R130 reference series remains unverified here because the shared NFL Git repository is shallow. Frozen Week 5 settlement is verified separately; the UI must show unavailable history rather than invented prospective counts.
 
