@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-1:18 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+1:43 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -56,10 +56,10 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 16, 2026, 1:18 a.m. CDT (America/Chicago). **49/99 = 49.5% local-build
+October 16, 2026, 1:43 a.m. CDT (America/Chicago). **50/99 = 50.5% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
-The original R1 plan is 43/93 (46.2%); six explicitly added D1/D2 tasks expand
+The original R1 plan is 44/93 (47.3%); six explicitly added D1/D2 tasks expand
 E02 and the total denominator. Do not hide those tasks to inflate progress.
 The ID-by-ID classification and evidence are in [progress.json](progress.json).
 
@@ -70,7 +70,7 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | E02 Ingestion/outcome corrections | 14/15 | 93% | Runtime activation, retention and native/hosted acceptance; sealed multi-batch executor verified locally |
 | E03 Evaluation/honest records | 9/9 | 100% | Local tasks complete, not story/live acceptance: default reporting hookup and historical coverage still limited |
 | E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
-| E05 Eligibility/freshness | 3/6 | 50% | Current-input eligibility verification, clearance guard and frozen replay |
+| E05 Eligibility/freshness | 4/6 | 67% | Last-FINAL/clearance shadow guard and frozen replay; current-input validation complete locally |
 | E06 Parlay selection/concentration | 3/6 | 50% | Full Game/Week/MY objective comparison and owner portfolio-policy decision |
 | E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
 | E08 Dashboard/application MCP | 4/9 | 44% | Real-browser/mobile acceptance, evaluation/candidate journeys and sessions |
@@ -99,6 +99,38 @@ NFL gates. Claude Code is not a live connected fifth lane.
 Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
 authorized actions. No weekly manual SQL is required by the intended pipeline.
+
+## Current-input and privacy checkpoint
+
+October 16, 2026, 1:43 a.m. CDT. S016-T1 is independently verified against
+current pinned main `0d49a948`: exact projection of all 800 injury rows and 300
+weekly players; all four eligibility-consumer source blobs match main. The
+current gate holds 33 players: 19 canonical exact-ID status matches (4 OUT,
+5 DOUBTFUL, 10 IR) and 14 documented depth decisions, no unexplained gate.
+Four new / 20 related tests pass. Unknown-status injection affects only the
+identified player (33→34); absent provider time/wrong week remains source
+uncertainty and does not rewrite projected points. NFL commit `1a27db5f`.
+
+This completes the exact local revalidation task, not injury story acceptance:
+depth-chart authority was not independently rederived, the >1 MiB leg pool was
+not downloaded, and no full pipeline/offered-card audit or provider completeness
+is claimed. The existing 25-per-team cap still needs a last-FINAL/clearance
+shadow guard and replay. Totals: **50/99**, E05 **4/6 local tasks**.
+
+The privacy follow-up `3fe68c73` hardens standalone forecast/v1/v2 exporters,
+including cached/original replies and a chosen credential equal to an allowed
+error code. Typed abort propagation prevents post-deadline protocol writes.
+Root's **80/80 related tests** and **3/3 empty-journal actual SQL intake tests**
+pass, no skips. This supersedes the earlier narrower new-runner-only privacy
+claim. The last full NFL gate remains `165402d2`: **2,340 feature tests**, data,
+smoke and four model gates, exit 0; browser skipped. A later combined full gate
+is required after the preview/materializer sources freeze.
+
+New engine commits: `0cb777d` pure display-only attachment; `624dc83` empty SQL
+→ both real senders → authenticated ASGI → SQL/quota integration; `744cef8`
+explicit read-only trace bridge completion. Private Storage/generic dashboard
+store remain test fakes. Root's bridge-only SQL check passes; no browser launch,
+layout or hosted acceptance is inferred.
 
 ## V2 whole-group and full-cohort checkpoint
 

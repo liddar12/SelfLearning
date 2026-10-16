@@ -1,11 +1,12 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 2 · October 16, 2026, 1:18 a.m. America/Chicago (CDT).
+Revision 3 · October 16, 2026, 1:43 a.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; not a completion guarantee.
 
 This is local branch work, not a production release or an accuracy claim.
-The audited task ledger is **49/99 (49.5%)**. D2-T3 whole-group batching and
-S010-T2 exact cohort comparison have independent local-build approval.
+The audited task ledger is **50/99 (50.5%)**. D2-T3 whole-group batching,
+S010-T2 exact cohort comparison and S016-T1 current Week6 eligibility have
+independent local-build approval.
 No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
@@ -23,6 +24,11 @@ story acceptance, production readiness and accuracy remain separate measures.
 | NFL2026 | `4838daf0` | Bounded trusted-local engine parity checker; default live review unchanged |
 | NFL2026 | `25fcafbc` | Pure pinned feature-shadow collection/grading; zero weight, no activation or live persistence |
 | NFL2026 | `165402d2` | Opt-in bounded forecast/outcome intake; credential-echo refusal before child persistence |
+| NFL2026 | `3fe68c73` | Standalone exporter response/error privacy; typed deadline propagation, no late protocol writes |
+| NFL2026 | `1a27db5f` | Current pinned-main eligibility projection and exact-ID withheld-player acceptance tests |
+| SelfLearning | `0cb777d` | Pure separate parity attachment; no change to legacy grades |
+| SelfLearning | `624dc83` | Empty SQL journal → both actual senders → authenticated ASGI → SQL/quota tests |
+| SelfLearning | `744cef8` | Explicit read-only trace bridge completion; browser harness retained as blocked |
 
 These commits have not been pushed. No production environment, database,
 deployment, model coefficient, parlay selection or sportsbook transaction was
@@ -63,7 +69,7 @@ batch/cache implementation.
   The first run missed the per-file target; nine additional meaningful view
   tests cover pagination, scope rechecking, lazy pointer lookup, capacity faults
   and sanitized errors. The focused 18-test API run measures 154/154 lines.
-- Full Python SQL suite: **89 passed, 7 native-concurrency tests skipped**.
+- Full Python SQL suite at the named earlier checkpoint: **89 passed, 7 native-concurrency tests skipped**.
   Full Node SQL suite: **74 passed, zero skipped**. SQL is real PostgreSQL-WASM,
   not a native concurrent/hosted database.
 - Diagnostic scope: original eligible MY player-yardage receipts only. The
@@ -71,6 +77,16 @@ batch/cache implementation.
   with identical producer/engine sets. The actual **1,088→370** comparison passes
   in the large integration test and final full SQL run. Namespace, supplied watermark and database
   completeness remain unauthenticated claims even when numeric parity passes.
+- The new intake orchestrator now passes **3/3 actual SQL integration tests**
+  from an empty journal: separate forecast/outcome authentication, strict ACK
+  ordering, all twelve expected revisions before completion, real quota, lost
+  replies/step-limited resume and source-unavailable GET-only recovery.
+  Root reran them after standalone privacy fixes: exit 0, 8.52s. Storage is fake.
+- Current remote main was rechecked read-only at 1:30 a.m. CDT and is unchanged.
+  Its exact current Week6 projection yields 33 withheld players: 19 canonical
+  exact-ID status matches (4 OUT, 5 DOUBTFUL, 10 IR) and 14 depth reasons.
+  Four new / 20 related tests pass; independent re-fetch confirms the projection.
+  This does not rederive depth authority or prove a complete injury/candidate feed.
 
 ## Important findings and holds
 
@@ -92,10 +108,14 @@ requires every original forecast ACK before outcome work, and bounds the
 shared step/time budget. Independent tests found credential echoes could be
 persisted in ACKs. All three reproduced forecast/outcome variants now refuse
 before child persistence. Author and independent suites pass **24/24**; root's
-combined intake/shadow run passes **44/44**. Final full NFL regression is in
-progress on `165402d2`. No live credentials were used. This is accepted local
-wire-fake composition, not yet actual SQL intake-orchestrator verification or
-an operational learning loop; current coverage/authentication remain unverified.
+combined intake/shadow run passes **44/44**. The frozen full NFL regression
+passed **2,340 feature tests**, contracts, smoke and four model gates on
+`165402d2`; browser step 8 skipped. No live credentials were used.
+Standalone follow-up `3fe68c73` passes **80/80** related tests, including a
+credential equal to an allowlisted error code and an abort previously swallowed
+by sanitization. Typed aborts now stop protocol writes at the deadline.
+Actual SQL orchestration passes separately; this is still not an operational
+learning loop, hosted authentication or complete current outcome coverage.
 
 Browser verification is blocked: listener creation is denied by the environment,
 and a no-listener browser→ASGI harness reaches a Chromium macOS sandbox startup
@@ -105,13 +125,12 @@ acceptance remains unverified. No security flags or permissions were relaxed.
 
 ## Next in the current build
 
-1. Finish the single full NFL gate on frozen privacy-hardened source. The pre-final
-   baseline passed 2,339 feature tests, contracts, smoke and four model gates;
-   browser step 8 skipped. It is not final intake or release acceptance evidence.
-2. Add a bounded, explicitly local/display-only parity attachment. Preserve
-   default live review and its honest records; no automatic adoption.
-3. Verify actual SQL orchestration and bridge-only read closure, preserving
-   all browser, zero-weight, source-completeness and future-week holds.
+1. Finish independent QA of the local review preview and draft-only materializer;
+   combine frozen changes into a single full NFL gate and 34-target engine run.
+2. Preserve default live review, honest records and all approval boundaries;
+   inspectable preview JSON is not a live site or active candidate.
+3. Keep browser, zero-weight, source-completeness and future-week holds; actual
+   SQL orchestration and bridge-only read closure are now separately verified.
 4. Reconcile whole-task credit and the handoff after verification, retaining
    separate local-build, acceptance, release and prospective-evidence states.
 

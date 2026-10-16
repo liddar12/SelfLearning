@@ -2,7 +2,28 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Current local checkpoint — October 16, 2026, 1:18 a.m. CDT
+## Current task and focused checks — October 16, 2026, 1:43 a.m. CDT
+
+Task ledger: **50/99 (50.5%)**, original 44/93; 34 partial and 15 open.
+S016-T1 now has independent current-main revalidation: exact 800-row injury /
+300-player Week6 projection, 33 documented withheld players, four new / 20
+related tests passed. This is not a full candidate-pool or provider-completeness
+audit. Source and limits: NFL `1a27db5f`, [current handoff](IMPLEMENTATION_HANDOFF.md#current-input-and-privacy-checkpoint).
+
+NFL `3fe68c73`: **80/80** related exporter/intake tests and **3/3** actual
+empty-journal SQL intake tests pass, zero skips. Original-result and typed
+deadline behavior remain intact after credential-response/error hardening.
+Engine `624dc83` preserves these actual SQL tests; `744cef8` preserves the
+bridge-only EOF/read-only assertion. Root reruns exit 0. Actual browser remains
+blocked. No hosted/native/real-Storage/model-adoption claim.
+
+The latest full NFL gate is the earlier `165402d2`: **2,340 feature tests**,
+contracts/smoke/four model gates pass, browser step 8 skipped, exit 0. Newer
+privacy/current-input/preview/materializer files need a combined full re-run.
+The full engine measurement below is a named historical checkpoint; the newer
+34-target inventory and attachment CLI are being verified separately.
+
+## Full measured checkpoint — October 16, 2026, 1:18 a.m. CDT
 
 Source: engine `47ee1e4`, NFL `4838daf0`, plus explicitly hashed test/evidence
 files in the [coverage report](../../reviews/2026-10-16-critical-coverage.json).
