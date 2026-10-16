@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 15, 2026,
-7:09 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+7:14 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -20,10 +20,12 @@ Later local checkpoints: NFL immutable capture/producer/opt-in consumers
 `7204ebd`; indexed observation/atomic CAS checkpoint `3ed4cae`. No production
 behavior is enabled by those commits. NFL public-content observation runtime
 `4cd7e1e6`, evidence/handoff `d85de971`, is also local only.
+Generic evidence-chunk integrity is locally committed as `62defd6`; it does
+not expose an upload route or complete D2 provenance-bound transport.
 
 ## Audited completion by epic
 
-October 15, 2026, 7:09 p.m. CDT (America/Chicago). **38/99 = 38.4% local-build
+October 15, 2026, 7:14 p.m. CDT (America/Chicago). **38/99 = 38.4% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
 The original R1 plan is 35/93 (37.6%); six explicitly added D1/D2 tasks expand
@@ -357,6 +359,30 @@ staging only; bytes can reach a staging sink before final digest verification.
 Any result remains `uploaded_only`, never authenticated, accepted training
 evidence or a durable ACK. D2-T1 remains partial until capture-to-label binding
 is implemented and independently tested.
+
+Local runtime **`62defd6`** implements this helper in
+`selflearn_core/evidence_chunks.py` without opening resources or changing SQL,
+API routes, credentials, backend selection or workflows. Caller-supplied reads
+and callbacks may perform caller-owned I/O and propagate their exceptions;
+the future HTTP boundary must sanitize failures and enforce incoming wire size.
+Final source SHA256
+`c3a49771c93ce58a79a31110abaecf71119ce65f65b23afcff9755d5a475943f`.
+
+Root final measurement: **619 core/hosted tests passed**, zero skips, one
+existing Starlette/AnyIO warning; all **13** critical targets exceed 90%
+executable-line coverage, **2,923/3,057 = 95.6166%** aggregate. The new helper
+is **176/181 = 97.2376%**. Its **18** focused tests and **13** independent
+adversarial probes cover canonical base64, actual 64 MiB streaming/overflow,
+ordering, immutable pointer snapshots, callback mutation and incomplete staging.
+Coverage tooling separately passes **5** tests; all commands exit **0**.
+The measured report pins runtime `62defd6`, NFL `d85de971` and stable file hashes.
+
+Root helper-only local probe streamed and verified **67,108,864 bytes** in 64
+distinct generated chunks without retaining the capture: **8,759,573 peak
+Python-traced bytes**, largest serialized request **1,398,313 bytes**, elapsed
+**0.7796 s**. This is not RSS, native I/O, hosted latency, capacity, provider
+provenance, durability, upload acceptance or a production performance promise.
+The complete D2 task remains partial, so completion is still **38/99**.
 
 The complete receiver must package a small versioned NFL raw-evidence verifier
 inside the engine adapter, independently checking producer parity against raw

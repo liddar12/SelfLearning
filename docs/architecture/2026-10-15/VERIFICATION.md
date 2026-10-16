@@ -2,17 +2,20 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-Latest D1 checkpoint evidence, October 15, 2026, 7:02 p.m. CDT:
-[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#d1-indexed-observation-and-atomic-cas-checkpoint)
+Latest local integrity evidence, October 15, 2026, 7:14 p.m. CDT:
+[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#d2-reviewed-implementation-boundary-october-15-709-pm-cdt)
 supersedes the historical code-checkpoint counts and corresponding outstanding
-items below. R1 planning/PDF acceptance is unchanged. Runtime source `3ed4cae`:
-601 core/hosted tests, 5 coverage-tool tests, 32 PostgreSQL-WASM SQL tests,
-14 actual Python/API/producer/job SQL tests passed. Five new native safety
+items below. R1 planning/PDF acceptance is unchanged. Runtime source `62defd6`:
+619 core/hosted tests and 5 coverage-tool tests pass; all 13 critical Python
+targets exceed 90% executable-line coverage (2,923/3,057 = 95.6166%). The new
+chunk helper alone is 176/181 = 97.2376%. Earlier D1 source `3ed4cae` passed
+32 PostgreSQL-WASM SQL and 14 Python/API/producer/job SQL tests; those unchanged
+SQL files were not rerun for the unrelated pure chunk addition. Five new native safety
 guards pass, but its actual transaction class is skipped (three cases); the
-combined old/new/tooling run is 17 passed and 7 native cases skipped. All 12
-critical Python targets exceed 90% executable-line coverage (2,747/2,876 =
-95.5146%). NFL
-dependency-free gate passed with 2,220 feature tests; browser step 8 skipped.
+combined old/new/tooling run is 17 passed and 7 native cases skipped. The helper
+adds no native or hosted evidence. NFL
+dependency-free gate on publication source `4cd7e1e6` passed with 2,235 feature
+tests; browser step 8 skipped.
 The two new NFL capture/producer targets separately meet 90% (518/575 and
 316/346); all 57 measured fixture tests and 6 tooling self-tests passed.
 The D1 checkpoint includes indexed observation reads and atomic CAS source;

@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 15, 2026, 7:09 p.m. CDT: use the
+Implementation status updated October 15, 2026, 7:14 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -35,6 +35,12 @@ Local isolated branches include NFL generation receipts independent of MY displa
 The pilot is single-owner, not multi-tenant. Preview requires a separate staging database/project and separate credentials. D1 indexed observations and atomic CAS are reviewed and locally committed at `3ed4cae`: 601 core/API tests, 32 PostgreSQL-WASM SQL tests and 14 actual Python-to-SQL tests pass; all 12 critical Python targets exceed 90% line coverage (95.5146% aggregate). Native concurrency and hosted acceptance remain unverified. D2 provenance-bound transport, publication observations, scheduled evaluation, persisted candidate return and independent NFL approval/consumption remain work; the default API/pipeline is unchanged. The old settled and prospective adapters have different envelope identities; the bridge joins the original source receipt to the exact persisted envelope.
 
 The full historical R130 reference series remains unverified here because the shared NFL Git repository is shallow. Frozen Week 5 settlement is verified separately; the UI must show unavailable history rather than invented prospective counts.
+
+Latest local integrity checkpoint `62defd6`: 619 core/API tests pass; all 13
+critical Python targets exceed 90% line coverage (95.6166% aggregate). The new
+generic chunk helper streams 64 MiB evidence with bounded staging and strict
+hash/size checks, but performs no upload or durable learning acceptance. D2
+remains partial and the audited completion percentage does not increase for it.
 
 ## Rebuild and verify the planning artifacts
 
