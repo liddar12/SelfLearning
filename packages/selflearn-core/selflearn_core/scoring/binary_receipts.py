@@ -11,20 +11,27 @@ import math
 from ..probability_receipts import instant, validate_probability_receipt, validate_resolution
 
 EPS = 1e-6  # documented NFL scalar-score parity; does not change stored p
+COHORT_POLICY = "first_valid_forecast_before_outcome_join_v2"
 
 
 def score_binary_receipts(receipts, outcomes):
     """Score each canonical contract once, using its earliest valid receipt.
 
-    Conflicting final outcomes or simultaneous distinct earliest forecasts are
-    quarantined, never resolved by list order. Later vintages are not extra
-    samples. Outcome receipt IDs must match their forecast exactly.
+    Freeze the forecast population BEFORE looking for outcomes. An unresolved
+    first forecast cannot be replaced by a later, more conveniently graded
+    vintage. Conflicting outcomes for the selected receipt or simultaneous
+    distinct first forecasts are quarantined, never resolved by list order.
+    Later-vintage labels cannot change the selected forecast or its score.
+
+    This is a descriptive score of the caller's explicit outcome snapshot,
+    not a revision/as-of selector. Supply pinned latest resolutions, not an
+    unfiltered correction history. Receipt IDs must match exactly.
     """
     reasons = Counter()
     indexed = defaultdict(list)
     for out in outcomes or []:
-        if isinstance(out, dict):
-            indexed[out.get("receipt_id")].append(out)
+        if isinstance(out, dict) and isinstance(out.get("receipt_id"), str):
+            indexed[out["receipt_id"]].append(out)
         else:
             reasons["invalid_outcome"] += 1
     candidates = defaultdict(list)
@@ -34,6 +41,20 @@ def score_binary_receipts(receipts, outcomes):
         except (ValueError, TypeError, OverflowError) as exc:
             reasons[str(exc)] += 1
             continue
+        key = (receipt["domain"], receipt["task"], receipt["contract_id"])
+        candidates[key].append(receipt)
+    rows, duplicates = [], 0
+    for key in sorted(candidates):
+        versions = candidates[key]
+        versions.sort(key=lambda r: (instant(r["forecast_created_utc"]), r["receipt_id"]))
+        first = instant(versions[0]["forecast_created_utc"])
+        earliest = [r for r in versions if instant(r["forecast_created_utc"]) == first]
+        if len({(r["base_model_version"], r["calibrator_version"], r["base_prob"], r["served_prob"],
+                 r["event_id"], r["correlation_group"]) for r in earliest}) != 1:
+            reasons["conflicting_first_forecast"] += len(versions)
+            continue
+        receipt = versions[0]
+        duplicates += len(versions) - 1
         matching = indexed.get(receipt["receipt_id"], [])
         if not matching:
             reasons["unresolved"] += 1
@@ -46,24 +67,12 @@ def score_binary_receipts(receipts, outcomes):
                 reasons[str(exc)] += 1
                 continue
             valid.append(out)
-        if valid:
-            key = (receipt["domain"], receipt["task"], receipt["contract_id"])
-            candidates[key].extend((receipt, out) for out in valid)
-    rows, duplicates = [], 0
-    for key in sorted(candidates):
-        versions = candidates[key]
-        if len({out["hit"] for _, out in versions}) != 1:
-            reasons["conflicting_outcomes"] += len(versions)
+        if not valid:
             continue
-        versions.sort(key=lambda pair: (instant(pair[0]["forecast_created_utc"]), pair[0]["receipt_id"]))
-        first = instant(versions[0][0]["forecast_created_utc"])
-        earliest = [r for r, _ in versions if instant(r["forecast_created_utc"]) == first]
-        if len({(r["base_model_version"], r["calibrator_version"], r["base_prob"], r["served_prob"],
-                 r["event_id"], r["correlation_group"]) for r in earliest}) != 1:
-            reasons["conflicting_first_forecast"] += len(versions)
+        if len({out["hit"] for out in valid}) != 1:
+            reasons["conflicting_outcomes"] += len(valid)
             continue
-        receipt, out = versions[0]
-        duplicates += len(versions) - 1
+        out = valid[0]
         p, y = receipt["served_prob"], int(out["hit"])
         q = min(max(p, EPS), 1 - EPS)
         rows.append({"receipt_id": receipt["receipt_id"], "contract_id": receipt["contract_id"],
@@ -76,7 +85,10 @@ def score_binary_receipts(receipts, outcomes):
                      "publication_status": receipt["publication_status"]})
     n = len(rows)
     groups = Counter((r["domain"], r["correlation_group"]) for r in rows)
-    return {"version": 1, "n": n, "hits": sum(r["hit"] for r in rows),
+    return {"version": 1, "cohort_policy": COHORT_POLICY,
+            "outcome_policy": "caller-pinned exact selected-receipt resolutions; no implicit revision selection",
+            "canonical_contracts_considered": len(candidates),
+            "n": n, "hits": sum(r["hit"] for r in rows),
             "hit_rate": sum(r["hit"] for r in rows) / n if n else None,
             "mean_served_prob": sum(r["served_prob"] for r in rows) / n if n else None,
             "expected_hits": sum(r["served_prob"] for r in rows) if n else None,

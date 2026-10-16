@@ -27,6 +27,7 @@ from selflearn_core.types import Outcome, Prediction
 from .security import OwnerBoundary, MAX_IMAGE
 from .nfl_ingestion import register_nfl_routes
 from .nfl_capture_intake import register_capture_routes
+from .capture_configuration import select_capture_factory
 from . import private_uploads
 from . import nfl_trace
 
@@ -201,6 +202,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
         except ValueError:
             store = None  # Never fall back to ephemeral/local storage in production.
     journal_factory, journal_selection = _journal_selection(env, journal_factory)
+    capture_factory, capture_selection = select_capture_factory(env, capture_factory)
     local = not env.get("VERCEL")
     hosts = {"self-learning-beige.vercel.app", "self-learning-liddar-terminal.vercel.app"}
     for variable in ("VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_BRANCH_URL"):
@@ -229,6 +231,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
         return {"store": db().status(), "capabilities": CAPABILITIES,
                 "release": "hosted-foundation-v1", "code_sha": env.get("VERCEL_GIT_COMMIT_SHA") or None,
                 "nfl_ingestion": journal_status,
+                "nfl_outcome_intake": capture_selection,
                 "data_policy": "Imports are unverified, not measured live performance"}
 
     def journal_view(operation):
