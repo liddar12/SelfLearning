@@ -68,6 +68,9 @@ CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/store/learning_job_journal.py",
     "packages/selflearn-core/selflearn_core/store/supabase_learning_jobs.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_evaluation_job.py",
+    "packages/selflearn-core/selflearn_core/compute_process.py",
+    "packages/selflearn-core/selflearn_core/nfl_compute_worker.py",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_bounded_evaluation.py",
 )
 SUITES = ("packages/selflearn-core/tests", "tests/hosted")
 NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.py",

@@ -151,3 +151,39 @@ def test_actual_nfl_shadow_fitter_pause_resume_and_original_result_through_full_
     saved=journal.get_object(state["state"]["result_object_id"])["payload"]
     assert saved==result["result"] and saved["report"]["report_id"]==result["result"]["report"]["report_id"]
     assert len(json.dumps(saved))<3*1024*1024
+
+
+def test_actual_bounded_nfl_child_result_and_execution_receipt_through_full_sql_chain(actual):
+    import json
+    import sys
+    from unittest.mock import patch
+    from selflearn_core import compute_process as P
+    from selflearn_core.adapters import nfl_bounded_evaluation as B
+    from selflearn_core.adapters import nfl_evaluation_job as N
+    previous_path=sys.path[:];sys.path.insert(0,str(ROOT/"packages/selflearn-core/tests"))
+    try:
+        from test_nfl_calibration import corpus
+        receipts,sources,revisions=corpus(n=110)
+    finally:sys.path[:]=previous_path
+    journal,bridge=actual
+    inputs={"version":1,"kind":"nfl.shadow_job_inputs.v1","receipts":receipts,"source_receipts":sources,
+        "revisions":revisions,"generation_records":None,"as_of_utc":"2026-10-15T00:00:00Z"}
+    settings=N.policy(execution_profile=P.profile())
+    for value in(inputs,settings):journal.append_object("source_snapshot",fingerprint(value),value)
+    now=dt.datetime.now(dt.timezone.utc)
+    spec=J.seal_spec({"version":1,"kind":"selflearn.job_definition.v1","namespace":dict(N.NS),"operation":N.OPERATION,
+        "input_object_id":fingerprint(inputs),"policy_object_id":fingerprint(settings),"code_id":J.code_identity(),
+        "not_before_utc":J.stamp(now-dt.timedelta(seconds=10)),"not_after_utc":J.stamp(now+dt.timedelta(minutes=5)),
+        "lease_seconds":120,"max_runtime_seconds":180,"max_attempts":3,"max_steps":2},authority_id=AUTHORITY)
+    journal.register_job(spec)
+    with patch.object(P,"run_worker",wraps=P.run_worker)as worker:
+        result=B.run_bounded_shadow_job(journal,spec["job_id"],authority_id=AUTHORITY,worker_id="bounded")
+        recovered=B.run_bounded_shadow_job(port(bridge),spec["job_id"],authority_id=AUTHORITY,worker_id="retry")
+    assert worker.call_count==1 and result["status"]=="completed_shadow"and recovered["recovered_original"] is True
+    assert result["result_object_id"]==recovered["result_object_id"]
+    state=journal.read_job(spec["job_id"]);saved=journal.get_object(state["state"]["result_object_id"])["payload"]
+    assert saved==result["result"]and saved["report"]["candidate"] is not None
+    assert saved["kind"]=="nfl.shadow_job_result.v2"and saved["execution"]["isolated_python_requested"] is True
+    B.validate_execution_receipt(saved["execution"],spec=spec,report=saved["report"],profile=settings["execution_profile"])
+    assert saved["execution"]["execution_authenticated"] is False and all(saved[k] is False for k in N.FALSE_FLAGS)
+    assert len(json.dumps(saved))<3*1024*1024
