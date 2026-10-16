@@ -36,11 +36,15 @@ The pilot is single-owner, not multi-tenant. Preview requires a separate staging
 
 The full historical R130 reference series remains unverified here because the shared NFL Git repository is shallow. Frozen Week 5 settlement is verified separately; the UI must show unavailable history rather than invented prospective counts.
 
-Latest local integrity checkpoint `41d7063`: 637 core/API tests pass; all 14
-critical Python targets exceed 90% line coverage (95.4233% aggregate). Generic
-chunk framing and an independent bounded raw-capture/profile verifier are built.
-Capture integrity is not authenticated provenance, accepted player labels or a
-durable learning ACK. D2 remains partial; audited task completion remains 38/99.
+Latest local integrity checkpoint `e154f84`: 680 core/API tests pass; all 17
+critical Python targets exceed 90% line coverage (94.9976% aggregate). Generic
+chunks/private pointers, raw profile verification and independent frozen-member
+label binding compose with the internal atomic persistence job. Actual raw-to-
+PostgreSQL-WASM lifecycle/new-vintage-CAS/tamper checks pass three new tests.
+That is not producer authentication, hosted durability or an original delivery
+ACK. D2 remains incomplete. Audited whole local-build task completion is 42/99
+(including the recovered NFL control replay), with all full-candidate-history
+and release limitations retained.
 See the handoff for the requested October 16, 7:00 a.m. CDT target and remaining
 production, native/hosted, complete browser and prospective-evidence gates.
 

@@ -2,19 +2,22 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-Latest local integrity evidence, October 15, 2026, 10:16 p.m. CDT:
-[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#independent-raw-capture-verification-checkpoint-1016-pm-cdt)
+Latest local integrity evidence, October 15, 2026, 10:26 p.m. CDT:
+[IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md#complete-raw-to-label-internal-composition-1026-pm-cdt)
 supersedes the historical code-checkpoint counts and corresponding outstanding
-items below. R1 planning/PDF acceptance is unchanged. Runtime source `41d7063`:
-637 core/hosted tests pass; all 14 critical Python targets exceed 90%
-executable-line coverage (3,336/3,496 = 95.4233%). The new raw-capture verifier
-is 413/439 = 94.0774%; focused verifier/tool checks pass 23 tests. Earlier D1 source `3ed4cae` passed
+items below. R1 planning/PDF acceptance is unchanged. Runtime source `e154f84`:
+680 core/hosted tests pass; all 17 critical Python targets exceed 90%
+executable-line coverage (3,893/4,098 = 94.9976%). Binder/job are
+415/458 = 90.6114% and 63/65 = 96.9231%; focused binder/job/private-storage
+checks pass 21/9/13 and coverage-tool tests pass 5. New actual raw-to-
+PostgreSQL-WASM tests pass 3, or 5 with unchanged atomic lifecycle tests;
+no native/hosted/authenticated-source or original delivery-ACK proof. Earlier D1 source `3ed4cae` passed
 32 PostgreSQL-WASM SQL and 14 Python/API/producer/job SQL tests; those unchanged
 SQL files were not rerun for the unrelated pure chunk addition. Five new native safety
 guards pass, but its actual transaction class is skipped (three cases); the
 combined old/new/tooling run is 17 passed and 7 native cases skipped. The helper
 adds no native or hosted evidence. NFL
-dependency-free gate on replay source `5a4b057b` passed with 2,243 feature
+dependency-free gate on on-card replay source `bed4a3b4` passed with 2,252 feature
 tests; browser step 8 skipped.
 The two new NFL capture/producer targets separately meet 90% (518/575 and
 316/346); all 57 measured fixture tests and 6 tooling self-tests passed.

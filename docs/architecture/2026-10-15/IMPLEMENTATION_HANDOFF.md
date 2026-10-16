@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 15, 2026,
-10:16 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+10:26 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -47,10 +47,10 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 15, 2026, 7:14 p.m. CDT (America/Chicago). **38/99 = 38.4% local-build
+October 15, 2026, 10:26 p.m. CDT (America/Chicago). **42/99 = 42.4% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
-The original R1 plan is 35/93 (37.6%); six explicitly added D1/D2 tasks expand
+The original R1 plan is 38/93 (40.9%); six explicitly added D1/D2 tasks expand
 E02 and the total denominator. Do not hide those tasks to inflate progress.
 The ID-by-ID classification and evidence are in [progress.json](progress.json).
 
@@ -58,20 +58,20 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | --- | ---: | ---: | --- |
 | E00 Foundation/security | 2/9 | 22% | Live schema/history, helper permissions, credentials and deployed identity |
 | E01 Forecast/publication lineage | 5/9 | 56% | Deployment identity, live observation and exact-generation prepublication gate |
-| E02 Ingestion/outcome corrections | 11/15 | 73% | D2 provenance-bound transport, native/hosted checks and full acceptance |
+| E02 Ingestion/outcome corrections | 12/15 | 80% | Scoped outcome transport, durable results/recovery and native/hosted acceptance |
 | E03 Evaluation/honest records | 8/9 | 89% | Independent full NFL/engine same-cohort comparator; real historical coverage remains unavailable |
 | E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
 | E05 Eligibility/freshness | 3/6 | 50% | Current-input eligibility verification, clearance guard and frozen replay |
-| E06 Parlay selection/concentration | 0/6 | 0% | Persisted reproducible R126 control replay and full Game/Week/MY objective comparison |
+| E06 Parlay selection/concentration | 3/6 | 50% | Full Game/Week/MY objective comparison and owner portfolio-policy decision |
 | E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
 | E08 Dashboard/application MCP | 1/9 | 11% | Searchable journal trace, evaluation/candidate journeys and sessions |
 | E09 Screenshots/questions | 0/6 | 0% | Private lifecycle, OCR/draft confirmation and evidence-based question routing |
 | E10 Jobs/operations/release | 0/6 | 0% | Resumable leases/checkpoints, alert drills, exact-SHA browser/hosted release |
 | E11 Reusable/new domains | 2/9 | 22% | Full second-domain boundary suite and one real-domain pilot; finance separate |
 
-Zero completed tasks can include substantial partial code. In particular R126
-ranking is already a shipped baseline, but its ephemeral scratch replay is not
-the persisted reproducible control artifact required by this backlog. The real
+Zero completed tasks can include substantial partial code. R126 ranking was
+already shipped; its recovered reference replay is now persisted and tested,
+but complete original candidate history remains unavailable. The real
 synthetic election fixture is built/tested; a real election adapter is not.
 The progress audit does not award deployment credit to local branches.
 
@@ -477,13 +477,83 @@ and NFL `7f72d750`. An earlier run changed HEAD midmeasurement and was discarded
 the committed report is the successful stable rerun. No SQL/native/hosted or
 browser evidence was added. D2 remains partial; no whole-task credit yet.
 
-The next private-Storage adapter follows the R1 architecture, using an injected
+The private-Storage adapter at `9f29350` follows the R1 architecture, using an injected
 server-side client, an explicitly private bucket and hash-only namespace. It
-will require authenticated exact-byte readback even on duplicate-upload errors,
-and will report only uploaded staging, never accepted learning. Its source is
-currently under independent review. No bucket, route, environment setting,
+requires authenticated exact-byte readback even on duplicate-upload errors,
+and reports only uploaded staging, never accepted learning. Root and independent
+review pass 13 offline tests; source coverage is 77/79 = 97.4684%. Independent
+fake-opener checks exercise the actual existing HTTP client's request path
+without networking. No hosted behavior is established. No bucket, route, environment setting,
 cloud write or production default is being created or enabled. Quotas, safe GC,
 scoped intake and atomic durable result persistence remain activation gates.
+
+### Recovered on-card selection acceptance, 10:19 p.m. CDT
+
+NFL runtime `bed4a3b4` and evidence `0dd2bf48` complete S018's three original
+local-build tasks, not a full-candidate prospective backtest. The original
+backlog explicitly requires the narrower recovered on-card reference as AC1.
+The pinned RCA tree and its retained pre-kickoff correlations reproduce
+**59/188 → 72/189 settlement winners** across 63 games, zero pending/excluded.
+Weekly controls/candidates are **12→20, 20→21, 14→16, 13→15**; full-contract
+hits are **48→61**, separately from reduced settlement wins. Mutable Git clocks,
+legacy inferred VOID and missing complete candidate history stay explicit.
+
+Root checks: **19 related tests** pass; source coverage **320/337 = 94.9555%**.
+The opt-in diagnostic gate succeeds on actual retained data and refuses planted
+losses, missing weeks and pending outcomes. Full NFL gate passes data, smoke,
+**2,252 feature tests** and four model gates, exit **0**; browser step 8 skips.
+No builder/data/workflow changes. Persisted report and per-game hashes are on
+the NFL branch in `docs/reviews/2026-10-15-on-card-reference.json`.
+
+Audited ledger is now **41/99 = 41.4%**, E06 **3/6 = 50%**. Raw verification
+and private staging alone add no D2 whole-task credit. No accuracy promise,
+release readiness or production deployment is inferred.
+
+### Complete raw-to-label internal composition, 10:26 p.m. CDT
+
+Runtime `e154f84`, independently reviewed, adds the frozen-generation label
+binder and the internal capture commit job. It accepts raw bytes, not uploaded
+normalized truth. One complete durable generation snapshot establishes all
+accepted rungs/model vintages. Exact immutable source objects and ACK partitions
+are checked before reading raw evidence; malformed locatable membership holds
+the whole underlying player/game/stat group. Contradictory frozen names are held
+even when measured numbers coincide. Only the pinned name-normalization policy
+can equate known canonical nickname variants.
+
+The job gives binder and resolver the same pinned snapshot. On an explicit CAS
+conflict it rereads the journal and repeats the complete raw integrity/label
+reread; it never retries a stale member subset. Current capture batches must fit
+500 observations/revisions and 8 MiB; an oversized capture is held whole, not
+fragmented or acknowledged. A later raw/hash failure, malformed ACK or lost
+response produces no success. Internal persistence is not an original durable
+delivery/group-result ACK, and source authentication remains unperformed.
+
+Root full stable measurement on `e154f84` and NFL `0dd2bf48`: **680 core/hosted
+tests passed, zero skips**, one existing dependency warning. All **17 critical
+Python targets** exceed 90% line coverage: **3,893/4,098 = 94.9976%**. Binder
+**415/458 = 90.6114%**, job **63/65 = 96.9231%**. Focused binder/job/private
+storage tests pass **21/9/13**; five coverage-tool tests pass. Report identifies
+exact stable source hashes; these are not branch or acceptance coverage.
+
+New actual PostgreSQL-WASM chain tests **3 pass**; combined with the unchanged
+atomic lifecycle suite **5 pass**, exit **0**. Dynamic actual NFL fixtures supply
+raw captures and original forecasts, never producer-normalized outcome labels.
+The tested correction/confirmation/retry/restore/VOID cycle persists **20
+observations and 16 revisions**, preserving original forecasts and pinned
+history. A second adapter admits a third vintage in actual SQL: the first CAS
+fails, the next fully rebinds **4 → 6 members**, making **5 → 10 raw-source reads**.
+Tampered staging never reaches an observation-commit RPC. Chunk storage in that
+SQL suite is explicitly an in-memory fake, not Supabase Storage durability.
+
+Independent task audit now completes **D2-T1's local-build task** (raw chunks,
+private pointers, manifests, fixed profiles and normalized labels bound end to
+end), moving the ledger to **42/99 = 42.4%**, E02 **12/15 = 80%**. A 64 MiB
+aggregate transport ceiling does not promise acceptance of arbitrary source
+shapes or hosted performance. D2-T2/T3 and full story acceptance remain
+incomplete: authenticated capture-producer/sender/receiver, immutable original
+delivery/group results, safe recovery/statuses, quota/retention/GC, independent
+oversized-group survival and hosted/native evidence. No API route, backend
+selection, cloud resource or production behavior is enabled by this checkpoint.
 
 ### Next delivery order and owner actions
 
