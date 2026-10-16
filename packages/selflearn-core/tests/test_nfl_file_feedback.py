@@ -100,6 +100,25 @@ class FileFeedbackTests(unittest.TestCase):
         result=F.evaluate(prepared["state"],source,as_of_utc=EVALUATED)
         self.assertEqual((result["first_imported_before_kickoff"],result["late_imported_receipts"]),(0,4))
 
+    def test_bad_forecast_contract_quarantines_one_row_not_valid_neighbors(self):
+        journal=L.journal_fixture();doc=journal.snapshot["generation_records"][0]["payload"];manifest=doc["generations"][0]
+        pool=copy.deepcopy(journal.objects[manifest["source_snapshots"]["leg_pool"]]["payload"])
+        bad=pool["players"][0]["rungs"][0]["learning_receipt"]
+        bad["base_prob"]=True;bad["receipt_id"]=fingerprint({k:v for k,v in bad.items()if k!="receipt_id"})
+        doc["receipts"][0]["learning_receipt"]=copy.deepcopy(bad);doc["receipts"][0]["receipt_id"]=bad["receipt_id"]
+        oid=fingerprint(pool);journal.objects[oid]={"object_id":oid,"payload":pool}
+        manifest["source_snapshots"]["leg_pool"]=oid
+        manifest["generation_id"]=fingerprint({k:manifest[k]for k in F.generation.MANIFEST_KEYS})
+        manifest["receipt_ids"]=sorted(r["receipt_id"]for r in doc["receipts"])
+        for row in doc["receipts"]:row["generation_id"]=manifest["generation_id"]
+        doc["envelope_id"]=fingerprint({k:v for k,v in doc.items()if k!="envelope_id"})
+        prepared=F.prepare(graph(journal),observed_utc=PREGAME)
+        self.assertEqual(len(prepared["state"]["receipts"]),3)
+        self.assertEqual(sum(prepared["forecast_quarantine"].values()),1)
+        partitions=[r["ack"]for r in prepared["state"]["generation_records"]]
+        self.assertEqual(sum(len(ack["rejections"])for ack in partitions),1)
+        self.assertEqual(sum(len(ack["receipts"])for ack in partitions),3)
+
     def test_evaluate_refuses_missing_extra_or_changed_graph_before_fitting(self):
         source=graph();state=F.prepare(source,observed_utc=PREGAME)["state"]
         for change in("missing_generation","missing_source","extra","tampered_source"):
