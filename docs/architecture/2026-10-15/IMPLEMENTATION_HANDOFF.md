@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-11:18 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+12:07 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -29,6 +29,10 @@ workflow changes. Engine main remains `aa5bbaeddca4138399a21c1894b4aed4bacb52b4`
 Thirteen exact new raw files are frozen in the NFL test fixtures with Git,
 SHA256 and length checks. The removed latest `inactives.json` is not replaced
 with the old TNF feed. No remote data was merged into the worktree or deployed.
+
+At 12:01 p.m. CDT, another authenticated read-only check found both remote
+main SHAs unchanged. [Recorded heads](../../reviews/2026-10-16-1201-remote-heads.json).
+This is source-state evidence, not a deploy check or authorization to publish.
 
 Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04c2d6`, NFL exporter `ed2f9668`, NFL evidence-grading fix `ac8b1083`; SelfLearning prospective journal `30fde77`, architecture package `46f87cf`, hosted/shadow checkpoint `b9ecd3f`, Supabase journal/configuration/native-gate source `7225b84`. These SHAs are local references until the owner separately authorizes a push.
 
@@ -64,7 +68,7 @@ prospective multiweek evidence cannot be created by overnight coding or refits.
 
 ## Audited completion by epic
 
-October 16, 2026, 11:18 a.m. CDT (America/Chicago). **50/99 = 50.5% local-build
+October 16, 2026, 12:07 p.m. CDT (America/Chicago). **50/99 = 50.5% local-build
 task completion**, not production readiness, completed story acceptance or an
 accuracy gain. Each whole task has equal weight; partial work gets no credit.
 The original R1 plan is 44/93 (47.3%); six explicitly added D1/D2 tasks expand
@@ -83,7 +87,7 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
 | E08 Dashboard/application MCP | 4/9 | 44% | Real-browser/mobile acceptance, evaluation/candidate journeys and sessions |
 | E09 Screenshots/questions | 0/6 | 0% | Private lifecycle, OCR/draft confirmation and evidence-based question routing |
-| E10 Jobs/operations/release | 0/6 | 0% | Resumable leases/checkpoints, alert drills, exact-SHA browser/hosted release |
+| E10 Jobs/operations/release | 0/6 | 0% | Durable jobs/shadow reports built locally; triggers, hard worker bounds, alerts and browser/hosted release remain |
 | E11 Reusable/new domains | 3/9 | 33% | Universal cross-owner/adapter identity story acceptance and one real-domain pilot; finance separate |
 
 Zero completed tasks can include substantial partial code. R126 ranking was
@@ -119,7 +123,43 @@ Keep building locally while the owner is away; production push, migration,
 deployment, portfolio-policy change and model activation remain separately
 authorized actions. No weekly manual SQL is required by the intended pipeline.
 
-## Current follow-up — October 16, 2026, 11:18 a.m. CDT
+## Current durable jobs checkpoint October 16 12:07 p.m. CDT
+
+Source `d3a5693a6dbed2436f00191a89f93257cde8ef70`, evidence `59d54a6`, adds
+durable generic SQLite/Supabase jobs and actual NFL shadow-fitter report/artifact
+persistence. The supported operation is MY-yardage calibration, not Game/Week/
+ML/ATD. Real crash/checkpoint recovery, fresh-worker resume, original-result
+recovery without refitting, stale-worker refusal and immutable deadline controls
+pass. No serving, forecast, outcome or approval is written.
+[Contracts, bounds, evidence and recovery](LEARNING_JOBS.md).
+
+Frozen broad verification, all terminal exit 0:
+
+- **1,232 core/API passed, zero skips**; **43/43 critical files >90%**,
+  **7,884/8,194 = 96.2167%** executable lines; measured hashes/heads stable.
+- **93 Node SQL passed, zero skips**, including full migration-chain coexistence.
+- **100 Python-to-SQL passed / seven native-only skipped**. Four new actual job
+  port cases include a synthetic 330-receipt real fitter pause/resume/recovery.
+- **32 progress/coverage-tool tests passed** separately. Task counts unchanged.
+
+[Report](../../reviews/2026-10-16-critical43-durable-jobs-coverage.json) pins NFL
+dependency head `383fbd6388084103e54628bdcfd4f1c03cc3d7d6`. Later evidence and
+handoff commits are not new exact-tested release SHAs. NFL runtime source remains
+unchanged from its earlier 2,453-feature gate; no main/data merge was performed.
+
+S027 remains partial. Next work: a hard-bounded worker; canonical complete-journal
+dataset assembly with independent cohort proof and scalable immutable delivery;
+a distinct scoped evaluator API/credential and ingestion-completion/manual
+triggers reusing one definition; namespace metrics and alert drills. Do not
+reuse operator/forecast authority or put a broad database key in the browser.
+Current database deadlines refuse late commits, not CPU/IO preemption; object
+append/completion can leave an unreferenced object on expiry. Never truncate a
+multiweek/vintage cohort to fit current caps. Native job concurrency, hosted and
+browser acceptance, source/label authority, model adoption and prospective graded
+weeks remain open. No migration, workflow, configuration, GitHub push or deploy
+was enabled. The full 99-task objective is unchanged.
+
+## Earlier follow-up — October 16, 2026, 11:18 a.m. CDT
 
 NFL ID-first correction `02612c4f`, latest-data audit `41a56a09`, cleanup-fixture
 fix `2f6e5dcf`, capture dependency fix `6aafdfcf` are local commits. The capture

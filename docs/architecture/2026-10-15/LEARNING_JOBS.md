@@ -1,6 +1,6 @@
 # Durable learning jobs and NFL shadow evaluation
 
-Revision 1 · October 16, 2026, 11:56 a.m. America/Chicago (CDT).
+Revision 2 · October 16, 2026, 12:07 p.m. America/Chicago (CDT).
 
 The shared engine can now persist a bounded evaluation job, resume its saved
 checkpoint with a replacement worker, and store an actual NFL shadow report and
@@ -49,6 +49,11 @@ configuration or approval is written. A completed job means the computation
 finished, not that its statistical gates passed: an empty cohort completes with
 an explicitly insufficient report and no artifact.
 
+This uses the existing MY-yardage `eligible_pool` / `offered_my` profile, not
+Game/Week, moneyline or anytime-TD calibration. Dataset assembly from the
+authoritative journal and its independent complete-cohort proof remain separate
+integration work; uploaded immutable snapshots alone do not establish it.
+
 The code ID conservatively hashes every local selflearn-core Python file plus
 interpreter/platform labels. Added or changed transitive helpers invalidate it.
 It does not authenticate execution, interpreter/stdlib binaries or dependencies
@@ -68,6 +73,9 @@ NFL inputs are bounded to 2,000 receipts and sources, 8,000 revisions, 256
 generation records and 200–2,000 bootstrap replicates. The existing 3 MiB source
 object transport limit is unchanged and can be stricter than the adapter's
 16 MiB work profile; larger inputs need a separately reviewed delivery design.
+Multiple forecast vintages and genuine multiweek input sets can exceed these
+caps. They must use complete canonical-cohort/chunk contracts, not truncation
+or a conveniently smaller sample merely to make a job pass.
 
 Database clocks reject late state writes, but do not preempt a blocking fitter
 or IO callback. Hard worker/process/cost limits, failure recording, bounded
@@ -101,8 +109,24 @@ actual Python-to-SQL tests and a synthetic 330-receipt real-fitter run. The
 separate SQL suite passes **seven tests, zero skips, exit 0**, including RLS,
 function privileges, derived-column refusal and a real no-truncate-trigger
 check with both FK-related tables. Separate progress/coverage-tool tests pass
-32/32. Broad regression and 43-target executable-line measurement are next;
-these focused results do not replace their terminal outcomes.
+32/32. Subsequent frozen broad verification at engine
+`d3a5693a6dbed2436f00191a89f93257cde8ef70` completes:
+
+- Core/API: **1,232 passed, zero skipped, pytest exit 0**.
+- Critical executable-line coverage: **43/43 files >90%**,
+  **7,884/8,194 = 96.2167%**, with measured source/test/tool/head hashes stable.
+  Four new modules reach 404/404 executable lines; this is not branch coverage.
+- Complete Node SQL: **93 passed, zero skipped, exit 0**.
+- Complete Python-to-SQL: **100 passed / seven native-only skipped, exit 0**.
+  One existing dependency deprecation warning remains; it was not suppressed.
+
+[Coverage report](../../reviews/2026-10-16-critical43-durable-jobs-coverage.json),
+committed as `59d54a6`, pins the NFL dependency checkout to
+`383fbd6388084103e54628bdcfd4f1c03cc3d7d6`. Logs are
+`/private/tmp/selflearning-critical43-durable-jobs-root-20261016.log`,
+`/private/tmp/selflearning-durable-jobs-all-node-sql-root-20261016.log` and
+`/private/tmp/selflearning-durable-jobs-all-python-sql-root-20261016.log`.
+Later evidence/documentation commits are not new exact-tested release SHAs.
 
 | Behavior | Visible result | Evidence |
 | --- | --- | --- |

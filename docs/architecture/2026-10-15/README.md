@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 11:18 a.m. CDT: use the
+Implementation status updated October 16, 2026, 12:07 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -16,6 +16,7 @@ Use the existing Vercel Python backend and Supabase project, preserve NFL2026's 
 - [Delivery backlog](BACKLOG.md): 12 epics, 31 features, 31 user stories, 93 tasks and 92 acceptance criteria, with effort/risk, owners and dependency mapping.
 - [Spreadsheet-friendly backlog](BACKLOG.csv): one row per task, including parent story and acceptance/test references.
 - [Implementation handoff](IMPLEMENTATION_HANDOFF.md): current branches, local changes, exact verification and next file-owned workstreams.
+- [Durable learning jobs](LEARNING_JOBS.md): lease/checkpoint contracts, actual NFL shadow evaluation, verified recovery and remaining workflow/runtime/hosted gates.
 - [Audited progress by epic](IMPLEMENTATION_HANDOFF.md#audited-completion-by-epic): 50/99 whole local-build tasks complete (50.5%), including the explicitly added D1/D2 work; not deployment readiness. [Task/evidence inventory](progress.json).
 
 Editable visual source: [architecture.html](architecture.html), [render.mjs](render.mjs), [portable PDF exporter](export-vector-pdf.mjs). Editable backlog source: [backlog-source.mjs](backlog-source.mjs). These are repository documentation tools, not an NFL app build step.
@@ -26,7 +27,17 @@ No additional `SELFLEARN_OPERATOR_TOKEN` setup is needed. If convenient, confirm
 
 The implementation team should perform the authenticated API/database test, reconcile migration history, create narrow pipeline credentials and prepare the reviewed release. A separate `SELFLEARN_NFL_INGEST_TOKEN` is needed for the Vercel verifier and NFL GitHub Actions when delivery is enabled; never reuse the operator token. The new journal selector is an explicit rollout switch, not a setting to enable before migration/release checks. The owner remains the authority for production migrations/deployment, changing the portfolio objective and model activation. The plan does not require buying another provider or enabling automatic promotion.
 
-## Current local checkpoint — October 16, 11:18 a.m. CDT
+## Current local checkpoint October 16 12:07 p.m. CDT
+
+Engine `d3a5693`, evidence `59d54a6`: **1,232 core/API tests passed, zero skips**;
+**43/43 critical Python files >90%**, **96.2167%** executable-line coverage with
+stable measured hashes. Complete SQL: **93 Node passed, zero skips**; **100 Python
+passed / seven native-only skipped**, all terminal exit 0. Durable jobs/fitter
+recovery work locally, while triggers, hard bounds, authoritative data assembly,
+alerts and hosted rollout remain incomplete. No new whole-task or live-loop
+credit: **50/99 (50.5%)**. See the job guide for contracts and the next work.
+
+## Earlier local checkpoint October 16 11:18 a.m. CDT
 
 Engine `58ea096`, evidence `5314ca8`: **1,182 core/API tests pass, zero skips**;
 **39/39 critical Python files exceed 90%**, 7,480/7,790 = **96.0205%** executable

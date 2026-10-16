@@ -2,12 +2,17 @@
 
 Monorepo for three workstreams that share one self-learning spine.
 
-NFL integration checkpoint, October 16, 2026, 11:18 a.m. America/Chicago (CDT):
+NFL integration checkpoint, October 16, 2026, 12:07 p.m. America/Chicago (CDT):
 [50/99 whole local-build tasks (50.5%)](docs/architecture/2026-10-15/progress.json).
 The reopened current-input eligibility task is reaccepted locally after the
 ID-first correction and 29 passing frozen/current/adversarial checks. The
 local NFL gate passes 2,453 feature tests plus data/smoke/model checks, exit 0;
 browser step 8 was skipped, so release acceptance remains unverified.
+New [durable evaluation jobs](docs/architecture/2026-10-15/LEARNING_JOBS.md)
+persist/resume actual NFL shadow reports: 1,232 core/API tests, 93 Node SQL and
+100 Python-to-SQL tests pass; seven native-only tests skip. All 43 critical
+Python files exceed 90% line coverage. Triggers, hard worker limits and hosted
+rollout remain incomplete, so this does not add whole-task or live-loop credit.
 See the [overnight handoff](docs/architecture/2026-10-15/OVERNIGHT_2026-10-16.md)
 and [verification boundaries](docs/architecture/2026-10-15/VERIFICATION.md).
 This work is local and unreleased; task completion is not production readiness,

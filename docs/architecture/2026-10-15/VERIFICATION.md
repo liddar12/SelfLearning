@@ -2,7 +2,23 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Current follow-up — October 16, 2026, 11:18 a.m. CDT
+## Current durable jobs verification October 16 12:07 p.m. CDT
+
+Source `d3a5693`, evidence `59d54a6`: **1,232 core/API passed, zero skips**,
+**43/43 critical files >90%**, **7,884/8,194 = 96.2167%** executable lines and
+stable measured hashes/heads. Four new modules reach 404/404 lines, not branch
+or story acceptance. Complete SQL: **93 Node passed, zero skips**; **100 Python
+passed / seven native-only skipped**, all terminal exit 0. One existing dependency
+deprecation warning remains unsuppressed. Separate ledger/tool checks: **32 passed**.
+[Pinned report](../../reviews/2026-10-16-critical43-durable-jobs-coverage.json)
+uses NFL `383fbd63`. [Job behavior and limitations](LEARNING_JOBS.md) distinguish
+real persistence/fitter recovery from the remaining triggers, hard worker bounds,
+complete authoritative dataset assembly, credentials, alerts and hosted/native
+acceptance. No new whole-task credit: **50/99 (50.5%)**. No accuracy gain or
+operational live loop is claimed; evidence/docs commits are outside the tested
+source SHA. Remote heads remained unchanged at 12:01 p.m. CDT; no cloud writes.
+
+## Earlier follow-up — October 16, 2026, 11:18 a.m. CDT
 
 Whole local-build task credit is **50/99 (50.5%)**, not story, live, statistical
 or release completion. Only S016-T1 is reaccepted: ID-first injury producers and

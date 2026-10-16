@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 7 · October 16, 2026, 11:18 a.m. America/Chicago (CDT).
+Revision 8 · October 16, 2026, 12:07 p.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; **not met**.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -16,6 +16,18 @@ No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
 ## Latest follow-up
+
+Engine `d3a5693`, evidence `59d54a6`: durable jobs now resume actual NFL shadow
+evaluation and preserve the original report/artifact without refitting on retry.
+Full regression: **1,232 core/API passed, no skips**, **43/43 critical files >90%**,
+**96.2167%** executable lines; stable measured hashes/heads. Complete SQL:
+**93 Node passed, no skips**; **100 Python passed / seven native-only skipped**,
+all terminal exit 0. Inputs remain synthetic, not authenticated current labels.
+[Job contracts and remaining work](LEARNING_JOBS.md). Triggers, hard worker bounds,
+complete journal dataset assembly, evaluator authority and alert drills remain
+partial, so task credit stays **50/99**. Nothing was pushed, migrated or deployed.
+
+## Earlier follow-up 11:18 a.m. CDT
 
 NFL current local source is `6aafdfcf`: conservative full-Python dependency
 capture, regular Git modes and bounded raw-blob batching are tested. Fourteen
