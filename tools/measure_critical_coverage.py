@@ -63,6 +63,7 @@ CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/store/owner_intent_journal.py",
     "packages/selflearn-core/selflearn_core/store/supabase_owner_intents.py",
     "services/web/owner_intents.py",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_owner_evidence.py",
 )
 SUITES = ("packages/selflearn-core/tests", "tests/hosted")
 NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.py",
@@ -78,7 +79,8 @@ NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.
                       "scripts/models/parlay_builder.py", "scripts/build_weekly.py",
                       "scripts/build_predictions.py", "scripts/availability.py",
                       "scripts/validate_data.py", "scripts/excluded_games.py",
-                      "scripts/prepublication_semantics.py", "scripts/publication_observations.py")
+                      "scripts/prepublication_semantics.py", "scripts/publication_observations.py",
+                      "scripts/generation_capture_runtime.py")
 
 
 class CriticalTrace(trace.Trace):
