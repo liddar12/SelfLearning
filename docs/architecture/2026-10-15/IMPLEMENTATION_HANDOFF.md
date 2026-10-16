@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-12:50 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+1:50 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -48,6 +48,52 @@ its historical full-pool metrics remain unavailable. The separately required
 recovered on-card reference replay is a subsequent in-progress slice.
 
 ## Overnight target and completion rules
+
+### Owner selected Sunday NFL pilot A
+
+October 16, 2026, 1:50 p.m. CDT: prioritize NFL's existing Actions/Netlify path
+with the shared Python engine pinned to a published commit. Requested milestone:
+**Sunday, October 18 at 10:00 a.m. CDT**. Full Vercel/Supabase rollout follows;
+it is not the Sunday critical path. This does not authorize a push/release or
+change the 99-task denominator; current whole-task completion stays **50/99**.
+
+Engine `0e5b697` / `8460a71` adds shared frozen-generation validation and pure
+repository feedback preparation: original import clocks, complete membership,
+independent raw grading/corrections and the actual calibration kernel. NFL
+`903d5ff6` / `92b2b5a0` adds default-off pinned Actions execution, immutable
+state/report/run files, complete-success pointer published last and final
+source-graph validation on publisher attempts. The old injury validator and
+its independently reviewed hashes remain unchanged. No new fit formula, API
+dependency, cloud migration or market repricing is introduced.
+
+The first stable engine run passes **1,363 core/API tests**, zero skips, exit 0;
+**48/48 critical files >90%**, **8,372/8,683 = 96.4183%** executable lines.
+[First pilot report](../../reviews/2026-10-16-critical48-nfl-pilot-coverage.json)
+pins engine `8460a71` and NFL `903d5ff6`. Complete SQL: **93 Node passed**, zero
+skips, and **101 Python passed / seven native-only skipped**, exit 0. Actual
+provider identity, native concurrency, hosted and browser acceptance remain
+separate.
+
+The first NFL full gate on `903d5ff6` is **red**, exit 1: 2,450 passed, four
+failed, one skipped; contracts/smoke/four model gates pass and browser step 8
+skips. R88 dependency placement/single-line/stage-name integration, unrelated
+injury-validator source changes and a Git temporary cleanup race are corrected
+on `92b2b5a0`; **66 focused checks pass**. Full fixed-revision reruns on engine
+`1468da7` and NFL `92b2b5a0` both finish exit **0**: **1,363 core/API pass**,
+**48/48 critical files >90%**, the same stable **96.4183%** executable lines;
+NFL **2,468 feature tests pass**, zero failed/skipped, contracts/smoke/four model
+gates pass, browser step 8 skips. [Corrected paired report](../../reviews/2026-10-16-critical48-nfl-pilot-r2-coverage.json).
+Preserve the original red log; do not replace the old result with a later pass.
+
+Next: actual compatible future-generation consumer plus owner approval/rollback;
+Model/Review last success/failure, freshness and cohort/hold metrics; shared-leg/
+game exposure; exact current-main, fresh-pipeline and served-site acceptance.
+The local data snapshot has zero new-format learning journals. New production
+generations must create real records; old card archives cannot substitute.
+Expect a correct HOLD when sufficient multiweek evidence is unavailable.
+NFL's `docs/PARLAY_FEEDBACK_PILOT.md` carries operator/release instructions.
+
+### Original overnight target
 
 Owner-requested target: **Friday, October 16, 2026, 7:00 a.m. CDT
 (America/Chicago)**. That target was **not met**. The full 99-task scope remains

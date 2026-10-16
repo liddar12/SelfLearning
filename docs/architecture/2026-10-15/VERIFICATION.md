@@ -2,7 +2,42 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Current bounded worker verification October 16 12:50 p.m. CDT
+## NFL first pilot verification October 16 1:50 p.m. CDT
+
+Owner selected A, shared engine in NFL Actions, for the Sunday October 18
+10:00 a.m. CDT target. Engine runtime `0e5b697`, tests `8460a71`, first evidence
+`1468da7`: **1,363 core/API passed**, zero skips, exit **0**; **48/48 critical
+files >90%**, **8,372/8,683 = 96.4183%** executable lines with stable source,
+test, tool and head identities. Both new pure modules reach 100% line coverage;
+that is not branch or live acceptance.
+[First report](../../reviews/2026-10-16-critical48-nfl-pilot-coverage.json)
+pins NFL dependency `903d5ff6`. Complete SQL reruns: **93 Node passed**, zero
+skips; **101 Python passed / seven native-only skipped**, both exit **0**.
+The dependency warning remains unsuppressed.
+
+NFL `903d5ff6` combined gate is **red**, exit **1**: 2,450 features passed,
+four failed, one skipped; contracts/smoke/four model gates pass; browser skipped.
+Integration/fixture corrections on `92b2b5a0` pass **66 focused tests**, zero
+skips. The corrected full pair `1468da7` + `92b2b5a0` finishes exit **0**:
+**1,363 core/API pass**, zero skips, the same stable **48/48 / 96.4183%** coverage;
+NFL **2,468 features pass**, zero failed/skipped, contracts/smoke/four model gates
+pass. Browser step 8 skips. The [corrected paired report](../../reviews/2026-10-16-critical48-nfl-pilot-r2-coverage.json)
+was generated at 1:46 p.m. CDT and pins both source heads. Later documentation/
+evidence commits are not newly tested runtime revisions.
+Logs: `/private/tmp/selflearning-critical48-nfl-pilot-root-20261016.log`,
+`/private/tmp/nfl-parlay-feedback-full-gate-root-20261016.log`,
+`/private/tmp/nfl-pilot-integration-fixes-focused-root-20261016.log`,
+`/private/tmp/selflearning-nfl-pilot-all-node-sql-root-20261016.log` and
+`/private/tmp/selflearning-nfl-pilot-all-python-sql-root-20261016.log`.
+Corrected full logs:
+`/private/tmp/selflearning-critical48-nfl-pilot-r2-root-20261016.log` and
+`/private/tmp/nfl-parlay-feedback-full-gate-r2-root-20261016.log`.
+
+No push/deploy/migration/actual Actions run, future-serving activation, new
+public forecast evidence or measured accuracy improvement is accepted. Task
+credit remains 50/99. Existing R1 visuals remain unchanged.
+
+## Earlier bounded worker verification October 16 12:50 p.m. CDT
 
 Runtime introduced in `419c73a`; frozen test-hardening source
 `e087541d74747672bf59eccb43b0f110f25ed316`, evidence `605afd4`:

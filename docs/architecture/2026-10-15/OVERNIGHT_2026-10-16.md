@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 9 · October 16, 2026, 12:50 p.m. America/Chicago (CDT).
+Revision 10 · October 16, 2026, 1:50 p.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; **not met**.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -16,6 +16,28 @@ No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
 ## Latest follow-up
+
+The owner selected **A: NFL Actions first**, with a pinned shared Python engine,
+for **Sunday, October 18, 10:00 a.m. CDT**. Engine `0e5b697` / `8460a71` now joins
+complete frozen forecasts to independently graded raw outcomes, appended
+corrections and the actual shared evaluator. NFL `903d5ff6` / `92b2b5a0` wires
+the opt-in daily stage, immutable repository records and source/pointer checks.
+The reviewed injury validator and original audit/source pins are unchanged.
+
+The corrected full pair engine `1468da7` + NFL `92b2b5a0` passes: **1,363
+core/API**, zero skips; **48/48 critical files >90%**, **96.4183%** executable
+lines with stable hashes; **2,468 NFL features**, zero failed/skipped, plus
+contracts/smoke/four model gates. Browser step 8 skips. Complete SQL reruns:
+**93 Node pass**, zero skips; **101 Python pass / seven native-only skips**, all
+exit 0. [Paired report](../../reviews/2026-10-16-critical48-nfl-pilot-r2-coverage.json).
+The original red NFL integration run is retained, not retroactively passed.
+
+Actual future-serving adoption/rollback, Model/Review freshness/hold visibility,
+concentration and fresh-pipeline/served-site acceptance remain next. The default
+is off. No push, deployment, migration or accuracy improvement is claimed, and
+no whole-task credit is added: **50/99**. Existing R1 visuals remain the baseline.
+
+## Earlier follow-up 12:50 p.m. CDT
 
 Engine runtime `419c73a`, strengthened tests `e087541`, evidence `605afd4`:
 explicit v2 policies now run the actual NFL
