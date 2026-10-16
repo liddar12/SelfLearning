@@ -98,6 +98,13 @@ def test_v2_and_independent_comparator_are_not_excluded_from_critical_inventory(
     assert "scripts/build_review_parity.py" in NFL_PRODUCER_FILES
     assert "scripts/materialize_calibrator.py" in NFL_PRODUCER_FILES
     assert "scripts/build_review.py" in NFL_PRODUCER_FILES
+    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 28
+    for name in ("generation_semantic_gate", "capture_final_participation", "shadow_participation_guard",
+                 "build_leg_pool", "build_weekly", "build_predictions", "availability",
+                 "validate_data", "excluded_games", "prepublication_semantics", "publication_observations"):
+        assert "scripts/" + name + ".py" in NFL_PRODUCER_FILES
+    assert "scripts/models/parlay_builder.py" in NFL_PRODUCER_FILES
+    assert "scripts/models/my_cards.py" in NFL_PRODUCER_FILES
 
 
 def test_test_inventory_detects_add_edit_delete_without_hashing_bytecode(tmp_path):

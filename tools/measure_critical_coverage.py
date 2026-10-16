@@ -72,7 +72,13 @@ NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.
                       "scripts/check_learning_parity.py", "scripts/prop_feature_shadow.py",
                       "scripts/run_learning_intake.py", "scripts/export_outcome_capture.py",
                       "scripts/build_review_parity.py", "scripts/materialize_calibrator.py",
-                      "scripts/build_review.py")
+                      "scripts/build_review.py", "scripts/generation_semantic_gate.py",
+                      "scripts/capture_final_participation.py", "scripts/shadow_participation_guard.py",
+                      "scripts/build_leg_pool.py", "scripts/models/my_cards.py",
+                      "scripts/models/parlay_builder.py", "scripts/build_weekly.py",
+                      "scripts/build_predictions.py", "scripts/availability.py",
+                      "scripts/validate_data.py", "scripts/excluded_games.py",
+                      "scripts/prepublication_semantics.py", "scripts/publication_observations.py")
 
 
 class CriticalTrace(trace.Trace):
