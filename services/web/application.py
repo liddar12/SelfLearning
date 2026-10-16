@@ -29,6 +29,7 @@ from .nfl_ingestion import register_nfl_routes
 from .nfl_capture_intake import register_capture_routes
 from .capture_configuration import select_capture_factory
 from .nfl_capture_applications import register_application_routes
+from .owner_intents import register_owner_intent_routes
 from . import private_uploads
 from . import nfl_trace
 
@@ -193,7 +194,8 @@ def image_extension(data: bytes, mime: str) -> str:
     return extension
 
 
-def create_app(*, store=None, env=None, journal_factory=None, capture_factory=None):
+def create_app(*, store=None, env=None, journal_factory=None, capture_factory=None,
+               owner_intent_factory=None):
     env = os.environ if env is None else env
     token = env.get("SELFLEARN_OPERATOR_TOKEN", "")
     if store is None:
@@ -426,6 +428,11 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
     register_nfl_routes(app, journal_factory, body)
     register_capture_routes(app, capture_factory, body)
     register_application_routes(app, capture_factory, body)
+    # Explicit trusted server injection only. Environment/store credentials do
+    # not enable this decision journal, and recording an intent never activates
+    # a model. The existing operator boundary (not either producer token) owns
+    # authentication, origin checks, streamed-body limits and no-store headers.
+    register_owner_intent_routes(app, owner_intent_factory, body)
 
     # Last mount: explicit routes above take precedence; unknown paths stay 404.
     app.mount("/", mcp_app)

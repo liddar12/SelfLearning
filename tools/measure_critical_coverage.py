@@ -59,6 +59,10 @@ CRITICAL_FILES = (
     "tools/compare_nfl_cohort.py",
     "tools/nfl_review_parity.py",
     "tools/nfl_review_attachment.py",
+    "packages/selflearn-core/selflearn_core/owner_intents.py",
+    "packages/selflearn-core/selflearn_core/store/owner_intent_journal.py",
+    "packages/selflearn-core/selflearn_core/store/supabase_owner_intents.py",
+    "services/web/owner_intents.py",
 )
 SUITES = ("packages/selflearn-core/tests", "tests/hosted")
 NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.py",
