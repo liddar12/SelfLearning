@@ -25,6 +25,7 @@ CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/evidence_chunks.py",
     "packages/selflearn-core/selflearn_core/store/receipt_journal.py",
     "packages/selflearn-core/selflearn_core/store/supabase_journal.py",
+    "packages/selflearn-core/selflearn_core/store/supabase_evidence.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_observed_journal.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_resolution.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_observed_resolution.py",
