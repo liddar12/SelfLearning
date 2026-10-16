@@ -245,6 +245,7 @@ def attach_engine_parity(review, diagnostic=None, *, expected_input_id=None, now
         attachment = {"version": 1, "kind": "nfl.review_engine_parity_attachment.v1",
             "scope": "local_pinned_MY_yardage_diagnostic_only", "review_input_id": fingerprint(base),
             "review_season": base["season"], "review_as_of_utc": base["generated_utc"],
+            "verification_utc": now_utc, "verification_clock_authenticated": False,
             "expected_input_id": expected_input_id, "diagnostic_id": value["diagnostic_id"], "diagnostic": value,
             "display_only": True, "legacy_review_unchanged": True, "live_learning": False,
             "namespace_authenticated": False, "completeness_authenticated": False,
@@ -260,3 +261,61 @@ def attach_engine_parity(review, diagnostic=None, *, expected_input_id=None, now
         return base
     except (ValueError, TypeError, KeyError, OverflowError, RecursionError, AttributeError):
         raise ValueError("invalid_engine_parity_attachment") from None
+
+
+MAX_CLI_INPUT = 65 * 1024 * 1024
+MAX_CLI_OUTPUT = 66 * 1024 * 1024
+
+
+def _cli_json(raw):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                _fail()
+            result[key] = value
+        return result
+
+    def constant(_value):
+        _fail()
+
+    return json.loads(raw, object_pairs_hook=unique, parse_constant=constant)
+
+
+def main(argv=None):
+    """Explicit stdin/stdout transport only; no file, network or env discovery."""
+    import argparse
+    import sys
+
+    class Parser(argparse.ArgumentParser):
+        def error(self, _message):
+            _fail()
+
+    try:
+        parser = Parser(description="Opt-in local review attachment over bounded stdin/stdout")
+        parser.add_argument("--attach-stdin", action="store_true")
+        args = parser.parse_args(argv)
+        if not args.attach_stdin:
+            print('{"version":1,"status":"disabled","parity":false}')
+            return 0
+        raw = sys.stdin.buffer.read(MAX_CLI_INPUT + 1)
+        if len(raw) > MAX_CLI_INPUT:
+            _fail()
+        value = _cli_json(raw)
+        _keys(value, {"version", "review", "diagnostic", "expected_input_id", "now_utc"})
+        if type(value["version"]) is not int or value["version"] != 1 or value["diagnostic"] is None:
+            _fail()
+        result = attach_engine_parity(value["review"], value["diagnostic"],
+            expected_input_id=value["expected_input_id"], now_utc=value["now_utc"])
+        encoded = json.dumps(result, sort_keys=True, ensure_ascii=True, separators=(",", ":"), allow_nan=False).encode()
+        if len(encoded) > MAX_CLI_OUTPUT:
+            _fail()
+        sys.stdout.buffer.write(encoded + b"\n")
+        return 0 if result["engine_parity"]["diagnostic"]["parity"] else 3
+    except (ValueError, TypeError, KeyError, OSError, OverflowError, RecursionError, AttributeError):
+        print('{"version":1,"status":"invalid_or_unavailable_review_attachment","parity":false}')
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

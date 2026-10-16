@@ -66,7 +66,9 @@ NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.
                       "scripts/capture_outcome_evidence.py", "scripts/build_learning_outcomes.py",
                       "scripts/pinned_cohort_oracle.py", "scripts/export_capture_application.py",
                       "scripts/check_learning_parity.py", "scripts/prop_feature_shadow.py",
-                      "scripts/run_learning_intake.py", "scripts/export_outcome_capture.py")
+                      "scripts/run_learning_intake.py", "scripts/export_outcome_capture.py",
+                      "scripts/build_review_parity.py", "scripts/materialize_calibrator.py",
+                      "scripts/build_review.py")
 
 
 class CriticalTrace(trace.Trace):
