@@ -8,6 +8,8 @@ production rollout, model adoption or prediction improvement.
 from __future__ import annotations
 
 import copy
+import base64
+from datetime import datetime, timezone
 import importlib
 import json
 import os
@@ -197,6 +199,26 @@ def test_real1088_sender_resumes_whole_groups_lost_replies_and_original_without_
             assert after["receipts"] == originals
             assert len(after["observations"]) == len(after["revisions"]) == 1088
             assert all(row["resolution"]["hit"] is True for row in after["revisions"])
+            # Compare the ACTUAL SQL-generated revision IDs, full confirmation
+            # stream and exact first-forecast membership against independently
+            # regraded original NFL raw data.1088 vintages become370 independent
+            # canonical rung contracts, not1088 training samples.
+            from tools.nfl_review_parity import evaluate, NAMESPACE
+            raw = v2_sender.capture.load_capture(sender_plan["capture_plan"]["capture_path"])
+            cutoff = datetime.now(timezone.utc).isoformat()
+            wrapper = {"version": 1, "kind": "nfl.review_parity_input.v1", "namespace": NAMESPACE,
+                "snapshot_exported_utc": cutoff, "analysis": {"version": 1, "snapshot": after,
+                    "export_plan": large_producer["journal"], "as_of_utc": cutoff,
+                    "population": "eligible_pool", "captures": [{"manifest": raw["manifest"],
+                        "observations": raw["observations"],
+                        "raw": {key: base64.b64encode(value).decode() for key, value in raw["raw_objects"].items()}}]}}
+            parity = evaluate(wrapper, expected_input_id=fingerprint(wrapper),
+                nfl_checkout=os.environ["NFL2026_CHECKOUT"], now_utc=cutoff)
+            assert parity["parity"] is True and parity["status"] == "supported_pinned_cohort_parity", parity
+            assert parity["coverage"]["first_eligible_forecasts"] == parity["coverage"]["graded_contracts"] == 370
+            assert parity["nfl_set_id"] == parity["engine_set_id"]
+            assert parity["namespace_authenticated"] is parity["completeness_authenticated"] is False
+            assert parity["live_review_replaced"] is parity["model_adoption"] is False
             storage_before, sql_before = len(storage.calls), len(bridge.calls)
             storage.bucket["public"] = True
             # The original can be recovered even if the saved capture cannot
