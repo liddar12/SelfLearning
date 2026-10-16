@@ -71,6 +71,8 @@ CRITICAL_FILES = (
     "packages/selflearn-core/selflearn_core/compute_process.py",
     "packages/selflearn-core/selflearn_core/nfl_compute_worker.py",
     "packages/selflearn-core/selflearn_core/adapters/nfl_bounded_evaluation.py",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_generation.py",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_file_feedback.py",
 )
 SUITES = ("packages/selflearn-core/tests", "tests/hosted")
 NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.py",
