@@ -104,7 +104,8 @@ NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.
                       ".github/workflows/daily.yml", ".github/workflows/gameday.yml",
                       ".github/workflows/ci.yml", ".github/workflows/data-ci.yml",
                       "scripts/pilot_config.py", "scripts/publish_my_generation.py",
-                      "config/selflearning_pilot.json", "scripts/selected_my_publication_gate.py")
+                      "config/selflearning_pilot.json", "scripts/selected_my_publication_gate.py",
+                      "scripts/selected_legacy_bootstrap.py")
 
 
 class CriticalTrace(trace.Trace):
