@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 10:34 p.m. CDT: use the
+Implementation status updated October 16, 2026, 10:45 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -37,7 +37,16 @@ The implementation team should perform the authenticated API/database test, reco
 
 ## Current local pilot checkpoint October 16 2:41 p.m. CDT
 
-Current **10:34 p.m. CDT**: the engine `98c21ab`/NFL `8bdfd021` full pair passes
+Current **10:45 p.m. CDT**: the newer NFL `ffe7fd93` full gate is **red**:
+2,532 features pass and one all-32-mutation subprocess hits its 60-second limit.
+Engine `2483c1e` passes 1,379 tests with stable 96.4906% coverage and 42 NFL
+source hashes. Later NFL `e7ea3df6` keeps every history case but bounds work per
+child; 16 focused tests pass. The local operator CLI's actual apply/inspect/
+replay and corrected MY hold labels also pass focused tests. Full rerun remains
+required, and the browser server is still denied its local socket bind.
+[Current handoff](IMPLEMENTATION_HANDOFF.md#current-my-model-status-and-history-retention).
+
+Earlier **10:34 p.m. CDT**: the engine `98c21ab`/NFL `8bdfd021` full pair passes
 1,379 core/API and 2,496 NFL features, with stable 96.4906% line coverage across
 49 critical engine files; browser skipped. Later NFL `230baa69`/`142a3f3c`
 adds MY effective-version/expiry display and retained-history publication checks.

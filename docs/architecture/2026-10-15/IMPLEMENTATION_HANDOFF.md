@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-10:34 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+10:45 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -209,6 +209,24 @@ off, and the publisher explicitly refuses v2 records until its gate exists.
 
 ### Current MY model status and history retention
 
+**Latest full NFL gate is red**, not superseded by a focused PASS: engine
+`2483c1e` / NFL `ffe7fd93` gives 1,379 core/API pass, stable 96.4906% across
+49 critical files and 42 NFL source hashes, but NFL has 2,532 pass / one failed
+feature. The all-32-case Git-history subprocess ends with null status at
+60,006 ms against its 60,000 ms timeout. Contracts/smoke/four model gates pass;
+browser skips. Preserve `/private/tmp/nfl-my-display-history-full-gate-root-20261016.log`.
+[Engine report](../../reviews/2026-10-16-critical49-my-display-history-coverage.json).
+
+Canonical NFL `e7ea3df6` retains all 32 mutations, with four per bounded child
+across eight families, and asserts the exact history-refusal reason. No timeout
+or gate was loosened. Sixteen focused history tests pass. `738af216` separately
+fixes future held props labeled GAME FINAL or a dial mismatch; 55 related
+checks pass. `dee3b5a3` adds the explicit local operator CLI. Four related tests
+pass, including its actual repository-input apply, saved-vs-latest inspection
+and real-producer replay. These commands are trusted-local-filesystem actions,
+not hosted owner authentication or a production pipeline. The new source needs
+a full paired rerun; engine `d0d61fe` pins all 43 NFL provenance files.
+
 Canonical NFL `230baa69` adds structured period-return display metadata bound
 into the application pool hash and matched against every MY yardage receipt.
 The MY page shows the correction that priced those rungs, not a newer proposal.
@@ -234,7 +252,7 @@ temporary Git repositories; 21 existing publisher regressions also pass. This
 does not complete MY card semantics or authenticate an operator. V2 publication
 is still explicitly held. No actual approval, push or deployment occurred.
 
-The latest completed full pair is **engine `98c21ab` / NFL `8bdfd021`**:
+The earlier fully passing pair is **engine `98c21ab` / NFL `8bdfd021`**:
 1,379 core/API pass, 49/49 critical files above 90%, stable 96.4906% line
 coverage with 37 NFL source hashes; 2,496 NFL features and all non-browser
 gates pass, browser 8 skips, both exits 0. [Report](../../reviews/2026-10-16-critical49-period-committed-replay-coverage.json).

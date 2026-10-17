@@ -2,7 +2,32 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Committed application replay October 16 10:34 p.m. CDT
+## MY status first full regression October 16 10:45 p.m. CDT
+
+Frozen engine `2483c1ee1adfae813cd1372c8ce1c80b5e0ff296` / NFL
+`ffe7fd932a560577f1e7132b7707ad34b38e484b`: engine exit **0**, **1,379
+core/API pass**, zero skips, **49/49 critical files >90%**, stable **96.4906%**
+line coverage with 42 NFL source hashes. NFL full gate exit **1**, **2,532
+features pass / one fails / zero skips**. The history matrix's single child
+exhausts its 60-second limit; contracts, smoke and four model gates pass,
+browser 8 skips. This is a red release gate, not a green pair.
+
+[Engine report](../../reviews/2026-10-16-critical49-my-display-history-coverage.json).
+NFL log `/private/tmp/nfl-my-display-history-full-gate-root-20261016.log`
+SHA256 `c6a5f7c110b70c10ee0c0ebe00494b0d21919639f9361f5133b747c1d6f25970`;
+engine log `/private/tmp/selflearning-critical49-my-display-history-root-20261016.log`
+SHA256 `5de170226b9a6c23b97531423debd5e2468b334f5d944b7ed29a6e2e76802fef`.
+
+Later canonical `e7ea3df6` partitions the same 32 history mutations into eight
+four-case children and tightens exact refusal-reason assertions, without a
+timeout increase or removed case. Sixteen focused tests pass. New local CLI
+`dee3b5a3` passes four related tests including actual apply/inspect/reverify;
+MY label correction `738af216` passes 55 checks. These later fixes require a
+new full rerun. Operator log SHA256 `dfd129b480fd3ef2fbf25b9b11df027c5b13ea8d41bd6a17db488180adee847a`;
+bounded-family log SHA256 `0936121990a56dda2508ba4c89d109ada33ebd95a2f089347770d50b963c29b0`.
+No deployment, actual approval, browser or prospective-accuracy acceptance.
+
+## Earlier committed application replay October 16 10:34 p.m. CDT
 
 Frozen engine `98c21ab4e6d00c2c791ff7df86a1cc08cbe631d8` and NFL
 `8bdfd0210960dad3038556a10cfbe379ce9780e5`: **1,379 core/API pass**, zero
