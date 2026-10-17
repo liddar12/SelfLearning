@@ -1,5 +1,14 @@
 # NFL Week 6 shared-engine checkpoint
 
+Current implementation update: October 17, 2026, 10:10 a.m. CDT.
+Read [the current implementation handoff](architecture/2026-10-15/IMPLEMENTATION_HANDOFF.md)
+first. The text below is the original October 14 contracts checkpoint, not the
+current implementation or release status. Later local runtime work passes 1,379
+core/API tests, but the latest NFL/history integration still needs final paired
+gates and live acceptance. No current integration branch has been published:
+GitHub writing was explicitly refused under the session's `never` approval
+policy. No actual model was approved or activated.
+
 Revision 1 — October 14, 2026, 9:05 p.m. CDT (America/Chicago).
 
 The owner paused implementation and authorized publishing the unfinished work so Claude Code can continue. This branch is an offline receipt/adapter/scoring checkpoint, with no production integration or promotion claim.

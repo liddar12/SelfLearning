@@ -1,31 +1,62 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 17, 2026,
-12:22 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
-assigning work. No production push, merge, database write, deployment or
-promotion is authorized by this handoff. The generated R1 backlog is the
+10:10 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+assigning work. The owner requested a tested NFL-first release before Sunday,
+October 18 at 10 a.m. CDT. This does not approve a model, database migration or
+separate SelfLearning-main/Vercel production release. GitHub writes are currently
+blocked by this session's approval policy; no publication occurred. The R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
 
 ## Current resume summary
 
-Last fully passing pair: NFL `74efbc51` / engine `251229e`, **2,550 NFL
-features and 1,379 core/API tests**, browser skipped. It includes actual MY
-original-writer/downstream replay, exact committed MY composition/operator CLI,
-base-history descendant checks and the real weekly-row contract fix. The engine
-report pins 47 NFL files and 49 critical engine targets above 90%, stable
-96.4906% line coverage. Later NFL `f5b58319` adds read-only proposed-profile
-assessment and rejects later witness fetches supporting an earlier weekly build;
-14 related tests pass. Engine `da52d67` pins 48 NFL files; the new full pair is
-required. Whole-task completion is **50/99 (50.5%)**, not
-release readiness or measured betting accuracy.
+The newest complete engine run, `95fc5bb` / NFL `dd8cabfd`, passes **1,379
+core/API tests**, zero failures/skips, with stable **8,551/8,862 = 96.4906%**
+executable-line coverage across 49 critical engine files and 61 NFL source
+hashes. [Exact report](../../reviews/2026-10-17-critical49-sunday-source61-coverage.json).
+Engine `fcdbb9f` adds this report, not runtime changes. Later NFL changes need a
+new final paired run. Preserve the earlier interrupted red report: job expiry
+was not weakened. Coverage does not verify hosted database or production use.
 
-Next is the complete committed-v2 MY gate with upstream eligibility/freshness
-and current authority, followed by authenticated pipeline activation and
-browser/live acceptance. One pre-inactive-list policy choice is awaiting the
-owner; existing v1 holds and v2 publication refusal remain unchanged. No actual
-model, push or deployment is approved. The dated verification sections retain
-failed attempts and earlier TODOs as history; use the current section below
-for the next implementation work.
+Current NFL checkpoint `38ce7bc2` includes merged main `28f7ac3b`, selected
+provisional freshness, original-byte MY generation, final-tree gates, configured
+Actions integration, and selected Git-referenced retained history. Parlay-builder
+code, including R126 ranking, is byte-identical to that main. The owner chose
+provisional props before T−90 minutes. After that point props remain held until
+trustworthy official confirmation is implemented; refreshing alone cannot clear
+the hold. No candidate has been approved or activated.
+
+The actual main-sized cached-input rehearsal rebuilt weekly/MY/GAME ATD data:
+3,211 old cards preserved, 50 added, 165 players/961 rungs. The real shared CLI
+persists 961 new forecasts, excludes 225 unverified old receipt IDs, and returns
+HOLD with zero graded outcomes. Retry preserves the state and prior immutable
+files. This is not provider-HTTP evidence, a point-exact original pipeline replay,
+or prospective accuracy improvement. The last diagnostic NFL full run has
+**2,612 passed/6 failed**, contracts/smoke/four model gates passed, browser skipped.
+The six test-integration failures have focused fixes; no final full-gate pass is
+claimed for the later source.
+
+Repeated real generation exposed aggregate/inline-history size limits. The new
+bounded profile separates archive validation from ordinary inputs and validates
+historical Git closures per journal. Twelve synthetic committed refreshes and
+independent known-authority/concurrent-history tests pass. New-wrapper real-data
+multi-refresh/publication, final frozen full NFL+engine, browser and served-site
+checks are still required. The fitted-model route's legacy-history migration is
+also unfinished. Whole-task completion stays **50/99 (50.5%)**, not readiness.
+
+Publication is a hard operator dependency: shell push failed DNS; the first
+connected GitHub write explicitly returned **approval required, policy never**.
+No remote object/ref was created. Do not try another write route around that
+refusal. An authorized operator can push the development branches normally;
+do not merge unfinished source or enable the default-off engine configuration
+until its exact published package pin and final gates are verified. The saved
+goal tracker also remains paused until the owner uses `/goal resume`; natural
+language did authorize this turn's work but did not change that product state.
+
+Use NFL's `docs/PARLAY_FEEDBACK_PILOT.md` and
+`docs/SUNDAY10AM_PARLAY_PILOT_20261018.md` for current release requirements.
+The dated sections below are historical evidence, not a claim that old TODOs or
+release restrictions supersede the current checkpoint.
 
 ## Source locations and preservation
 
