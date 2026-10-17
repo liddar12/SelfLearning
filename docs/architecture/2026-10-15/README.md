@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 9:50 p.m. CDT: use the
+Implementation status updated October 16, 2026, 10:14 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -36,6 +36,15 @@ No additional `SELFLEARN_OPERATOR_TOKEN` setup is needed. If convenient, confirm
 The implementation team should perform the authenticated API/database test, reconcile migration history, create narrow pipeline credentials and prepare the reviewed release. A separate `SELFLEARN_NFL_INGEST_TOKEN` is needed for the Vercel verifier and NFL GitHub Actions when delivery is enabled; never reuse the operator token. The new journal selector is an explicit rollout switch, not a setting to enable before migration/release checks. The owner remains the authority for production migrations/deployment, changing the portfolio objective and model activation. The plan does not require buying another provider or enabling automatic promotion.
 
 ## Current local pilot checkpoint October 16 2:41 p.m. CDT
+
+Original-byte follow-up **10:14 p.m. CDT**: the `e1838c7`/NFL `cf5babf5` pair
+passes full local regressions: 1,379 core/API, 49 targets above 90%, stable
+96.4906% line coverage; 2,496 NFL features plus contracts/smoke/four model gates,
+browser skipped. Canonical NFL `7414ef07` has the identical tested tree. Later
+`8bdfd021` adds committed-application replay; nine related tests pass, but this
+is not the final MY-card publication gate. Operator/pipeline, UI and live
+acceptance remain. [Current handoff](IMPLEMENTATION_HANDOFF.md#current-original-byte-and-git-replay-follow-up)
+and [frozen report](../../reviews/2026-10-16-critical49-period-input-replay-coverage.json).
 
 Local consumer follow-up **9:50 p.m. CDT**: NFL `5c11a6af` applies a separately
 approved fixed Week 6 candidate through the actual producer, rechecking frozen

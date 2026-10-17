@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-9:50 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+10:14 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -206,6 +206,32 @@ fixed artifact and does not create a new mandatory two-week MY waiting rule.
 R127 and weather retain their separate shadow/promotion rules. The controller
 does not refit on real Week 5/TNF outcomes. All production/default paths remain
 off, and the publisher explicitly refuses v2 records until its gate exists.
+
+### Current original byte and Git replay follow up
+
+The owner reiterated the **Sunday October 18, 10 a.m. CDT** pilot target.
+Canonical NFL `7414ef07` has the same complete tree as frozen tested `cf5babf5`.
+Engine `e1838c7` / NFL `cf5babf5` finish exit **0**: 1,379 core/API, 49 critical
+files above 90%, stable 96.4906% line coverage; 2,496 NFL features, contracts,
+smoke and four model gates pass, browser 8 skips. Original consumed input and
+schedule bytes are retained, real-producer replay is read-only, changed owner/
+input state holds, and nonempty game/ATD prices remain unchanged. There are 22
+refusal cases. [Frozen report](../../reviews/2026-10-16-critical49-period-input-replay-coverage.json).
+
+Later canonical NFL `8bdfd021` adds `scripts/period_commit_replay.py`: exact
+bounded committed blobs and original input/application replay, with per-blob
+hash checks and batched small reads. Nine related tests pass, zero skips;
+the original feedback checker reaches 110/110 lines. This diagnostic still
+explicitly reports **MY-card semantics, whole release, authenticated owner and
+production permission false**. Never use its exit 0 to bypass the publisher's
+v2 hold. Its full regression is next with engine provenance `77d78a6` (37 NFL
+files). The original full run above does not include this later diagnostic.
+
+Finish the real MY-generation semantic integration, append-only control and
+owner/current conflict checks after rebase/fallback, operator/pipeline wiring,
+UI effective version/expiry and browser/current-main/live acceptance. No actual
+candidate or release approval, push or deployment. Whole-task credit remains
+50/99, 36 partial and 13 open. Work remains active.
 
 ### Original overnight target
 

@@ -2,7 +2,39 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Local period consumer October 16 9:50 p.m. CDT
+## Original input replay October 16 10:14 p.m. CDT
+
+Frozen engine `e1838c7c20434fd963fa1212aaedead7f8e022c5` and NFL
+`cf5babf5e4b852cb0c457616f47575f001a0489e` both finish exit **0**:
+**1,379 core/API pass**, zero skips; **49/49 critical files >90%**,
+**8,551/8,862 = 96.4906%** executable lines, stable source/test/tool/heads and
+36 NFL source hashes. [Report](../../reviews/2026-10-16-critical49-period-input-replay-coverage.json)
+was generated **10:06:40 p.m. CDT**. NFL passes **2,496 features**, zero failed/
+skipped, contracts/smoke/four model gates; browser 8 skips. Canonical local NFL
+`7414ef07` has the identical tested Git tree
+`af86f5a5f28ac288e6ec9d6f1fac47ee79516431`.
+
+This adds exact consumed input/schedule byte retention, previous-pool lineage,
+read-only real-producer replay, changed-owner refusal and mid-generation byte
+drift detection. The fixture has 22 refusal cases and nonempty unchanged game/
+ATD populations. It remains synthetic, not historical NFL or public accuracy.
+Logs: `/private/tmp/nfl-period-input-replay-full-gate-root-20261016.log`
+(SHA256 `2d931760b16e17a94a9e963297d21acc8eef02034d0077b759d66685776e004e`)
+and `/private/tmp/selflearning-critical49-period-input-replay-root-20261016.log`
+(SHA256 `0d49c8481fe7e4bcedae741844d62528191af98004c5211d2b53c7d60113fe96`).
+
+Later NFL source `8bdfd021` adds a read-only committed-application replay tool.
+Nine related tests pass, zero skips, including exact Git blobs, repaired-worktree
+refusal, missing raw evidence, changed code, large-file fallback, bad mode/byte
+budgets, corrupted batching and static CLI results. The existing feedback guard
+covers 110/110 lines in its own suite. This later source is **not in the full
+run above**. `MY_card_semantics_verified`, `whole_release_pass`, owner auth and
+production permission all remain false. Do not replace the publisher's hold
+with this diagnostic's exit 0. New source inventory `77d78a6` tracks 37 NFL
+files; its full paired regression is next. No new task, release or accuracy
+credit; Sunday October 18, 10 a.m. CDT remains the requested pilot target.
+
+## Earlier local period consumer October 16 9:50 p.m. CDT
 
 Frozen engine `74a31a63b82e68ae94c7c5acb2260f79fc556af3` and NFL
 `5c11a6af74ae692faafdd4e86b32c599962b5d98` both finish exit **0**.
