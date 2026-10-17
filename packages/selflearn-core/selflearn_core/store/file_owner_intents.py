@@ -142,10 +142,10 @@ class FileOwnerIntentJournal:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
 
-    def _evidence(self, refs, recorded):
-        """Reader returns exact bounded JSON bytes, not a caller's valid flag."""
+    def _read_evidence(self, oid):
+        """Read the configured immutable-object port; this is not source auth."""
+        dto.digest(oid)
         dto.need(callable(self.evidence_reader), "owner_file_evidence_reader_unavailable")
-        total = 0
         def pairs(items):
             result = {}
             for key, value in items:
@@ -154,16 +154,27 @@ class FileOwnerIntentJournal:
             return result
         def reject(_):
             raise ValueError("nonfinite_owner_evidence")
+        raw = self.evidence_reader(oid)
+        dto.need(type(raw) is bytes and 0 < len(raw) <= MAX_EVIDENCE_BYTES, "invalid_owner_evidence_bytes")
+        value = json.loads(raw, object_pairs_hook=pairs, parse_constant=reject)
+        dto.need(type(value) is dict and set(value) == {"object_id", "kind", "payload", "received_utc"}
+                 and value["object_id"] == oid and value["kind"] == "source_snapshot"
+                 and fingerprint(value["payload"]) == oid, "invalid_owner_evidence_reference")
+        instant(value["received_utc"])
+        return value, len(raw)
+
+    def get_object(self, object_id):
+        """ReceiptJournal-compatible immutable evidence lookup, without writes."""
+        return self._read_evidence(object_id)[0]
+
+    def _evidence(self, refs, recorded):
+        """Reader returns exact bounded JSON bytes, not a caller's valid flag."""
+        total = 0
         for oid in refs:
-            raw = self.evidence_reader(oid)
-            dto.need(type(raw) is bytes and 0 < len(raw) <= MAX_EVIDENCE_BYTES, "invalid_owner_evidence_bytes")
-            total += len(raw)
+            value, size = self._read_evidence(oid)
+            total += size
             dto.need(total <= MAX_TOTAL_EVIDENCE_BYTES, "owner_file_evidence_limit")
-            value = json.loads(raw, object_pairs_hook=pairs, parse_constant=reject)
-            dto.need(type(value) is dict and set(value) == {"object_id", "kind", "payload", "received_utc"}
-                     and value["object_id"] == oid and value["kind"] == "source_snapshot"
-                     and fingerprint(value["payload"]) == oid
-                     and instant(value["received_utc"]) <= instant(recorded), "invalid_owner_evidence_reference")
+            dto.need(instant(value["received_utc"]) <= instant(recorded), "invalid_owner_evidence_reference")
 
     def append_owner_intent(self, command):
         dto.need(self.actor_ref is not None, "owner_file_read_only")

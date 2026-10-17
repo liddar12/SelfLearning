@@ -234,3 +234,12 @@ def test_lost_reply_after_head_rename_sync_failure_recovers_the_original_not_ano
     assert ack['event_id']==saved['head_event_id']
     assert j.read_owner_intents(NS)['head_sequence']==1
     assert list(j.root.rglob('.owner-*'))==[]
+
+
+def test_get_object_is_detached_bounded_and_does_not_create_or_claim_an_approval(tmp_path):
+    j=journal(tmp_path/'store');value=j.get_object(OID)
+    value['payload']['coefficients']['a']=999
+    assert j.get_object(OID)==json.loads(EVIDENCE) and not j.root.exists()
+    with pytest.raises(ValueError,match='reference'):j.get_object(fingerprint('not-the-returned-object'))
+    with pytest.raises(ValueError):j.get_object('invalid')
+    assert j.read_owner_intents(NS)['events']==[]
