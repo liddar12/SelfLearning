@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-2:41 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+8:53 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -33,6 +33,13 @@ with the old TNF feed. No remote data was merged into the worktree or deployed.
 At 12:01 p.m. CDT, another authenticated read-only check found both remote
 main SHAs unchanged. [Recorded heads](../../reviews/2026-10-16-1201-remote-heads.json).
 This is source-state evidence, not a deploy check or authorization to publish.
+
+Latest read-only check, **October 16 at 8:53 p.m. CDT**: NFL main is now
+`d0f99be248003f109c9b6394feb2ab14921205cb`, two commits after `45b3cac4`.
+All **51** changed paths are data; no runtime/workflow change. Engine main is
+unchanged. [Exact heads and path inventory](../../reviews/2026-10-16-2053-remote-heads.json).
+No new remote data was imported, merged or release-gated; no deploy identity
+was checked. Reconcile current main again before an authorized release.
 
 Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04c2d6`, NFL exporter `ed2f9668`, NFL evidence-grading fix `ac8b1083`; SelfLearning prospective journal `30fde77`, architecture package `46f87cf`, hosted/shadow checkpoint `b9ecd3f`, Supabase journal/configuration/native-gate source `7225b84`. These SHAs are local references until the owner separately authorizes a push.
 
@@ -104,10 +111,30 @@ report pins 35 NFL provenance files, without dropping any engine target.
 [Latest paired report](../../reviews/2026-10-16-critical48-committed-status-coverage.json).
 
 Next: actual compatible future-generation consumer plus owner approval/rollback;
-Review and remaining Model subgroup/manifest visibility; Game/MY shared-leg/game
-exposure (Week already has a panel); exact current-main, fresh-pipeline and
-served-site acceptance. Approval scope is an unanswered owner choice, not
-activation authority. S023-T1 is partial, with no new whole-task credit.
+Review and remaining Model subgroup/manifest visibility; browser/current-main,
+fresh-pipeline and served-site acceptance. S023-T1 is partial, with no new
+whole-task credit.
+
+NFL `c63f34fe` adds Game/MY repeated-selection and shared-game counts, with exact
+loss exposure, separate game warnings and identity/empty-state handling. Cards,
+ranking and prices remain unchanged; Week's numeric panel is unchanged. **66
+focused regressions pass**, zero skips; three browser cases are authored and
+syntax-checked but not executed. The single full NFL rerun finishes exit **0**:
+**2,493 features pass**, zero failed/skipped, contracts/smoke/four model gates;
+browser step 8 skips. Log: `/private/tmp/nfl-concentration-full-gate-root-20261016.log`.
+The engine report above retains its original dependency SHA; no new core/API
+run is claimed for this UI-only change. S019-T2 stays partial: full cross-policy
+joint risk/evaluation is not completed by counts.
+
+The owner chose the recommended approval scope: one pinned candidate may cover
+eligible future **2026 Week 6** refreshes, with base/version, freshness, kickoff,
+expiry and rollback checks on every generation. A new candidate needs new
+approval. Build this as a versioned scope, preserving v1 exact-generation events;
+the scope choice does not approve an actual candidate or a production release.
+Test cutoff per offered future event: completed TNF must neither block an
+eligible Sunday refresh nor receive rewritten forecasts. Positive acceptance
+requires actual new pool probabilities/receipts, a second feedback cycle,
+expired/incompatible/refused candidates and rollback with old history identical.
 The local data snapshot has zero new-format learning journals. New production
 generations must create real records; old card archives cannot substitute.
 Expect a correct HOLD when sufficient multiweek evidence is unavailable.

@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 11 · October 16, 2026, 2:41 p.m. America/Chicago (CDT).
+Revision 12 · October 16, 2026, 8:53 p.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; **not met**.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -31,10 +31,22 @@ guard/status readers 109/109 and 103/103 lines, not branch/browser proof.
 [Paired report](../../reviews/2026-10-16-critical48-committed-status-coverage.json).
 
 Actual future-serving adoption/rollback, remaining Review/Model visibility,
-Game/MY exposure and fresh-pipeline/served-site acceptance remain. Approval
-scope is still an unanswered owner choice. S023-T1 is partial; whole-task credit
+browser and fresh-pipeline/served-site acceptance remain. Approval
+scope is now selected: one pinned candidate for eligible future 2026 Week 6
+refreshes, with every-generation checks; no actual candidate/release approved.
+S023-T1 is partial; whole-task credit
 stays **50/99**. The default is off; no cloud/source-data writes, deployment or
 accuracy improvement is claimed. Generated test data stays in scratch fixtures.
+
+Game/MY exposure `c63f34fe` passes 66 focused regressions, with unchanged actual
+MY cards/ranking/prices. Exact selections and shared games are counted separately;
+uncertain identity and empty states are explicit. Three browser cases are
+authored and syntax-checked, not executed; the single full NFL rerun finishes
+exit **0**: **2,493 features pass**, zero failed/skipped, contracts/smoke/four
+model gates, browser step 8 skips. S019-T2 stays partial, with no joint-prop/
+independent-card probability invented. Latest read-only main is NFL `d0f99be2`:
+two commits/51 data paths after `45b3cac4`, no runtime/workflow changes; engine
+main unchanged. New data was not imported or deployment-verified.
 
 ## Earlier follow-up 1:50 p.m. CDT
 

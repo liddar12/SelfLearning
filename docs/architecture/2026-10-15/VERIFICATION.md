@@ -2,6 +2,27 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
+## Game and MY concentration October 16 8:53 p.m. CDT
+
+NFL `c63f34fe4cc78fc375a8e0d69940153293c4e9db`: **66 focused regressions pass**,
+zero skips, and the single full gate finishes exit **0**: **2,493 feature tests
+pass**, zero failed/skipped, contracts/smoke/four model gates. Browser step 8
+skips; three new browser cases are authored/syntax-checked, not executed.
+Actual MY builder output is unchanged; repeated selections and shared games
+are independently counted, unknown identity is explicit and empty state clears
+old warnings. No probability/joint-risk/selection model is added.
+Logs: `/private/tmp/nfl-concentration-focused-root-20261016.log` and
+`/private/tmp/nfl-concentration-full-gate-root-20261016.log`.
+
+The earlier paired engine report retains NFL dependency `49bcd2ac`; it is not a
+new engine/core/SQL measurement on the later UI revision. No source model or
+shared runtime changed in the concentration follow-up. Read-only GitHub main
+now `d0f99be2` has 51 data-only changes since `45b3cac4`, no runtime/workflows;
+[recorded exact comparison](../../reviews/2026-10-16-2053-remote-heads.json).
+That data was not imported/release-gated, and no deployment was checked.
+Whole-task credit stays **50/99**; the owner chose candidate/Week 6 approval
+scope, not actual activation. No external writes.
+
 ## Committed feedback and saved MODEL status October 16 2:41 p.m. CDT
 
 Frozen engine `9738ead346a0e529ad31145ab3bb7457e07f177c` and NFL

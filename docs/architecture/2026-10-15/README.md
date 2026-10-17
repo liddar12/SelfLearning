@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 2:41 p.m. CDT: use the
+Implementation status updated October 16, 2026, 8:53 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -37,6 +37,15 @@ The implementation team should perform the authenticated API/database test, reco
 
 ## Current local pilot checkpoint October 16 2:41 p.m. CDT
 
+UI follow-up **8:53 p.m. CDT**: NFL `c63f34fe` adds Game/MY repeated-selection
+and shared-game counts, leaving card selection/prices unchanged. **66 focused
+tests** and the full **2,493-feature**/contract/smoke/four-model gate pass, exit 0;
+browser step 8 skips. Three browser cases are authored, not executed. The owner
+selected one fixed candidate approval for eligible future 2026 Week 6 refreshes;
+actual consumer/rollback remains unfinished. No actual candidate/release approved.
+Read-only main moved to `d0f99be2` with data-only updates; reconcile that newer
+data before release. [Exact read](../../reviews/2026-10-16-2053-remote-heads.json).
+
 NFL `49bcd2ac` adds exact committed-data publication checks, retained raw capture
 replay and MODEL's saved shadow metrics, counts, hold reasons and evaluation age.
 Engine tooling `9738ead` pins the expanded 35-file NFL provenance inventory.
@@ -44,8 +53,8 @@ Frozen paired tests finish exit **0**: **1,363 core/API pass**, zero skips;
 **48/48 critical engine files >90%**, stable **96.4183%** executable lines;
 **2,482 NFL features pass**, zero failed/skipped, plus contracts/smoke/four model
 gates. Browser step 8 skips. [Paired evidence](../../reviews/2026-10-16-critical48-committed-status-coverage.json).
-No candidate is activated. Review/Parlay exposure, actual future-consumption/
-rollback and live acceptance remain unfinished; whole-task completion stays
+No candidate is activated. Review/remaining Model visibility, actual future-consumption/
+rollback and browser/live acceptance remain unfinished; whole-task completion stays
 **50/99**. Existing R1 visuals remain the baseline; nothing is pushed/deployed.
 
 ## Earlier local pilot checkpoint October 16 1:50 p.m. CDT
