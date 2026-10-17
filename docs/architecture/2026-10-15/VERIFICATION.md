@@ -2,7 +2,34 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Weekly eligibility focused verification
+## Weekly eligibility full regression and later freshness proposals
+
+October 17, **12:22 a.m. CDT**. Full frozen engine
+`251229e9bebf72330d7319aeb2937a504d150e64` / NFL
+`74efbc51bbe64d150a6caea2c528ae8bc407b111` both exit **0**: **2,550 NFL
+features**, zero failures/skips, contracts/smoke/four model gates; browser 8
+skips. **1,379 core/API** pass, zero skips; 49/49 critical engine files >90%,
+stable **8,551/8,862 = 96.4906%** lines and 47 NFL hashes.
+[Report](../../reviews/2026-10-17-critical49-period-source-eligibility-coverage.json)
+generated 12:12:51 a.m. CDT. NFL log SHA256
+`76940ec7d3e5391dab91a88bcac4c3f6425bf965fdc6c277056cd8a2dc525274`;
+engine log SHA256 `00e4a78848f2c59a6ddd1a8e4255ce6c076e96b667ad9ca22220c9900789e1c3`.
+
+Later NFL `f5b58319` / isolated `a1f61328` passes **14 related checks**, zero
+failures/skips, exit 0, including the actual weekly/pool/MY/committed operator
+path with its explicit proposed-profile flag. The default has no profile, both
+policy choices remain shadow-only, and local witness chronology is now checked.
+Original missing-season, ten Git/replay, eight final-clock, twelve source and
+four loss-field refusals remain. Log
+`/private/tmp/nfl-freshness-shadow-actual-cli-root-20261017.log`, SHA256
+`df11e81d7c9078259ddedf17b806030ce5f918a8e2fdac21f01269491312dc10`.
+The earlier ten pure checks overlap this run; do not sum them. Engine
+`da52d67` pins 48 NFL files and 32 tool/ledger checks pass separately. The new
+full pair is required; new NFL module line coverage is unmeasured. No SQL,
+posting/complete evidence, serving selection, owner approval, final-semantic,
+authenticated deployment, browser or accuracy acceptance is inferred.
+
+## Earlier weekly eligibility focused verification
 
 October 17, **12:04 a.m. CDT**. NFL `f7f5d3fa` (equivalent isolated
 `5ad7ec46`) passes **nine related tests**, zero failures/skips, exit 0, using

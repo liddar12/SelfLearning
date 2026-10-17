@@ -2,17 +2,19 @@
 
 Monorepo for three workstreams that share one self-learning spine.
 
-NFL integration checkpoint, October 16, 2026, 11:56 p.m. America/Chicago (CDT):
+NFL integration checkpoint, October 17, 2026, 12:22 a.m. America/Chicago (CDT):
 [50/99 whole local-build tasks (50.5%)](docs/architecture/2026-10-15/progress.json).
-Frozen NFL `30780fc9` / engine `6e714ec` passes **2,545 NFL feature tests** plus
+Frozen NFL `74efbc51` / engine `251229e` passes **2,550 NFL feature tests** plus
 contracts/smoke/four model gates, exit 0; browser step 8 skips. The paired shared
 engine passes **1,379 core/API tests**, with 49 critical engine files above 90%,
-stable **96.4906%** executable-line coverage and 45 NFL source hashes.
-[Exact report](docs/reviews/2026-10-16-critical49-period-MY-committed-coverage.json).
+stable **96.4906%** executable-line coverage and 47 NFL source hashes.
+[Exact report](docs/reviews/2026-10-17-critical49-period-source-eligibility-coverage.json).
 This includes actual MY original-writer/downstream replay and the real weekly
-prediction row contract fix, exact committed MY composition and operator CLI.
-Later weekly eligibility replay, inactive-list policy, authenticated pipeline activation and browser/
-live serving remain unfinished. [Durable evaluation jobs](docs/architecture/2026-10-15/LEARNING_JOBS.md)
+prediction row contract fix, exact committed MY composition/operator CLI and
+frozen weekly eligibility replay. Later proposed-profile/chronology source has
+14 focused passes but needs a full run. Owner policy choice, bound posting
+evidence, generation/UI checkpoint enforcement, authenticated pipeline and
+browser/live serving remain unfinished. [Durable evaluation jobs](docs/architecture/2026-10-15/LEARNING_JOBS.md)
 and bounded shadow fitting do not establish an operational live learning loop.
 See the [overnight handoff](docs/architecture/2026-10-15/OVERNIGHT_2026-10-16.md)
 and [verification boundaries](docs/architecture/2026-10-15/VERIFICATION.md).

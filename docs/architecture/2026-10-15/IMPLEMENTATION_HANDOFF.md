@@ -1,21 +1,22 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 17, 2026,
-12:04 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+12:22 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
 
 ## Current resume summary
 
-Last fully passing pair: NFL `30780fc9` / engine `6e714ec`, **2,545 NFL
+Last fully passing pair: NFL `74efbc51` / engine `251229e`, **2,550 NFL
 features and 1,379 core/API tests**, browser skipped. It includes actual MY
 original-writer/downstream replay, exact committed MY composition/operator CLI,
 base-history descendant checks and the real weekly-row contract fix. The engine
-report pins 45 NFL files and 49 critical engine targets above 90%, stable
-96.4906% line coverage. Later NFL `f7f5d3fa` weekly eligibility/actual-weekly MY
-integration passes nine related tests; engine `0546b4e` pins 47 NFL files. That
-new source needs a full pair. Whole-task completion is **50/99 (50.5%)**, not
+report pins 47 NFL files and 49 critical engine targets above 90%, stable
+96.4906% line coverage. Later NFL `f5b58319` adds read-only proposed-profile
+assessment and rejects later witness fetches supporting an earlier weekly build;
+14 related tests pass. Engine `da52d67` pins 48 NFL files; the new full pair is
+required. Whole-task completion is **50/99 (50.5%)**, not
 release readiness or measured betting accuracy.
 
 Next is the complete committed-v2 MY gate with upstream eligibility/freshness
@@ -66,6 +67,12 @@ unchanged: NFL `d0f99be248003f109c9b6394feb2ab14921205cb`, engine
 `aa5bbaeddca4138399a21c1894b4aed4bacb52b4`. [Exact comparison](../../reviews/2026-10-16-2303-remote-heads.json).
 No data was imported, no source merged and no deploy checked.
 
+Read-only GitHub comparisons completed by **October 17, 12:06:10 a.m. CDT**
+again find NFL main `d0f99be248003f109c9b6394feb2ab14921205cb` and engine
+main `aa5bbaeddca4138399a21c1894b4aed4bacb52b4` identical to the compared
+heads, zero changed paths/commits. [Recorded comparison](../../reviews/2026-10-17-0006-remote-heads.json).
+No data was imported or deployed; recheck/reconcile again before release.
+
 Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04c2d6`, NFL exporter `ed2f9668`, NFL evidence-grading fix `ac8b1083`; SelfLearning prospective journal `30fde77`, architecture package `46f87cf`, hosted/shadow checkpoint `b9ecd3f`, Supabase journal/configuration/native-gate source `7225b84`. These SHAs are local references until the owner separately authorizes a push.
 
 Later local checkpoints: NFL immutable capture/producer/opt-in consumers
@@ -80,6 +87,39 @@ its historical full-pool metrics remain unavailable. The separately required
 recovered on-card reference replay is a subsequent in-progress slice.
 
 ## Overnight target and completion rules
+
+### Freshness proposals October 17 12:22 a.m. CDT
+
+Frozen NFL `74efbc51bbe64d150a6caea2c528ae8bc407b111` / engine
+`251229e9bebf72330d7319aeb2937a504d150e64` both finish exit **0**:
+**2,550 NFL features** pass, zero failed/skipped, contracts/smoke/four model
+gates; browser 8 skips. **1,379 core/API** pass, zero skips, 49/49 critical
+engine targets above 90%, stable **8,551/8,862 = 96.4906%** lines and 47 NFL
+source hashes. [Full source-replay report](../../reviews/2026-10-17-critical49-period-source-eligibility-coverage.json),
+generated 12:12:51 a.m. CDT. This includes the prior weekly diagnostic, not
+the new source below.
+
+Later NFL `f5b58319` adds an optional `--shadow-freshness-profile` to exact
+committed MY replay. No default is selected and no serving policy changes.
+Both choices are proposals: provisional before the exclusive 90-minute check,
+or wait for bound confirmed-inactive evidence. Zero/nonzero arrays and caller
+posted/complete flags cannot supply that evidence, so strict mode remains held.
+QB source proposals are fetch age <12 hours and per-team snapshot age <7 days;
+15 minutes bounds displayed inactive observations, not confirmation. Date-only
+clocks hold. These thresholds are not fitted/validated accuracy improvements.
+Risk remains late changes/feed latency; remaining generation/UI checkpoint and
+posting-evidence work has medium LOE. Owner choice is still pending.
+
+Fourteen related tests pass, zero failures/skips: actual weekly producer → pool
+and MY capture → exact committed replay/operator → explicit shadow assessment.
+The old missing-season negative is retained while the main committed fixture
+now uses real weekly production. New chronology checks reject locally stamped
+injury/depth/inactive witnesses fetched after that weekly build, without claiming
+they authenticate its earlier reads. Engine `da52d67` pins 48 NFL files; 32
+tool/ledger tests pass separately. A new full pair is required. Profile selection,
+bound posting evidence, actual generation/UI enforcement, final publication,
+authenticated activation and browser/live serving remain unfinished. No whole-
+task, model approval, release or accuracy credit is added.
 
 ### Weekly eligibility replay October 17 12:04 a.m. CDT
 
