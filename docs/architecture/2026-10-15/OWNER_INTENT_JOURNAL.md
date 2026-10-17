@@ -1,10 +1,63 @@
 # Owner-intent journal — local implementation boundary
 
-Revision 4 · October 16, 2026, 11:12 a.m. America/Chicago (CDT).
+Revision 5 · October 16, 2026, 9:13 p.m. America/Chicago (CDT).
 
 This additive journal records an operator's intent. It does **not** approve a
 statistical conclusion, activate an NFL calibrator or change serving. Local
 implementation and tests do not establish a deployed Supabase connection.
+
+## Repository compatible file persistence
+
+Local engine `19a80d9` adds `store/file_owner_intents.py` for the owner-selected
+Actions-first pilot. It reuses the existing generic version-1 command, event,
+history and acknowledgement validators; it does not broaden an NFL approval's
+scope. The configured application owns the directory, actor, authority, clock
+and exact-byte evidence reader. No token, domain adapter or environment setting
+is discovered by the port, and construction/empty reads create no repository.
+
+Events are canonical, content-addressed immutable files. A small per-authority/
+namespace head is replaced last under a nonblocking cooperating-process lock.
+Readers pin one head and validate the complete chain. A missing or altered event
+fails the read; a late append does not change an already pinned snapshot. Exact
+retry returns the original historical acknowledgement without consulting a new
+clock or evidence source, and does not undo a later revocation. Directory sync
+also handles a lost reply after head replacement. New evidence is checked before
+publishing a head. An interrupted event write may leave an unreferenced event;
+if head replacement completed before a later sync failure, retry recovers the
+original event without appending another. Owned temporary files are cleaned up.
+
+The port's `durable` acknowledgement means local filesystem persistence, not
+survival of a new Actions runner, a Git push, hosted storage or current approval.
+The caller must publish the complete files through the controlled data pipeline.
+File ownership is part of the trusted boundary; hashes are not an authenticated
+operator signature or protection from a privileged writer restoring an old
+valid head. Domain binding, latest-authority/publication checks, the actual NFL
+consumer and authenticated approval workflow remain separate work.
+
+Limits retain 256 events and the existing roughly 3 MiB complete-history budget;
+events are at most 128 KiB plus 4 KiB framing. Evidence is bounded to 128 MiB per
+returned byte body and 256 MiB total per new append, with at most 16 references.
+These are not global memory, disk, retention or execution-time ceilings. A full
+or unavailable authority must hold activation; do not claim that a read alone
+proves capacity for a subsequent revoke/rollback.
+
+**14 new file-port tests** and **112 related checks** pass, zero skips, exit 0;
+the latter includes 32 ledger/coverage-tool checks outside the core/API suite.
+Tests include actual separate-process lock/restart, a complete 256-event chain,
+stale-head conflict, old retry after revoke, failed sync/rename, pointer-race
+refusal, missing/altered/nonregular files and malformed evidence. Full frozen
+engine `19a80d9edf67bbf4d8da10edcbd702435b3b31b4` finishes exit **0**:
+**1,377 core/API tests pass**, zero skips, **49/49 critical files >90%**,
+**8,543/8,855 = 96.4766%** executable-line coverage, stable source/test/tool/head
+identities. The new file port reaches **171/172 = 99.4186%**; this is line,
+not branch or production acceptance. [Pinned report](../../reviews/2026-10-16-critical49-file-owner-coverage.json)
+uses NFL dependency `7808de815f5b17a20b12c920b44d8deac8d71ceb` and 35 source
+hashes. No S015 whole-task or release acceptance is awarded by this persistence layer.
+
+The owner selected one exact candidate for eligible future **2026 Week 6**
+refreshes. That requires a separately versioned NFL scope and consumer, not
+reinterpretation of existing exact-generation events. The current diagnostic
+reader below stays read-only and always held.
 
 ## What owns each decision
 

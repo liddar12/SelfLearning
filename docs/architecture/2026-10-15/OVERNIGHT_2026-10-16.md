@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 12 · October 16, 2026, 8:53 p.m. America/Chicago (CDT).
+Revision 13 · October 16, 2026, 9:13 p.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; **not met**.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -16,6 +16,19 @@ No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
 ## Latest follow-up
+
+Engine `19a80d9` adds real file-backed generic owner-intent persistence for the
+Actions-first route. Immutable events, namespace head/lock, complete history,
+revoke/rollback intent and lost-reply recovery pass **14 new tests / 112 related
+checks**, zero skips. Full frozen run finishes exit **0**: **1,377 core/API pass**,
+zero skips; **49/49 critical files >90%**, stable **96.4766%** executable lines;
+new port **171/172** lines. [Evidence](../../reviews/2026-10-16-critical49-file-owner-coverage.json).
+NFL remains unchanged at the previously tested runtime; no new SQL/browser/
+hosted result is claimed. Local persistence does not establish operator auth,
+Git publication or actual candidate application. Consumer/publication/rollback
+integration is still next; S015-T1 remains partial and total credit **50/99**.
+
+## Earlier follow-up 8:53 p.m. CDT
 
 NFL `49bcd2ac` now checks the exact committed feedback/source/raw tree before
 publication, fixes the controller's real-checkout outcome sink while retaining

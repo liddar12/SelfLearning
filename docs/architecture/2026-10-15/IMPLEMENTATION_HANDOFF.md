@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-8:53 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+9:13 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -108,7 +108,7 @@ Frozen pair engine `9738ead346a0e529ad31145ab3bb7457e07f177c` / NFL
 **2,482 NFL features pass**, zero failed/skipped, contracts/smoke/four model
 gates pass. Both terminal exits are **0**; browser step 8 skips. The coverage
 report pins 35 NFL provenance files, without dropping any engine target.
-[Latest paired report](../../reviews/2026-10-16-critical48-committed-status-coverage.json).
+[Earlier paired feedback report](../../reviews/2026-10-16-critical48-committed-status-coverage.json).
 
 Next: actual compatible future-generation consumer plus owner approval/rollback;
 Review and remaining Model subgroup/manifest visibility; browser/current-main,
@@ -135,6 +135,25 @@ Test cutoff per offered future event: completed TNF must neither block an
 eligible Sunday refresh nor receive rewritten forecasts. Positive acceptance
 requires actual new pool probabilities/receipts, a second feedback cycle,
 expired/incompatible/refused candidates and rollback with old history identical.
+
+Engine `19a80d9` now persists generic owner intents in canonical immutable files,
+with a per-authority/namespace head published last, real local process locking,
+complete-chain checks and original ACK recovery after revoke or interrupted
+head sync. **14 new tests / 112 related checks pass**, zero skips. Full frozen
+run: **1,377 core/API pass**, zero skips, **49/49 critical files >90%**,
+**8,543/8,855 = 96.4766%** executable lines; source/test/tool/head identities
+stable, terminal exit **0**. The [new report](../../reviews/2026-10-16-critical49-file-owner-coverage.json)
+pins NFL `7808de81`. NFL source is unchanged; its latest full result remains
+2,493 features plus contracts/smoke/four model gates, browser step 8 skipped.
+No new SQL/native/hosted or browser run is claimed by this file-only addition.
+
+This is local persistence of intent, not authenticated operator approval,
+survival of a new runner without Git publication, or model consumption. The v2
+NFL period scope, evidence lookup/composition, actual future-generation
+consumer, controlled publication and two-cycle rollback remain required. Keep
+v1 DTOs/diagnostic holds unchanged; do not turn their false activation flags
+true to manufacture integration. See [owner-journal behavior](OWNER_INTENT_JOURNAL.md).
+S015-T1 remains partial, with no additional whole-task credit.
 The local data snapshot has zero new-format learning journals. New production
 generations must create real records; old card archives cannot substitute.
 Expect a correct HOLD when sufficient multiweek evidence is unavailable.

@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 8:53 p.m. CDT: use the
+Implementation status updated October 16, 2026, 9:13 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -36,6 +36,14 @@ No additional `SELFLEARN_OPERATOR_TOKEN` setup is needed. If convenient, confirm
 The implementation team should perform the authenticated API/database test, reconcile migration history, create narrow pipeline credentials and prepare the reviewed release. A separate `SELFLEARN_NFL_INGEST_TOKEN` is needed for the Vercel verifier and NFL GitHub Actions when delivery is enabled; never reuse the operator token. The new journal selector is an explicit rollout switch, not a setting to enable before migration/release checks. The owner remains the authority for production migrations/deployment, changing the portfolio objective and model activation. The plan does not require buying another provider or enabling automatic promotion.
 
 ## Current local pilot checkpoint October 16 2:41 p.m. CDT
+
+Owner-persistence follow-up **9:13 p.m. CDT**: engine `19a80d9` adds canonical
+file-backed generic owner intents, restart/lock/revocation/rollback-intent and
+lost-reply recovery. Full **1,377 core/API tests pass**, zero skips, **49/49
+critical files >90%**, stable **96.4766%** executable-line coverage, exit 0.
+[Pinned evidence](../../reviews/2026-10-16-critical49-file-owner-coverage.json).
+This is local intent persistence, not operator authentication or candidate
+activation; the actual NFL consumer/publication/rollback integration remains.
 
 UI follow-up **8:53 p.m. CDT**: NFL `c63f34fe` adds Game/MY repeated-selection
 and shared-game counts, leaving card selection/prices unchanged. **66 focused
