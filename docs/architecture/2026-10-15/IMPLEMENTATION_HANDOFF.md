@@ -1,20 +1,21 @@
 # SelfLearning and NFL2026 implementation handoff
 
-Revision 1 design, implementation follow-up October 16, 2026,
-11:47 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+Revision 1 design, implementation follow-up October 17, 2026,
+12:04 a.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
 
 ## Current resume summary
 
-Last fully passing pair: NFL `3905b1fb` / engine `7d675f4`, **2,543 NFL
+Last fully passing pair: NFL `30780fc9` / engine `6e714ec`, **2,545 NFL
 features and 1,379 core/API tests**, browser skipped. It includes actual MY
-original-writer binding/downstream replay and the real weekly-row contract fix.
-The engine report pins 44 NFL files and 49 critical engine targets above 90%,
-stable 96.4906% line coverage. Later NFL `dd6ef72f` exact-commit MY composition
-and CLI pass three focused tests but need a full pair; engine `bed79e1` pins
-45 NFL files. Whole-task completion is **50/99 (50.5%)**, not
+original-writer/downstream replay, exact committed MY composition/operator CLI,
+base-history descendant checks and the real weekly-row contract fix. The engine
+report pins 45 NFL files and 49 critical engine targets above 90%, stable
+96.4906% line coverage. Later NFL `f7f5d3fa` weekly eligibility/actual-weekly MY
+integration passes nine related tests; engine `0546b4e` pins 47 NFL files. That
+new source needs a full pair. Whole-task completion is **50/99 (50.5%)**, not
 release readiness or measured betting accuracy.
 
 Next is the complete committed-v2 MY gate with upstream eligibility/freshness
@@ -79,6 +80,50 @@ its historical full-pool metrics remain unavailable. The separately required
 recovered on-card reference replay is a subsequent in-progress slice.
 
 ## Overnight target and completion rules
+
+### Weekly eligibility replay October 17 12:04 a.m. CDT
+
+NFL `f7f5d3fa` adds frozen weekly source/gate replay to the committed MY
+diagnostic, plus an actual weekly-producer path through the real MY capture
+test. Nine related tests pass, zero failures/skips, with twelve source-mutation
+refusals, four invalid points-loss shapes, the prior ten real-Git/replay
+refusals and eight final-clock cases. The report binds capture/pool/time and
+its own content ID. It preserves row quarantine, QUESTIONABLE, RETIRED, depth,
+inactive-list and overtime-FINAL behavior without claiming provider authority.
+
+The forged omitted-QB2 case passes the older relationship validator's internally
+consistent zero counts, then fails the new gate-decision replay. This is a
+validation gap, not evidence such a card was served. A first source test failed
+because the actual weekly writer adds points_lost to a gate decision. The fix
+compares exact decision fields and validates the real numeric shape, explicitly
+leaving the earlier Elo/factor calculation unverified. The legacy validator's
+SHA256 remains `725bb89e4c7cb44936afada537b18e94173a2072f9c6a33310720b053a8758bf`.
+
+QB depth and in-window inactive freshness remain named policy HOLDs; original
+weekly reads/provider completeness and final publication flags remain false.
+Engine `0546b4e` pins 47 NFL files; 32 tool/ledger tests pass separately. The new
+full pair is required. No task, deployment or accuracy credit is added.
+
+### Latest committed MY full regression October 16 11:56 p.m. CDT
+
+Frozen NFL `30780fc9ba79d678379cd965abd8f45798008e59` and engine
+`6e714ec7f33a8b92327431567e2ef8e700640cc8` both exit **0**: **2,545 NFL
+features** pass, zero failures/skips, contracts/smoke/four model gates;
+browser 8 skips. **1,379 core/API** pass, zero skips, 49/49 critical engine
+files above 90%, stable **8,551/8,862 = 96.4906%** lines and 45 NFL hashes.
+[Full report](../../reviews/2026-10-16-critical49-period-MY-committed-coverage.json),
+generated 11:56:11 p.m. CDT. The full pair covers exact committed MY replay,
+operator CLI and base-chain protection. No new NFL module coverage is claimed.
+
+New source work replays frozen weekly gate decisions against injury, depth,
+inactive and schedule witnesses, without claiming those later witnesses were
+the earlier producer's actual reads. It detects an omitted QB2 exclusion even
+when the old relationship validator accepts the forged zero-gate counts. That
+is a validation gap, not evidence that such a card was served. Five focused
+source/actual-weekly/MY tests pass; the later nine-test source/commit/operator
+run above also passes. QB depth and in-window inactive freshness remain explicit policy holds;
+the fantasy points-loss shape is checked but its earlier numeric calculation
+is not rederived. Existing v1 semantics and v2 publisher refusal remain intact.
 
 ### Latest MY full regression October 16 11:41 p.m. CDT
 

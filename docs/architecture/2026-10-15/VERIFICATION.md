@@ -2,7 +2,50 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Actual MY generation full regression
+## Weekly eligibility focused verification
+
+October 17, **12:04 a.m. CDT**. NFL `f7f5d3fa` (equivalent isolated
+`5ad7ec46`) passes **nine related tests**, zero failures/skips, exit 0, using
+engine `6e714ec`. This includes the actual weekly producer → actual approved
+pool/MY capture, committed replay/operator and five pure source-diagnostic
+scenarios. Twelve source mutations, four invalid loss-field shapes and the
+existing ten committed/replay plus eight final-clock refusals remain covered.
+The omitted-QB2 case proves a validator gap, not a served-card finding.
+
+Log `/private/tmp/nfl-period-source-actual-MY-r3-root-20261017.log`, SHA256
+`a3a6994b1b18462d83f4db7360bc103ed2f294b5cadd7d1b91febbc81bd020ad`.
+The first new source run is red (three pass/one fail, exit 1), SHA256
+`39728dfc13951bffc96c094c52df38ee7483f783861e4a0fbc6060fcf4ba972b`:
+it omitted the real writer's points_lost field when comparing gate decisions.
+The corrected checker validates that field's shape but does not claim its
+earlier numeric derivation. A four-test correction and subsequent five- and
+nine-test overlapping runs pass; do not sum them. Engine `0546b4e` adds the
+source consumer and actual ESPN status module, bringing NFL provenance to 47.
+Thirty-two tool/ledger checks pass separately; new module coverage is unmeasured.
+
+The source report names capture/pool/time but leaves upstream/final semantics,
+provider completeness, authenticated owner, release and serving false. QB depth
+and in-window inactive freshness still hold. The new full pair is required.
+
+## Committed MY full regression
+
+October 16, **11:56 p.m. CDT**. Frozen engine
+`6e714ec7f33a8b92327431567e2ef8e700640cc8` / NFL
+`30780fc9ba79d678379cd965abd8f45798008e59` both exit **0**:
+**2,545 NFL features pass**, zero failed/skipped, contracts/smoke/four model
+gates; browser 8 skips. **1,379 core/API pass**, zero skips; **49/49 critical
+engine files >90%**, **8,551/8,862 = 96.4906%** lines, stable source/test/tool/
+heads and 45 NFL source hashes. [Report](../../reviews/2026-10-16-critical49-period-MY-committed-coverage.json).
+
+NFL log SHA256 `7a4b596a9f6f8b12edafba5b76644e42cfabd13255fce22ba68be1d86a85e556`;
+engine log SHA256 `f7201cb71b3d3ab5b712b2fed3300fc9c5850cdc8b4c8b3f0da0bdead7dd2ec1`.
+The logs are `/private/tmp/nfl-period-MY-committed-full-gate-root-20261016.log`
+and `/private/tmp/selflearning-critical49-period-MY-committed-root-20261016.log`.
+This covers the new committed-MY/operator source below, not the subsequent
+weekly eligibility diagnostic or its source-complete MY fixture. The latter
+has the later focused passes above; it is not covered by this older full pair.
+
+## Earlier actual MY generation full regression
 
 October 16, **11:41 p.m. CDT**. Frozen engine
 `7d675f4cbee6a9d0ed9eb72222440516f2cf6bed` / NFL
