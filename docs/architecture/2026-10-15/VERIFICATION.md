@@ -2,7 +2,36 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Original input replay October 16 10:14 p.m. CDT
+## Committed application replay October 16 10:34 p.m. CDT
+
+Frozen engine `98c21ab4e6d00c2c791ff7df86a1cc08cbe631d8` and NFL
+`8bdfd0210960dad3038556a10cfbe379ce9780e5`: **1,379 core/API pass**, zero
+skips, exit 0; **49/49 critical files >90%**, **8,551/8,862 = 96.4906%**
+executable lines, stable source/test/tool/heads and 37 NFL provenance files.
+[Report](../../reviews/2026-10-16-critical49-period-committed-replay-coverage.json)
+was generated at **10:23:00 p.m. CDT**. NFL passes **2,496 features**, zero
+failed/skipped, contracts/smoke/four model gates; full gate exit 0, browser
+step 8 skipped. Logs:
+`/private/tmp/nfl-period-committed-replay-full-gate-root-20261016.log`
+(SHA256 `fdfcc68d60d40e7b606e49d02fdd8a4a365df031dfc926a272bbbcb6a3377c39`)
+and `/private/tmp/selflearning-critical49-period-committed-replay-root-20261016.log`
+(SHA256 `672a2a3637711c7c5217eda61458b7b56cd3bc41dcff16539c2163e65267f6ff`).
+
+Later NFL `230baa69`/`142a3f3c` adds the MY saved-version/expiry display and
+append-only publication history rules. Three actual producer/owner/fitter
+scenario tests and 70 related display/legacy/reporting tests pass. Nine new
+history tests and 21 existing publisher tests pass. These later changes are
+not covered by the full pair above. Three new browser cases list successfully;
+the browser server cannot bind its local port, so no executed browser or visual
+acceptance is claimed. Engine `ec879a0` expands provenance to 42 NFL files;
+32 separate ledger/tool tests pass after correcting an initial nonexistent
+pytest file argument (that invocation exited 4 without running tests).
+
+Whole-task credit remains 50/99; S023-T2 is partial, not complete. V2 final
+MY-card semantics, operator/pipeline wiring, Model/Review completion and live
+release acceptance remain. No SQL, actual approval, push or deployment occurs.
+
+## Earlier original input replay October 16 10:14 p.m. CDT
 
 Frozen engine `e1838c7c20434fd963fa1212aaedead7f8e022c5` and NFL
 `cf5babf5e4b852cb0c457616f47575f001a0489e` both finish exit **0**:
@@ -31,7 +60,7 @@ covers 110/110 lines in its own suite. This later source is **not in the full
 run above**. `MY_card_semantics_verified`, `whole_release_pass`, owner auth and
 production permission all remain false. Do not replace the publisher's hold
 with this diagnostic's exit 0. New source inventory `77d78a6` tracks 37 NFL
-files; its full paired regression is next. No new task, release or accuracy
+files; its subsequent full paired regression is recorded above. No new task, release or accuracy
 credit; Sunday October 18, 10 a.m. CDT remains the requested pilot target.
 
 ## Earlier local period consumer October 16 9:50 p.m. CDT

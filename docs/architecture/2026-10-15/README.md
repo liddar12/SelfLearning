@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 10:14 p.m. CDT: use the
+Implementation status updated October 16, 2026, 10:34 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -37,13 +37,22 @@ The implementation team should perform the authenticated API/database test, reco
 
 ## Current local pilot checkpoint October 16 2:41 p.m. CDT
 
+Current **10:34 p.m. CDT**: the engine `98c21ab`/NFL `8bdfd021` full pair passes
+1,379 core/API and 2,496 NFL features, with stable 96.4906% line coverage across
+49 critical engine files; browser skipped. Later NFL `230baa69`/`142a3f3c`
+adds MY effective-version/expiry display and retained-history publication checks.
+Focused tests pass; the new full pair is still required. Browser dependencies
+are available, but the environment denies the static server's port bind.
+V2 publication remains held. Whole-task completion is **50/99 (50.5%)**;
+37 tasks are partial and 12 open. [Current handoff](IMPLEMENTATION_HANDOFF.md#current-my-model-status-and-history-retention).
+
 Original-byte follow-up **10:14 p.m. CDT**: the `e1838c7`/NFL `cf5babf5` pair
 passes full local regressions: 1,379 core/API, 49 targets above 90%, stable
 96.4906% line coverage; 2,496 NFL features plus contracts/smoke/four model gates,
 browser skipped. Canonical NFL `7414ef07` has the identical tested tree. Later
 `8bdfd021` adds committed-application replay; nine related tests pass, but this
 is not the final MY-card publication gate. Operator/pipeline, UI and live
-acceptance remain. [Current handoff](IMPLEMENTATION_HANDOFF.md#current-original-byte-and-git-replay-follow-up)
+acceptance remain. [Earlier handoff](IMPLEMENTATION_HANDOFF.md#earlier-original-byte-and-git-replay-follow-up)
 and [frozen report](../../reviews/2026-10-16-critical49-period-input-replay-coverage.json).
 
 Local consumer follow-up **9:50 p.m. CDT**: NFL `5c11a6af` applies a separately

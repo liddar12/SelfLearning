@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-10:14 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+10:34 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -207,7 +207,49 @@ R127 and weather retain their separate shadow/promotion rules. The controller
 does not refit on real Week 5/TNF outcomes. All production/default paths remain
 off, and the publisher explicitly refuses v2 records until its gate exists.
 
-### Current original byte and Git replay follow up
+### Current MY model status and history retention
+
+Canonical NFL `230baa69` adds structured period-return display metadata bound
+into the application pool hash and matched against every MY yardage receipt.
+The MY page shows the correction that priced those rungs, not a newer proposal.
+Known expiry, invalid metadata and inputs beyond the existing 12-hour period
+limit withhold yardage props without client-side re-pricing or changing game/
+TD legs. Foreground cutoff, resume and bet-sheet checks prevent stale props
+from surviving a sleeping tab. Older pools without receipts remain unknown.
+
+The actual producer/fitter/owner round trip passes three scenario tests,
+including distinct A/B artifacts, rollback and revocation displayed by the JS
+reader. Another 70 focused display/legacy/reporting tests pass, zero skips.
+Three new browser cases are discovered by the exact Playwright config; they
+have not executed. Offline dev-only dependency installation succeeded, but
+the existing risk-browser command exits 1 before tests: the static server's
+socket bind is denied (`Operation not permitted`). Do not report browser PASS.
+
+Canonical NFL `142a3f3c` adds append-only learning-history comparison against
+the fetched base on every publisher attempt. Deletion, replacement, whitespace
+rewrite and mode changes of retained immutable evidence hold, even when the
+latest pointer no longer references it. Authority/current pointer conflicts and
+R111 fallback never choose a side automatically. Nine new tests pass in real
+temporary Git repositories; 21 existing publisher regressions also pass. This
+does not complete MY card semantics or authenticate an operator. V2 publication
+is still explicitly held. No actual approval, push or deployment occurred.
+
+The latest completed full pair is **engine `98c21ab` / NFL `8bdfd021`**:
+1,379 core/API pass, 49/49 critical files above 90%, stable 96.4906% line
+coverage with 37 NFL source hashes; 2,496 NFL features and all non-browser
+gates pass, browser 8 skips, both exits 0. [Report](../../reviews/2026-10-16-critical49-period-committed-replay-coverage.json).
+That full pair predates the display/history changes. Engine provenance source
+`ec879a0` now tracks 42 NFL files, retaining every prior target; 32 separate
+ledger/tool tests pass. The new source needs its own frozen full regression.
+S023-T2 moves open to partial only: **50/99 complete, 37 partial, 12 open**.
+
+Next: finish final MY-generation semantic publication checks, complete current
+owner/incumbent lineage after every rebase, add explicit operator/pipeline
+activation, finish Model/Review visibility, reconcile latest main/data and
+obtain browser/fresh-pipeline/served-site acceptance. Keep Sunday October 18,
+10 a.m. CDT as the requested target, not a verified release promise.
+
+### Earlier original byte and Git replay follow up
 
 The owner reiterated the **Sunday October 18, 10 a.m. CDT** pilot target.
 Canonical NFL `7414ef07` has the same complete tree as frozen tested `cf5babf5`.
@@ -224,8 +266,8 @@ hash checks and batched small reads. Nine related tests pass, zero skips;
 the original feedback checker reaches 110/110 lines. This diagnostic still
 explicitly reports **MY-card semantics, whole release, authenticated owner and
 production permission false**. Never use its exit 0 to bypass the publisher's
-v2 hold. Its full regression is next with engine provenance `77d78a6` (37 NFL
-files). The original full run above does not include this later diagnostic.
+v2 hold. Its later full regression passes on `98c21ab`/`8bdfd021`, recorded above;
+the original `e1838c7`/`cf5babf5` run does not include this diagnostic.
 
 Finish the real MY-generation semantic integration, append-only control and
 owner/current conflict checks after rebase/fallback, operator/pipeline wiring,
