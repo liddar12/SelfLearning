@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 10:45 p.m. CDT: use the
+Implementation status updated October 16, 2026, 11:22 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -37,7 +37,17 @@ The implementation team should perform the authenticated API/database test, reco
 
 ## Current local pilot checkpoint October 16 2:41 p.m. CDT
 
-Current **10:45 p.m. CDT**: the newer NFL `ffe7fd93` full gate is **red**:
+Current **11:22 p.m. CDT**: corrected NFL `37948655` / engine `bdf0564` both
+finish exit 0: **2,542 NFL features**, **1,379 core/API**, 49 critical targets
+above 90%, stable **96.4906%** line coverage and 43 NFL source hashes; browser
+skipped. Later `c9ce721e`/`ed5c320b` binds actual MY writer bytes and replays
+complete current offers while preserving all older first-sight cards, including
+a zero-new-key refresh. Focused tests pass; that later source needs its own
+full run. V2 publication remains held, and one inactive-list policy choice is
+pending. **50/99 complete, 37 partial, 12 open**; no new whole-task credit.
+[Current handoff](IMPLEMENTATION_HANDOFF.md#current-my-model-status-and-history-retention).
+
+Earlier **10:45 p.m. CDT**: NFL `ffe7fd93` full gate is **red**:
 2,532 features pass and one all-32-mutation subprocess hits its 60-second limit.
 Engine `2483c1e` passes 1,379 tests with stable 96.4906% coverage and 42 NFL
 source hashes. Later NFL `e7ea3df6` keeps every history case but bounds work per

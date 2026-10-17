@@ -2,7 +2,47 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## MY status first full regression October 16 10:45 p.m. CDT
+## Corrected MY status and history regression
+
+October 16, **11:22 p.m. CDT**. Frozen engine
+`bdf056459f0737b021d2b1736268662069e4e466` / NFL
+`379486559a4c68c53a5be87fcafb3d4c9706f491` finish exit **0**:
+**2,542 NFL features pass**, zero failed/skipped, contracts/smoke/four model
+gates; browser 8 skips. **1,379 core/API pass**, zero skips; **49/49 critical
+files >90%**, **8,551/8,862 = 96.4906%** executable lines, stable source/test/
+tool/heads and 43 NFL source hashes. [Report](../../reviews/2026-10-16-critical49-my-display-history-r2-coverage.json)
+was generated **10:54:02 p.m. CDT**. This is not browser or release acceptance.
+
+NFL log `/private/tmp/nfl-my-display-history-r2-full-gate-root-20261016.log`,
+SHA256 `4a23a185fc3f3d07580b7f4ed9cf9fccfc86fdcc01df69f3af5e4acd31655f4e`;
+engine log `/private/tmp/selflearning-critical49-my-display-history-r2-root-20261016.log`,
+SHA256 `17de0992673b328b0fbec91c81ddc23be2ab58a9dae29f5f4354bbb78e4ef956`.
+
+Later source `c9ce721e` / `ed5c320b` adds actual MY original-read/writer binding
+and exact downstream replay, not final publication approval. Original capture/
+operator/recovery related run: **17 pass**, zero skips. After extraction of the
+unchanged v1 binding checks, **16 related pass**; current legacy runtime source
+SHA256 `1f2fc6904e8d913415dc3b9ff7b63b8591da939b4b88b63fcd5d9de705db79d5`
+reaches **450/469 = 95.9488%** lines. A later real scenario passes with a fully
+retained refresh and three rehashed forgery refusals. These overlapping counts
+are not additions to the full run above; new module coverage is not measured.
+The new full source needs its own paired run with 44 NFL provenance files.
+
+Preserved capture-containment negative: `/private/tmp/nfl-period-MY-final-link-root-20261016.log`,
+exit 1 (16 pass/one fail), SHA256 `3cc7600e87e52538c225cba0d9f314405bb6adfff3a4d9b219a5c335108cd06b`.
+The fake authority root used `/var` while the destination normalized to
+`/private/var`, so it reached a missing-clock error instead of the expected
+containment rejection. The helper now normalizes its authority argument too.
+Corrected 17-check log SHA256 `3a1fa43f6676dbcc65040dac02527cd8993fe4dc9dd069aae457b7aec529e277`;
+downstream/legacy log SHA256 `8a1717fbc48243c340b24d0a41c84af0a0c4572f11dcbacaa20203027dd45ad9`;
+later retained/forgery log SHA256 `f242a1c200ba7c7d368bd5c1d006b3b76f6c4662a97e8905c61da85ba704862c`.
+
+Public serving, current owner authentication, upstream eligibility/freshness and
+the final v2 publication gate remain unverified. The inactive-list policy question
+is pending; the existing v1 holds are unchanged. No SQL run, actual candidate
+approval, source push or production deployment is claimed.
+
+## Earlier MY status first full regression October 16 10:45 p.m. CDT
 
 Frozen engine `2483c1ee1adfae813cd1372c8ce1c80b5e0ff296` / NFL
 `ffe7fd932a560577f1e7132b7707ad34b38e484b`: engine exit **0**, **1,379

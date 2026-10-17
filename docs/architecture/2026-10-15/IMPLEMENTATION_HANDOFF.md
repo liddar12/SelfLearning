@@ -1,10 +1,27 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-10:45 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+11:22 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
+
+## Current resume summary
+
+Last fully passing pair: NFL `37948655` / engine `bdf0564`, **2,542 NFL
+features and 1,379 core/API tests**, browser skipped. Later NFL `ed5c320b`
+adds actual MY original-writer binding and downstream replay; its focused
+checks pass but its full regression is still required. Engine `094dcef` pins
+44 NFL source files. Whole-task completion is **50/99 (50.5%)**, not release
+readiness or measured betting accuracy.
+
+Next is the complete committed-v2 MY gate with upstream eligibility/freshness
+and current authority, followed by authenticated pipeline activation and
+browser/live acceptance. One pre-inactive-list policy choice is awaiting the
+owner; existing v1 holds and v2 publication refusal remain unchanged. No actual
+model, push or deployment is approved. The dated verification sections retain
+failed attempts and earlier TODOs as history; use the current section below
+for the next implementation work.
 
 ## Source locations and preservation
 
@@ -40,6 +57,11 @@ All **51** changed paths are data; no runtime/workflow change. Engine main is
 unchanged. [Exact heads and path inventory](../../reviews/2026-10-16-2053-remote-heads.json).
 No new remote data was imported, merged or release-gated; no deploy identity
 was checked. Reconcile current main again before an authorized release.
+
+Read-only comparison **11:03:14–11:03:16 p.m. CDT** confirms both main heads
+unchanged: NFL `d0f99be248003f109c9b6394feb2ab14921205cb`, engine
+`aa5bbaeddca4138399a21c1894b4aed4bacb52b4`. [Exact comparison](../../reviews/2026-10-16-2303-remote-heads.json).
+No data was imported, no source merged and no deploy checked.
 
 Local committed checkpoints (not pushed): NFL journal `7ed3ae5e`, NFL R130 `6a04c2d6`, NFL exporter `ed2f9668`, NFL evidence-grading fix `ac8b1083`; SelfLearning prospective journal `30fde77`, architecture package `46f87cf`, hosted/shadow checkpoint `b9ecd3f`, Supabase journal/configuration/native-gate source `7225b84`. These SHAs are local references until the owner separately authorizes a push.
 
@@ -209,7 +231,49 @@ off, and the publisher explicitly refuses v2 records until its gate exists.
 
 ### Current MY model status and history retention
 
-**Latest full NFL gate is red**, not superseded by a focused PASS: engine
+**Corrected full pair is green**: engine `bdf0564` / NFL `37948655` finishes
+exit 0 in both suites: **2,542 NFL features pass**, zero failures/skips,
+contracts/smoke/four model gates; browser 8 skips. **1,379 core/API pass**,
+49/49 critical files above 90%, stable 96.4906% line coverage and 43 NFL source
+hashes. [Frozen report](../../reviews/2026-10-16-critical49-my-display-history-r2-coverage.json).
+The first red run below is preserved, not overwritten.
+
+Later canonical NFL `c9ce721e` / `ed5c320b` adds actual `apply-my`: original
+loader reads persisted before pricing, exact pool-writer checkpoint before
+current-pointer acknowledgement, the real MY writer and journal, and an
+immutable v2 link containing the unchanged v1 capture. Checkpoint failure
+recovers the old pool/pointer without changing the archive; byte drift and
+JSON capability claims hold. A defensive macOS alias containment test first
+failed, then passes after normalizing both sides of the output-root check.
+Seventeen related tests pass after that fix.
+
+The downstream replayer now rebuilds current offered cards, candidate/receipt
+population, membership and exact first-sight append/writer bytes. A second
+genuine refresh with **zero new display keys** passes while retaining all old
+cards; it does not invent filler or require an old display receipt to become
+current. Three fully rehashed payout/audit/old-history forgeries are refused.
+The current v1 loader/replayer source reaches 450/469 executable lines in its
+own related suite; no coverage percentage is claimed for the new MY module.
+The new source needs a frozen full rerun with engine `094dcef` (44 NFL source
+files). Upstream eligibility/freshness, current authority and final committed
+MY semantics remain separate; publication stays held. No task credit added.
+
+**One owner policy question is pending**: provisional, clearly labeled props
+before official inactive lists, with a new check at 90 minutes before kickoff
+(recommended; late-scratch/feed-delay risk; medium LOE), or hold until fresh
+lists are confirmed (risk: no noon-game props at 10 a.m.; low LOE). Existing v1
+holds remain unchanged; neither policy is activated without a choice and
+implementation. The NFL describes the inactive-list exchange at its
+[90-minute meeting](https://operations.nfl.com/game-operations-logistics/preparation-safety/game-and-stadium-prep);
+this does not establish ESPN delivery latency or completeness. Scope/model
+approval and production release authorization remain separate decisions.
+
+Next: compose the complete v2 link with exact committed-tree application replay,
+upstream eligibility/freshness and latest owner/current checks; implement the
+selected inactive policy, authenticated operator/pipeline path, Model/Review,
+latest-main data reconciliation and browser/fresh-pipeline/served-site acceptance.
+
+**Earlier first full NFL gate was red**: engine
 `2483c1e` / NFL `ffe7fd93` gives 1,379 core/API pass, stable 96.4906% across
 49 critical files and 42 NFL source hashes, but NFL has 2,532 pass / one failed
 feature. The all-32-case Git-history subprocess ends with null status at
@@ -327,7 +391,7 @@ The ID-by-ID classification and evidence are in [progress.json](progress.json).
 | E01 Forecast/publication lineage | 5/9 | 56% | Deployment identity, live observation and exact-generation prepublication gate |
 | E02 Ingestion/outcome corrections | 14/15 | 93% | Runtime activation, retention and native/hosted acceptance; sealed multi-batch executor verified locally |
 | E03 Evaluation/honest records | 9/9 | 100% | Local tasks complete, not story/live acceptance: default reporting hookup and historical coverage still limited |
-| E04 Candidates/controlled adoption | 6/9 | 67% | Persisted approvals, independent NFL consumer, actual two-cycle rollback |
+| E04 Candidates/controlled adoption | 6/9 | 67% | Final committed-MY/source gate, authenticated operator/pipeline and serving acceptance |
 | E05 Eligibility/freshness | 4/6 | 67% | ID-first fix/current comparative audit accepted locally; FINAL/clearance/provider completeness still incomplete |
 | E06 Parlay selection/concentration | 3/6 | 50% | Full Game/Week/MY objective comparison and owner portfolio-policy decision |
 | E07 Prospective R127/weather | 0/6 | 0% | Twin prospective collector/grader; weather issue/game-window/roof authority |
