@@ -95,7 +95,8 @@ NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.
                       "scripts/build_learning_loops.py", "scripts/period_calibrator.py", "scripts/period_commit_replay.py",
                       "app/views/model.js", "scripts/publish_data.sh",
                       "scripts/learning_history_guard.py", "app/pool-learning-status.js",
-                      "app/views/myparlays.js", "app/theme.css", "data/contracts/leg_pool.schema.json")
+                      "app/views/myparlays.js", "app/theme.css", "data/contracts/leg_pool.schema.json",
+                      "scripts/period_operator.py")
 
 
 class CriticalTrace(trace.Trace):

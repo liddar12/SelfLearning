@@ -101,9 +101,10 @@ def test_v2_and_independent_comparator_are_not_excluded_from_critical_inventory(
     assert "scripts/build_review_parity.py" in NFL_PRODUCER_FILES
     assert "scripts/materialize_calibrator.py" in NFL_PRODUCER_FILES
     assert "scripts/build_review.py" in NFL_PRODUCER_FILES
-    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 42
+    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 43
     for path in ("scripts/learning_history_guard.py", "app/pool-learning-status.js",
-                 "app/views/myparlays.js", "app/theme.css", "data/contracts/leg_pool.schema.json"):
+                 "app/views/myparlays.js", "app/theme.css", "data/contracts/leg_pool.schema.json",
+                 "scripts/period_operator.py"):
         assert path in NFL_PRODUCER_FILES
     for name in ("generation_semantic_gate", "capture_final_participation", "shadow_participation_guard",
                  "build_leg_pool", "build_weekly", "build_predictions", "availability",
