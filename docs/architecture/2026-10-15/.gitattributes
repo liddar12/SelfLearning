@@ -1,0 +1,2 @@
+# PDF cross-reference records have fixed-width trailing spaces; treat artifacts as binary.
+*.pdf binary

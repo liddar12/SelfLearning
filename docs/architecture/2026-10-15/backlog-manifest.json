@@ -1,0 +1,11 @@
+{
+  "revision": "R1",
+  "evidenceTime": "2026-10-15 15:19 CDT (America/Chicago)",
+  "generated": "October 15, 2026 at 3:44 PM America/Chicago",
+  "epics": 12,
+  "features": 31,
+  "stories": 31,
+  "tasks": 93,
+  "acceptance_criteria": 92,
+  "dependency_dag_valid": true
+}

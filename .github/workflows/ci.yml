@@ -7,6 +7,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: selflearn-core (pytest)
@@ -25,3 +28,110 @@ jobs:
         run: python -m pytest -q
       - name: Walk-forward demo smoke (synthetic, must run clean)
         run: python -m examples.walkforward_demo
+
+  hosted:
+    name: hosted boundaries (local fakes; no cloud writes)
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: packages/selflearn-core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked hosted runtime and test runner
+        run: python -m pip install -r requirements.txt 'pytest>=8.0'
+      - name: Check dependency consistency
+        run: python -m pip check
+      - name: Test hosted authorization, persistence contracts and test tooling
+        run: python -m pytest tests packages/selflearn-core/tests/test_supabase_store.py --ignore=tests/postgres -q -rs
+      - name: Declare independent release evidence still required
+        run: >-
+          echo 'This job uses no cloud credentials. Actual NFL producer/exporter tests
+          require an explicit NFL2026_CHECKOUT and remain a separate cross-repository
+          release check until both local checkpoints are published and pinned.
+          Skipped integration tests are not hosted production verification.'
+
+  native-postgres:
+    name: native PostgreSQL 17 transaction gate (disposable; no cloud writes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: selflearn_journal_test
+          # This credential exists only inside the disposable CI service.
+          POSTGRES_PASSWORD: selflearn_journal_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d selflearn_journal_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      SELFLEARN_NATIVE_PG_DSN: postgresql://postgres:selflearn_journal_test_only@127.0.0.1:5432/selflearn_journal_test
+      # Missing DSN/client must fail CI, never yield a green skipped native gate.
+      SELFLEARN_REQUIRE_NATIVE_PG: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ensure native PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes postgresql-client
+          fi
+          psql --version
+      - name: Run actual separate-connection receipt journal concurrency tests
+        run: python -m unittest discover -s tests/postgres -p test_native_concurrency.py -v
+      - name: Declare the deployment boundary
+        run: >-
+          echo 'This gate applies only the receipt journal migration to a fresh local
+          PostgreSQL 17 service. Native transaction evidence is not a hosted
+          Supabase/PostgREST round trip or authorization to deploy or adopt models.'
+
+  native-observed-postgres:
+    name: native observed journal CAS gate (fresh database; no cloud writes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: selflearn_journal_test
+          POSTGRES_PASSWORD: selflearn_journal_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d selflearn_journal_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      SELFLEARN_NATIVE_PG_DSN: postgresql://postgres:selflearn_journal_test_only@127.0.0.1:5432/selflearn_journal_test
+      SELFLEARN_REQUIRE_NATIVE_PG: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ensure native PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes postgresql-client
+          fi
+          psql --version
+      - name: Run observed index and atomic outcome transaction tests
+        run: python -m unittest discover -s tests/postgres -p test_native_observed_concurrency.py -v
+      - name: Declare the independent hosted boundary
+        run: >-
+          echo 'This independent fresh database applies both journal migrations.
+          Native CAS evidence does not verify hosted grants/PostgREST, public
+          outcome transport, production release or model activation.'

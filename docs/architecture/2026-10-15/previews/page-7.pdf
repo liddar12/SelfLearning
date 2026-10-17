@@ -1,0 +1,97 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [6 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 6213 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Acceptance gates and the owner's next actions) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (The architecture becomes real only when the complete round trip is demonstrated on exact, reproducible revisions.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 432 517.5 222 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 654 m 553.5 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 626.00 Tm (Required end-to-end evidence) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 599.40 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 599.40 Tm (Pending receipt captured before kickoff, independently of display IDs.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 574.50 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 574.50 Tm (Commit ACK -> exact retry no-op -> conflict rejected.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 549.60 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 549.60 Tm (FINAL correction linked to the exact persisted envelope.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 524.70 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 524.70 Tm (NFL/engine identical cohort and served-score parity.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 499.80 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 499.80 Tm (Earlier-base fit -> shadow candidate -> incompatible return rejected.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 474.90 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 474.90 Tm (Approved future artifact applied once -> second cycle ->) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 65.00 456.00 Tm (outage/rollback.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 568.5 432 517.5 222 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 568.5 654 m 1086 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 626.00 Tm (Your remaining actions) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 599.40 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 599.40 Tm (No new operator-token setup; keep secret values out of chat.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 574.50 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 574.50 Tm (If convenient, confirm SUPABASE_URL and a supported backend secret key) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 555.60 Tm (are configured; they may already exist.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 530.70 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 530.70 Tm (Approve reviewed migration and release only after test evidence.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 505.80 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 505.80 Tm (Later choose portfolio tradeoff and any candidate activation.) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 480.90 Tm (-) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 597.50 480.90 Tm (No new paid provider or automatic promotion is needed to start.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 284 340 136 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 420 m 376 420 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 392.00 Tm (Current verified foundation) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 365.40 Tm (Supabase project + 4 RLS-enabled tables;) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 346.50 Tm (migration history and advisor results. Operator) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 327.60 Tm (token present per owner.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 391 284 340 136 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 391 420 m 731 420 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 392.00 Tm (Current limits) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 365.40 Tm (Hosted end-to-end auth/DB round trip) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 346.50 Tm (unverified. Helper grants need review; migration) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 406.00 327.60 Tm (IDs differ. Remote checks are restricted here.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 746 284 340 136 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 746 420 m 1086 420 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 392.00 Tm (Local implementation evidence) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 365.40 Tm (Producer-parity and journal tests passed) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 346.50 Tm (locally. This is not hosted persistence,) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 327.60 Tm (production ingestion, candidate adoption or) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 761.00 308.70 Tm (proven accuracy gain.) Tj ET
+q 0.9176 0.9569 0.9608 rg 0.9176 0.9569 0.9608 RG 1 w 36 210 1050 62 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 272 m 36 210 l S Q
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 248.00 Tm (Source package: TECHNICAL_PLAN.md / BACKLOG.md / CSV / backlog-source.mjs / render.mjs / editable architecture.html. 12 epics / 31 stories / 93 tasks / 92) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 229.10 Tm (acceptance criteria.) Tj ET
+BT /F1 12 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 186.00 Tm (Primary references: vercel.com/docs/frameworks/backend/fastapi / supabase.com/docs/guides/api/securing-your-api / GitHub scheduled-workflow docs. Technical plan links exact source) Tj ET
+BT /F1 12 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 169.80 Tm (baselines and evidence.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (7 / 7) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000260 00000 n 
+0000006525 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+6662
+%%EOF

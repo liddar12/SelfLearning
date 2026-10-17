@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "observed_utc": "2026-10-16T17:01:14Z",
+  "observed_chicago": "2026-10-16T12:01:14-05:00",
+  "source": "Authenticated read-only GitHub main branch endpoints",
+  "repositories": {
+    "liddar12/NFL2026": {"main": "45b3cac4a0356b7e91b11121265ae1b84067fe93", "committed_utc": "2026-10-16T14:49:41Z", "subject": "data: daily pipeline refresh [skip actions]"},
+    "liddar12/SelfLearning": {"main": "aa5bbaeddca4138399a21c1894b4aed4bacb52b4", "committed_utc": "2026-09-09T00:34:09Z", "subject": "S1: sports task contract — five task shapes, validators, JSON schemas, docs (#9)"}
+  },
+  "unchanged_since_1029_CDT_check": true,
+  "mutations": false,
+  "shell_fetch_or_merge": false,
+  "deployment_verified": false,
+  "publication_authorized": false
+}

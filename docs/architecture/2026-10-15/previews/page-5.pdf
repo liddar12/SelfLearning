@@ -1,0 +1,90 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [6 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 5280 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Operator and chat journeys) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (User action -> implementation -> visible result -> observable acceptance. Mobile dashboard is the fallback if chat cannot handle images.) Tj ET
+q 0.9569 0.9725 0.9804 rg 0.9569 0.9725 0.9804 RG 1 w 36 557 1050 97 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 654 m 36 557 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 630.00 Tm (1  /  Is learning actually connected?) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 606.00 Tm (Open status) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 298.25 606.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 308.25 606.00 Tm (Authenticated API + DB check) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 554.50 606.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 564.50 606.00 Tm (SHA, durable ingest, job age) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 810.75 606.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 820.75 606.00 Tm (UI-01 / OPS-03) Tj ET
+BT /F1 13 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 582.00 Tm (Empty, stale and unauthorized states have recovery guidance. MCP connected alone never displays "learning active".) Tj ET
+q 0.9569 0.9725 0.9804 rg 0.9569 0.9725 0.9804 RG 1 w 36 450 1050 97 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 547 m 36 450 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 523.00 Tm (2  /  Why this prediction or losing parlay?) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 499.00 Tm (Select receipt/card) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 298.25 499.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 308.25 499.00 Tm (Canonical trace + cohort) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 554.50 499.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 564.50 499.00 Tm (Source, versions, exposure) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 810.75 499.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 820.75 499.00 Tm (EVAL-01 / PORTFOLIO-02) Tj ET
+BT /F1 13 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 475.00 Tm (Show generated/public, pending/FINAL, original/reduced settlement and shared-loss blast radius without changing the original bet.) Tj ET
+q 0.9569 0.9725 0.9804 rg 0.9569 0.9725 0.9804 RG 1 w 36 343 1050 97 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 440 m 36 343 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 416.00 Tm (3  /  Analyze my screenshot) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 392.00 Tm (Private upload) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 298.25 392.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 308.25 392.00 Tm (Draft parse + confirm IDs) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 554.50 392.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 564.50 392.00 Tm (Joined ticket + uncertainty) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 810.75 392.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 820.75 392.00 Tm (INTAKE-01/02/03) Tj ET
+BT /F1 13 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 368.00 Tm (Ambiguous game/player/line stays unresolved. Parsed text is untrusted; it cannot create verified publication or a FINAL label.) Tj ET
+q 0.9569 0.9725 0.9804 rg 0.9569 0.9725 0.9804 RG 1 w 36 236 1050 97 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 333 m 36 236 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 309.00 Tm (4  /  Should we use this improvement?) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 285.00 Tm (Compare candidate) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 298.25 285.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 308.25 285.00 Tm (Pinned held-out evaluation) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 554.50 285.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 564.50 285.00 Tm (Hold reason or approval review) Tj ET
+BT /F2 14 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 810.75 285.00 Tm (>) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 820.75 285.00 Tm (PROMOTE-01 / RETURN-02) Tj ET
+BT /F1 13 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 261.00 Tm (Read-only MCP tools inspect evidence. Approval is a separate authorized action; active version means consumed by NFL, not latest proposed.) Tj ET
+q 0.9176 0.9569 0.9608 rg 0.9176 0.9569 0.9608 RG 1 w 36 164 1050 62 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 226 m 36 164 l S Q
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 202.00 Tm (Questions are not automatically training data. Objective predictions need a defined horizon and authoritative outcome. Subjective approval stays review) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 183.10 Tm (feedback, not truth.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (5 / 7) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000260 00000 n 
+0000005592 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+5729
+%%EOF

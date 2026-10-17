@@ -1,0 +1,102 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [6 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 6245 >>
+stream
+q 1.0000 1.0000 1.0000 rg 1.0000 1.0000 1.0000 RG 0 w 0 0 1122 793 re B Q
+BT /F2 12 Tf 0.1922 0.4863 0.5137 rg 1 0 0 1 36.00 754.00 Tm (J5L  /  SelfLearning and NFL2026  /  R1) Tj ET
+BT /F2 29 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 36.00 718.00 Tm (Parallel team and implementation roadmap) Tj ET
+BT /F1 16 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 690.00 Tm (Four execution slots in this session. Speed comes from disjoint ownership and frozen contracts, not skipping evidence or review.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 36 537 251.25 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 36 654 m 287.25 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 626.00 Tm (Coordinator) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 599.40 Tm (Architecture, contract) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 580.50 Tm (ownership, integration manifest,) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 51.00 561.60 Tm (one owner question when needed.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 302.25 537 251.25 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 302.25 654 m 553.5 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 317.25 626.00 Tm (NFL lane) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 317.25 599.40 Tm (Eligibility, generation journal,) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 317.25 580.50 Tm (publisher gate, exporter and) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 317.25 561.60 Tm (approved consumer.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 568.5 537 251.25 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 568.5 654 m 819.75 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 626.00 Tm (Engine lane) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 599.40 Tm (Adapters, authenticated API,) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 580.50 Tm (durable store, revisions and) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 583.50 561.60 Tm (migration proposal.) Tj ET
+q 0.9647 0.9765 0.9843 rg 0.7882 0.8471 0.8745 RG 1 w 834.75 537 251.25 117 re B Q
+q 0.1922 0.4863 0.5137 RG 3 w 834.75 654 m 1086 654 l S Q
+BT /F2 16 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 849.75 626.00 Tm (Evaluation / UX lane) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 849.75 599.40 Tm (Cohorts, replay, metrics and) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 849.75 580.50 Tm (operator views; independent QA) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 849.75 561.60 Tm (rotates into a freed slot.) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 478 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 525 m 36 478 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 503.00 Tm (M0 / Foundation) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 503.00 Tm (Reproducible source, schema and scoped credentials) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 503.00 Tm (1-2 engineer-days) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 424 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 471 m 36 424 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 449.00 Tm (M1 / Prospective capture) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 449.00 Tm (Journal before dedupe, exact generation gate) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 449.00 Tm (2-3 days) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 370 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 417 m 36 370 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 395.00 Tm (M2 / Durable shadow loop) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 395.00 Tm (API, outbox/ACK, persistence, FINAL revisions) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 395.00 Tm (3-4 days) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 316 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 363 m 36 316 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 341.00 Tm (M3 / Evaluation and return) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 341.00 Tm (Parity, typed artifact, independent NFL gates) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 341.00 Tm (3-5 days) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 262 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 309 m 36 262 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 287.00 Tm (M4 / Operator and NFL work) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 287.00 Tm (R130, portfolio, R127/weather shadow, MCP/status) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 287.00 Tm (2-4 days; overlaps) Tj ET
+q 1.0000 1.0000 1.0000 rg 0.7882 0.8471 0.8745 RG 1 w 36 208 1050 47 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 255 m 36 208 l S Q
+BT /F2 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 48.00 233.00 Tm (M5 / M6 / Adopt then extend) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 271.00 233.00 Tm (Evidence + owner approval; one domain pilot at a time) Tj ET
+BT /F1 14 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 891.00 233.00 Tm (Observation time extra) Tj ET
+q 0.9176 0.9569 0.9608 rg 0.9176 0.9569 0.9608 RG 1 w 36 134 1050 62 re B Q
+q 0.1922 0.4863 0.5137 RG 4 w 36 196 m 36 134 l S Q
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 172.00 Tm (Supported MY shadow-to-controlled-return build: roughly 10-18 engineer-days with overlap. Broad screenshot understanding and real) Tj ET
+BT /F1 14 Tf 0.0902 0.1882 0.2667 rg 1 0 0 1 52.00 153.10 Tm (financial/F1/soccer/NCAA/election adapters are additional scope. No same-day accuracy promise.) Tj ET
+BT /F1 12 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 110.00 Tm (Claude Code is the proposed release coordinator per NFL workflow, not a live connected agent here. Exact SHA handoffs and independent tests connect the sessions. Owner authorizes) Tj ET
+BT /F1 12 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 93.80 Tm (production migrations, deploys and activation.) Tj ET
+q 0.7882 0.8471 0.8745 RG 1 w 36 34 m 1086 34 l S Q
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 36.00 17.00 Tm (R1  /  October 15, 2026 at 3:44 PM America/Chicago  /  Proposed design unless marked verified) Tj ET
+BT /F1 10 Tf 0.3137 0.3961 0.4510 rg 1 0 0 1 1055.00 17.00 Tm (6 / 7) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1122 793] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000185 00000 n 
+0000000260 00000 n 
+0000006557 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+6694
+%%EOF
