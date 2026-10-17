@@ -2,7 +2,44 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Corrected MY status and history regression
+## Actual MY generation full regression
+
+October 16, **11:41 p.m. CDT**. Frozen engine
+`7d675f4cbee6a9d0ed9eb72222440516f2cf6bed` / NFL
+`3905b1fb98ec6473ab7f6bbdc642c34424ab26e4` finish exit **0**:
+**2,543 NFL features pass**, zero failed/skipped, contracts/smoke/four model
+gates; browser 8 skips. **1,379 core/API pass**, zero skips; **49/49 critical
+engine files >90%**, **8,551/8,862 = 96.4906%** lines, stable source/test/tool/
+heads and 44 NFL source hashes. [Report](../../reviews/2026-10-16-critical49-period-MY-downstream-coverage.json).
+Generated 11:41:27 p.m. CDT. Coverage is engine-only; the new MY module has no
+separately measured line coverage.
+
+NFL log `/private/tmp/nfl-period-MY-downstream-full-gate-root-20261016.log`,
+SHA256 `ef8846a536a570308f99ee8321ebbfa4b76a1c30aed733e68f3c9a9ec9a08503`;
+engine log `/private/tmp/selflearning-critical49-period-MY-downstream-root-20261016.log`,
+SHA256 `95a658b74a1b11c8909a1dc339a165a042f2aa255e37dda81ee710f2483c71fc`.
+
+This pair covers the original-writer/downstream code below and the real weekly
+prediction shape correction: actual `week_game_rows`, schema validation and
+explicit null/conflicting status refusal. The 33-check focused log SHA256 is
+`7a7eeb0005253d54904d62189e8f63163cede4f37662023e44842b273697a952`.
+New exact-commit MY composition remains outside this full measurement. Its
+first exploratory run correctly refused a trusted-source change made during
+the test; preserve the red log rather than call it a product pass. The frozen
+rerun passes two scenarios, including eight real-Git negatives and eight final
+clock refusals. The final `dd6ef72f`/`264b9a59` source adds the explicit operator
+CLI, trusted exclusion/inventory checks and early refusal before the real frozen
+refit. Three related tests pass, zero failures/skips, with ten real-Git/during-
+replay negatives and the same eight final-clock refusals. Log
+`/private/tmp/nfl-period-MY-committed-output-r3-root-20261016.log`, SHA256
+`200a4578137fce1538e48ea940fc6f5e4c5238a4f37543f850472f343f919557`.
+Its 80.7-second duration and the earlier CLI version's 123.5 seconds are single
+local runs, not a controlled performance benchmark. Engine `bed79e1` pins 45 NFL
+files; 32 tool/ledger tests pass separately. The new full pair is still required.
+No final upstream eligibility, authenticated operator, browser or live release
+acceptance is inferred.
+
+## Earlier corrected MY status and history regression
 
 October 16, **11:22 p.m. CDT**. Frozen engine
 `bdf056459f0737b021d2b1736268662069e4e466` / NFL
