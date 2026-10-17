@@ -2,7 +2,36 @@
 
 Revision 1. October 15, 2026, America/Chicago. This verifies the planning package and bounded local implementation. It does not establish a deployed backend, complete historical backtest, passing browser release gate or accuracy improvement.
 
-## Generic file owner journal October 16 9:13 p.m. CDT
+## Local period consumer October 16 9:50 p.m. CDT
+
+Frozen engine `74a31a63b82e68ae94c7c5acb2260f79fc556af3` and NFL
+`5c11a6af74ae692faafdd4e86b32c599962b5d98` both finish exit **0**.
+**1,379 core/API tests pass**, zero skips; **49/49 critical files >90%**,
+**8,551/8,862 = 96.4906%** executable lines, minimum 90.6114%. Source, test,
+tool and both heads stay stable. The file owner port reaches 179/179 lines;
+36 NFL provenance files are pinned. [Exact report](../../reviews/2026-10-16-critical49-period-return-coverage.json)
+was generated at **9:49:37 p.m. CDT**. This is line coverage, not branch or
+statistical/live acceptance. The existing dependency warning remains.
+
+NFL passes **2,496 feature tests**, zero failures/skips, contracts, smoke and
+four model gates; browser step 8 skips because Playwright is absent. Three new
+tests cover the actual synthetic producer/raw-grader/fitter return flow,
+repeated candidate A, separately approved B, compatible rollback, two feedback
+cycles, 21 refusal cases, interrupted-write recovery and publication refusal in
+a real temporary bare-Git origin. This proves local mechanics, not historical
+NFL accuracy, public offering, operator authentication or Netlify serving.
+
+Logs: `/private/tmp/selflearning-critical49-period-return-root-20261016.log`
+(SHA256 `40aefdde91f88e123f0951d9637f1ea524689bd5710ae6eee11ac773a0f8a0b3`)
+and `/private/tmp/nfl-period-return-full-gate-root-20261016.log`
+(SHA256 `19088a4eb41a4ca625880698d51e0cb680fa04c82095f28912e60ceb7f6ecbde`).
+Separate ledger/coverage-tool tests pass 32/32, exit 0, outside core/API counts.
+No SQL rerun is claimed for these file-only changes; previous SQL evidence keeps
+its original scope. Final publication, pipeline/operator activation, UI version/
+expiry and browser/live checks remain. S015-T2 moves open to partial: **50/99
+complete, 36 partial, 13 open**. No actual model approval, push or deployment.
+
+## Earlier generic file owner journal October 16 9:13 p.m. CDT
 
 Engine `19a80d9edf67bbf4d8da10edcbd702435b3b31b4`, NFL dependency
 `7808de815f5b17a20b12c920b44d8deac8d71ceb`: full run finishes exit **0**,

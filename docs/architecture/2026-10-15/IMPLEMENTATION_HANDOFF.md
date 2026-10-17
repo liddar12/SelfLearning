@@ -1,7 +1,7 @@
 # SelfLearning and NFL2026 implementation handoff
 
 Revision 1 design, implementation follow-up October 16, 2026,
-9:13 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
+9:50 p.m. CDT (America/Chicago). Read TECHNICAL_PLAN.md and BACKLOG.md before
 assigning work. No production push, merge, database write, deployment or
 promotion is authorized by this handoff. The generated R1 backlog is the
 planning baseline; the progress table below supersedes its older status text.
@@ -148,9 +148,9 @@ pins NFL `7808de81`. NFL source is unchanged; its latest full result remains
 No new SQL/native/hosted or browser run is claimed by this file-only addition.
 
 This is local persistence of intent, not authenticated operator approval,
-survival of a new runner without Git publication, or model consumption. The v2
-NFL period scope, evidence lookup/composition, actual future-generation
-consumer, controlled publication and two-cycle rollback remain required. Keep
+survival of a new runner without Git publication, or model consumption. The local
+v2 consumer below adds scope, evidence composition and two-cycle application/
+rollback; controlled publication and release remain required. Keep
 v1 DTOs/diagnostic holds unchanged; do not turn their false activation flags
 true to manufacture integration. See [owner-journal behavior](OWNER_INTENT_JOURNAL.md).
 S015-T1 remains partial, with no additional whole-task credit.
@@ -158,6 +158,54 @@ The local data snapshot has zero new-format learning journals. New production
 generations must create real records; old card archives cannot substitute.
 Expect a correct HOLD when sufficient multiweek evidence is unavailable.
 NFL's `docs/PARLAY_FEEDBACK_PILOT.md` carries operator/release instructions.
+
+### Local period consumer October 16 9:50 p.m. CDT
+
+Engine `405a84f` composes the generic file owner port with independently checked
+immutable-object lookup. Sixteen file-port/composition tests pass; the existing
+v1 NFL evidence diagnostic still holds adoption. Engine `74a31a6` adds the new
+NFL consumer to the fixed provenance inventory, now 36 files.
+
+NFL `5c11a6af74ae692faafdd4e86b32c599962b5d98` implements the separate v2
+Week 6 scope and an explicit trusted-local-operator consumer through the actual
+`build_leg_pool` producer. It stages/reexecutes frozen raw/forecast evidence,
+checks the existing candidate gate and pins, applies the fixed transform once,
+and stamps new receipts. Repeat refreshes, separately approved B, rollback A,
+two feedback cycles, 21 refusal cases and local interrupted-write recovery pass
+in two scenario tests. A separate real bare-Git test confirms publication holds
+even if working control files disappear after commit. Revocation can be recorded
+without old raw history, fitter or healthy pool; replacement generation still
+needs verified sources/state. Synthetic data is not an NFL accuracy backtest.
+
+The full `5c11a6af`/`74a31a6` regressions finish exit **0**: **2,496 NFL feature
+tests pass**, zero failed/skipped, contracts/smoke/four model gates, browser 8
+skipped; **1,379 core/API pass**, zero skips, **49/49 critical files >90%**,
+stable **96.4906%** executable lines. [Paired report](../../reviews/2026-10-16-critical49-period-return-coverage.json).
+No candidate or release was approved. S015-T2 moves open → partial; total
+remains **50/99**, with 36 partial and 13 open.
+
+Next implementation order:
+
+1. Retain exact original new-generation input bytes and application lineage;
+   validate the final committed tree after rebase/fallback against the current
+   owner head, incumbent, candidate, source freshness, expiry and game cutoffs.
+   Preserve v1 semantics and eligibility gates; do not remove their holds or
+   accept a supplied PASS report to make v2 publishable.
+2. Treat all control evidence/events/applications/pools as immutable history;
+   owner-head/current conflicts must hold, never use generic regenerable-file
+   conflict resolution. A Git push race must cause a fresh final-tree check.
+3. Add the explicit operator and optional pipeline path, visible effective
+   version/expiry and outage/revocation states, then verify MY downstream cards
+   and preserved old history through the actual publication flow.
+4. Reconcile newest main/data, run one full gate and browser cases, then request
+   release authority and verify a fresh Actions generation/Netlify content.
+
+The existing MY gate evaluates the retrospective refitting policy; the local
+operator must acknowledge that limitation. It is not prospective proof of the
+fixed artifact and does not create a new mandatory two-week MY waiting rule.
+R127 and weather retain their separate shadow/promotion rules. The controller
+does not refit on real Week 5/TNF outcomes. All production/default paths remain
+off, and the publisher explicitly refuses v2 records until its gate exists.
 
 ### Original overnight target
 

@@ -1,10 +1,39 @@
 # Owner-intent journal — local implementation boundary
 
-Revision 5 · October 16, 2026, 9:13 p.m. America/Chicago (CDT).
+Revision 6 · October 16, 2026, 9:50 p.m. America/Chicago (CDT).
 
 This additive journal records an operator's intent. It does **not** approve a
 statistical conclusion, activate an NFL calibrator or change serving. Local
 implementation and tests do not establish a deployed Supabase connection.
+
+## Local NFL consumer follow up
+
+Engine `405a84f` adds a ReceiptJournal-compatible `get_object` to the file port.
+It independently verifies bounded exact evidence bytes, object identity and
+receipt time, and returns a detached document. A real synthetic 330-receipt
+composition test runs the existing NFL evidence reader/fitter; its v1 diagnostic
+still holds adoption and preserves all false activation flags. Sixteen file-port
+and composition tests pass, exit 0.
+
+NFL `5c11a6af` adds a separate v2 Week 6 scope and actual local producer consumer.
+It reexecutes saved raw/frozen evidence before applying an explicitly approved
+fixed candidate, stamps new receipts, supports repeated future refreshes and
+explicit compatible rollback, and preserves old forecasts. Revocation does not
+need the old fitter/raw history or a healthy current pool. Two real-producer
+scenario tests, including 21 refusal cases, pass; a separate real local Git test
+holds publication until the exact-tree v2 semantic gate exists.
+
+This is trusted-local-operator integration, not authenticated hosted approval,
+public serving or accuracy evidence. Production/default workflow activation,
+final Git publication/conflict handling, UI effective version/expiry and browser/
+fresh-pipeline acceptance remain incomplete. Engine `74a31a6` pins 36 NFL
+provenance files, including the new consumer. The full frozen pair with NFL
+`5c11a6af` finishes exit **0**: **1,379 core/API pass**, zero skips,
+**49/49 critical files >90%**, stable **96.4906%** executable lines; file port
+179/179. NFL passes **2,496 features**, zero failures/skips, contracts/smoke/four
+model gates; browser step 8 skips. [Report](../../reviews/2026-10-16-critical49-period-return-coverage.json).
+The earlier full measurements below retain their exact revisions. S015 remains
+partial; whole-task credit stays 50/99.
 
 ## Repository compatible file persistence
 
@@ -31,8 +60,8 @@ survival of a new Actions runner, a Git push, hosted storage or current approval
 The caller must publish the complete files through the controlled data pipeline.
 File ownership is part of the trusted boundary; hashes are not an authenticated
 operator signature or protection from a privileged writer restoring an old
-valid head. Domain binding, latest-authority/publication checks, the actual NFL
-consumer and authenticated approval workflow remain separate work.
+valid head. The local NFL consumer adds domain binding separately; publication
+and authenticated approval workflow remain separate work.
 
 Limits retain 256 events and the existing roughly 3 MiB complete-history budget;
 events are at most 128 KiB plus 4 KiB framing. Evidence is bounded to 128 MiB per

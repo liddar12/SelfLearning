@@ -2,7 +2,7 @@
 
 Revision 1, October 15, 2026, America/Chicago. The export timestamp appears on every visual page. Prepared for owner review and Claude Code implementation handoff.
 
-Implementation status updated October 16, 2026, 9:13 p.m. CDT: use the
+Implementation status updated October 16, 2026, 9:50 p.m. CDT: use the
 implementation handoff for later code/test evidence. The synchronized R1 PDF
 and its editable visual source remain the design snapshot; they are not a
 claim that proposed components are deployed.
@@ -12,7 +12,7 @@ The owner selected **A, NFL Actions first**, for the **Sunday, October 18,
 → shared evaluation path passes its corrected full regression runs. This uses
 pinned shared Python code and existing Netlify/Actions, without making new
 Supabase migrations or Vercel access a Sunday prerequisite. Actual future-model
-adoption/rollback, complete status/exposure and live acceptance remain unfinished. The
+publication/activation, complete status/exposure and live acceptance remain unfinished. The
 full hosted architecture below remains the follow-on plan.
 
 Use the existing Vercel Python backend and Supabase project, preserve NFL2026's Netlify PWA, and build a durable shadow learning loop before activating any candidate. The Production operator token is already configured per the owner; no replacement token or recreation of the production project is needed. The new journal still requires a reviewed migration, and isolated staging needs its own database/project and credentials before hosted testing.
@@ -36,6 +36,20 @@ No additional `SELFLEARN_OPERATOR_TOKEN` setup is needed. If convenient, confirm
 The implementation team should perform the authenticated API/database test, reconcile migration history, create narrow pipeline credentials and prepare the reviewed release. A separate `SELFLEARN_NFL_INGEST_TOKEN` is needed for the Vercel verifier and NFL GitHub Actions when delivery is enabled; never reuse the operator token. The new journal selector is an explicit rollout switch, not a setting to enable before migration/release checks. The owner remains the authority for production migrations/deployment, changing the portfolio objective and model activation. The plan does not require buying another provider or enabling automatic promotion.
 
 ## Current local pilot checkpoint October 16 2:41 p.m. CDT
+
+Local consumer follow-up **9:50 p.m. CDT**: NFL `5c11a6af` applies a separately
+approved fixed Week 6 candidate through the actual producer, rechecking frozen
+evidence and stamping new receipts. Repeat refresh, distinct B approval,
+rollback, two feedback cycles, 21 refusal cases and interrupted-write recovery
+pass locally. Publication is explicitly held until the v2 exact-tree gate is
+finished. Engine `405a84f` composes file evidence lookup; 16 related tests pass.
+The full pair with provenance checkpoint `74a31a6` finishes exit **0**:
+**2,496 NFL features pass** plus contracts/smoke/four model gates, browser 8
+skipped; **1,379 core/API pass**, zero skips, **49/49 critical files >90%**,
+stable **96.4906%** executable lines. [Report](../../reviews/2026-10-16-critical49-period-return-coverage.json).
+Operator/pipeline, UI expiry/version, browser and live acceptance remain; no actual candidate or
+release approval, push, deployment or accuracy gain. S015 stays partial and
+whole-task completion remains 50/99.
 
 Owner-persistence follow-up **9:13 p.m. CDT**: engine `19a80d9` adds canonical
 file-backed generic owner intents, restart/lock/revocation/rollback-intent and

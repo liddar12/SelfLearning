@@ -1,6 +1,6 @@
 # Overnight implementation checkpoint — ongoing
 
-Revision 13 · October 16, 2026, 9:13 p.m. America/Chicago (CDT).
+Revision 14 · October 16, 2026, 9:50 p.m. America/Chicago (CDT).
 Requested target: October 16, 2026, 7:00 a.m. CDT; **not met**.
 
 This is local branch work, not a production release or an accuracy claim.
@@ -16,6 +16,29 @@ No partial work is counted as complete;
 story acceptance, production readiness and accuracy remain separate measures.
 
 ## Latest follow-up
+
+NFL `5c11a6af` adds the actual local fixed-candidate Week 6 consumer through
+`build_leg_pool`: reexecuted frozen evidence, explicit exact-candidate approval,
+once-only base correction and receipt stamps, repeat refresh, separately
+approved B, rollback A, two feedback cycles and interrupted-write recovery.
+Two scenario tests pass with 21 rejection cases; a separate real temporary Git
+publisher test passes by refusing v2 control records until the new exact-tree
+semantic gate is finished. Revocation no longer needs old raw evidence/fitter
+or a healthy pool to record a stop. Synthetic tests do not establish live
+accuracy. Engine `405a84f` provides checked evidence lookup; 16 related tests
+pass, and `74a31a6` pins 36 NFL source files. The paired full regressions finish
+exit **0**: **2,496 NFL features pass**, zero failed/skipped, contracts/smoke/four
+model gates; browser step 8 skips. **1,379 core/API pass**, zero skips;
+**49/49 critical files >90%**, stable **96.4906%** executable lines, file port
+179/179. [Evidence](../../reviews/2026-10-16-critical49-period-return-coverage.json).
+
+Final Git publication/conflict handling, explicit operator/pipeline activation,
+UI effective-version/expiry and browser/fresh-pipeline/live acceptance remain.
+S015-T2 moves open to partial: **50 complete, 36 partial, 13 open of 99**.
+No whole-task credit, actual model approval, push or deployment. The scope
+approval applies only to how a separately approved candidate can be reused.
+
+## Earlier follow-up 9:13 p.m. CDT
 
 Engine `19a80d9` adds real file-backed generic owner-intent persistence for the
 Actions-first route. Immutable events, namespace head/lock, complete history,
