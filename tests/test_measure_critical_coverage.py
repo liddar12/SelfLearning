@@ -101,7 +101,13 @@ def test_v2_and_independent_comparator_are_not_excluded_from_critical_inventory(
     assert "scripts/build_review_parity.py" in NFL_PRODUCER_FILES
     assert "scripts/materialize_calibrator.py" in NFL_PRODUCER_FILES
     assert "scripts/build_review.py" in NFL_PRODUCER_FILES
-    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 48
+    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 60
+    for path in ('scripts/my_freshness.py', 'scripts/period_publication_gate.py',
+                 'scripts/run_my_generation.py', 'app/views/mybets.js',
+                 '.github/workflows/daily.yml', '.github/workflows/gameday.yml', '.github/workflows/ci.yml',
+                 '.github/workflows/data-ci.yml', 'scripts/pilot_config.py', 'scripts/publish_my_generation.py',
+                 'config/selflearning_pilot.json', 'scripts/selected_my_publication_gate.py'):
+        assert path in NFL_PRODUCER_FILES
     for path in ("scripts/learning_history_guard.py", "app/pool-learning-status.js",
                  "app/views/myparlays.js", "app/theme.css", "data/contracts/leg_pool.schema.json",
                  "scripts/period_operator.py", "scripts/period_my_generation.py", "scripts/period_my_commit_replay.py",

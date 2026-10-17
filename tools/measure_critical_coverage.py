@@ -98,7 +98,13 @@ NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.
                       "app/views/myparlays.js", "app/theme.css", "data/contracts/leg_pool.schema.json",
                       "scripts/period_operator.py", "scripts/period_my_generation.py",
                       "scripts/period_my_commit_replay.py", "scripts/period_source_eligibility.py",
-                      "scripts/scrape/espn.py", "scripts/period_freshness_policy.py")
+                      "scripts/scrape/espn.py", "scripts/period_freshness_policy.py",
+                      "scripts/my_freshness.py", "scripts/period_publication_gate.py",
+                      "scripts/run_my_generation.py", "app/views/mybets.js",
+                      ".github/workflows/daily.yml", ".github/workflows/gameday.yml",
+                      ".github/workflows/ci.yml", ".github/workflows/data-ci.yml",
+                      "scripts/pilot_config.py", "scripts/publish_my_generation.py",
+                      "config/selflearning_pilot.json", "scripts/selected_my_publication_gate.py")
 
 
 class CriticalTrace(trace.Trace):
