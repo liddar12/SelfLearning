@@ -14,6 +14,8 @@ jobs:
   test:
     name: selflearn-core (pytest)
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     defaults:
       run:
         working-directory: packages/selflearn-core

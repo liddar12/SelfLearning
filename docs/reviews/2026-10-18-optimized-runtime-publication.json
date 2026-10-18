@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "kind": "optimized_nfl_runtime_local_publication_candidate",
+  "revision": "R1",
+  "recorded_local": "2026-10-18T15:25:00-05:00",
+  "timezone": "America/Chicago",
+  "remote_base_commit": "c1bf3d4773312c99ef0f30563c791525389fd5af",
+  "remote_base_branch": "build/nfl-feedback-runtime-20261015",
+  "source_candidate_commit": "f342cc3b90f83dacea4f2c1645019d6a34d617b2",
+  "selected_code_tree_before_handoff": "f59588195ecc9274629dc03dbf313ef4f8b31380",
+  "package_parity": {
+    "path": "packages/selflearn-core",
+    "tracked_files": 143,
+    "git_tree_sha": "aa1c98fb1ea464f3dced50fbac7f93b243344030",
+    "runtime_tree_sha": "b48d9856d27d8e506c75d525f7fb79ddd4c31dfa",
+    "tests_tree_sha": "c56ab8ed89d63d4a5e30538b39cb40d01cfa3b7a",
+    "comparison": "git diff --cached --quiet f342cc3b90f83dacea4f2c1645019d6a34d617b2 -- packages/selflearn-core tools/measure_critical_coverage.py tests/test_measure_critical_coverage.py .github/workflows/ci.yml",
+    "comparison_exit": 0
+  },
+  "source_components": [
+    ".github/workflows/ci.yml",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_file_feedback.py",
+    "packages/selflearn-core/tests/test_nfl_file_feedback_partitioned.py",
+    "packages/selflearn-core/tests/test_nfl_file_feedback_serialization.py",
+    "tests/test_measure_critical_coverage.py",
+    "tools/measure_critical_coverage.py"
+  ],
+  "verification": {
+    "focused_source_commit": "f342cc3b90f83dacea4f2c1645019d6a34d617b2",
+    "focused": {
+      "passed": 66,
+      "skipped": 1,
+      "failed": 0,
+      "exit": 0,
+      "pytest_seconds": 2.23,
+      "log_local": "/private/tmp/selflearning-serialization-release-focused-20261018.log",
+      "skip": "Actual producer rehearsal needs NFL2026_CHECKOUT"
+    },
+    "consumer_import": {
+      "exit": 0,
+      "mode": "Python -I -S -B; existing NFL consumer exact-SHA engine() loader",
+      "log_local": "/private/tmp/selflearning-serialization-release-import-20261018.log"
+    },
+    "prior_full": {
+      "source": "4dc47fa3dad9721595d19909354fb885213e763d",
+      "passed": 1436,
+      "claim_scope": "Previously measured optimized full suite; candidate runtime and core tests match this source. Not a fresh complete run of this partial publication tree or current NFL selected release.",
+      "report_local": "/Users/jliddar/code/SelfLearning-feedback-runtime/docs/reviews/2026-10-18-row-serialization-full-verification.json"
+    }
+  },
+  "publication": {
+    "published": false,
+    "remote_release_sha": null,
+    "draft_pull_request": null,
+    "ci_state": "not_run_for_this_unpublished_tree",
+    "blocked_action": "github_create_blob",
+    "reason": "MCP tool call requires approval, but approval policy is never",
+    "workarounds_attempted": false
+  },
+  "authorization": {
+    "publish_disabled_code": true,
+    "merge_main": false,
+    "deploy": false,
+    "activate_learning": false,
+    "model_adoption": false
+  },
+  "omitted_from_candidate_changes": [
+    "apps",
+    "services",
+    "public",
+    "supabase/migrations",
+    "generated sports data",
+    "credentials",
+    "private Git fixture history",
+    "large raw coverage logs"
+  ]
+}
