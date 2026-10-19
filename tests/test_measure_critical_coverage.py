@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import os
+import subprocess
 import sys
 import threading
 from types import SimpleNamespace
@@ -11,7 +12,7 @@ import pytest
 
 from tools.measure_critical_coverage import (CRITICAL_FILES, NFL_PRODUCER_FILES,
     CriticalTrace, SuiteResults, executable_lines, summarize_file, suite_sources,
-    main, report_name, write_report)
+    main, measure, report_name, write_report, source_environment)
 
 
 def target(tmp_path):
@@ -101,7 +102,7 @@ def test_v2_and_independent_comparator_are_not_excluded_from_critical_inventory(
     assert "scripts/build_review_parity.py" in NFL_PRODUCER_FILES
     assert "scripts/materialize_calibrator.py" in NFL_PRODUCER_FILES
     assert "scripts/build_review.py" in NFL_PRODUCER_FILES
-    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 61
+    assert len(NFL_PRODUCER_FILES) == len(set(NFL_PRODUCER_FILES)) == 82
     for path in ('scripts/my_freshness.py', 'scripts/period_publication_gate.py',
                  'scripts/run_my_generation.py', 'app/views/mybets.js',
                  '.github/workflows/daily.yml', '.github/workflows/gameday.yml', '.github/workflows/ci.yml',
@@ -124,6 +125,35 @@ def test_v2_and_independent_comparator_are_not_excluded_from_critical_inventory(
     assert "scripts/models/my_cards.py" in NFL_PRODUCER_FILES
     assert "app/views/model.js" in NFL_PRODUCER_FILES
     assert "scripts/publish_data.sh" in NFL_PRODUCER_FILES
+
+
+def test_browser_built_card_freshness_and_resume_sources_are_fingerprinted_not_python_coverage():
+    # Browser serving safety belongs in the source-stability boundary, without
+    # pretending these JavaScript files contribute to Python executable lines.
+    for path in ("app/main.js", "app/views/parlays.js", "app/bet-types.js",
+                 "app/built-card-policy.js"):
+        assert path in NFL_PRODUCER_FILES
+        assert path not in CRITICAL_FILES
+    assert len(CRITICAL_FILES) == len(set(CRITICAL_FILES)) == 49
+
+
+def test_sunday_weather_replay_and_venue_source_boundary_is_not_silently_omitted():
+    # These sources now decide which forecasts/venues can affect a served leg.
+    # Fingerprinting is stability evidence, not Python coverage of NFL code or
+    # proof of a fresh provider response or successful browser interaction.
+    for path in ("scripts/weekly_replay.py", "scripts/weather_source_contract.py",
+                 "scripts/build_weather_forecast.py", "scripts/build_weather_history.py",
+                 "scripts/weather_corpus.py", "scripts/backtest_weather.py",
+                 "scripts/signals/weather.py", "scripts/promote_signals.py",
+                 "scripts/scrape/stadiums.py", "scripts/scrape/renames.py", "scripts/injury_duration.py",
+                 "app/render.js", "app/views/slate.js",
+                 "data/contracts/player_weekly.schema.json",
+                 "data/contracts/weather_forecast.schema.json",
+                 "data/contracts/weather_history.schema.json",
+                 "data/contracts/weather_backtest.schema.json"):
+        assert path in NFL_PRODUCER_FILES
+        assert path not in CRITICAL_FILES
+    assert len(CRITICAL_FILES) == len(set(CRITICAL_FILES)) == 49
 
 
 def test_test_inventory_detects_add_edit_delete_without_hashing_bytecode(tmp_path):
@@ -225,3 +255,89 @@ def test_report_writer_preserves_concurrent_report_change_and_cleans_only_own_te
             write_report(tmp_path, output, {"version": 2})
     assert json.loads(output.read_text()) == {"version": 99}
     assert list(output.parent.iterdir()) == [output]
+
+
+@pytest.mark.parametrize("initial", [None, "", "relative-dependency"])
+def test_python_child_imports_selected_checkout_not_inherited_old_package(tmp_path, monkeypatch, initial):
+    root = tmp_path / "selected"
+    package = root / "packages/selflearn-core/selflearn_core"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text('SOURCE = "selected"\n', encoding="utf-8")
+    old = tmp_path / "old"
+    (old / "selflearn_core").mkdir(parents=True)
+    (old / "selflearn_core/__init__.py").write_text('SOURCE = "old"\n', encoding="utf-8")
+    nfl = tmp_path / "nfl"
+    nfl.mkdir()
+    if initial is None:
+        monkeypatch.delenv("PYTHONPATH", raising=False)
+    else:
+        monkeypatch.setenv("PYTHONPATH", initial)
+    monkeypatch.setenv("NFL2026_CHECKOUT", "prior-nfl")
+    before_cwd, before_path = Path.cwd(), sys.path[:]
+    before_env = {key: os.environ.get(key) for key in ("PYTHONPATH", "NFL2026_CHECKOUT")}
+    with source_environment(root, nfl) as prefixes:
+        assert prefixes == (str(root), str(package.parent))
+        assert sys.path[:2] == list(prefixes)
+        assert os.environ["NFL2026_CHECKOUT"] == str(nfl)
+        inherited = os.environ["PYTHONPATH"]
+        assert inherited.split(os.pathsep)[:2] == list(prefixes)
+        # A real fresh child runs in NFL, where the parent's sys.path edit has
+        # no effect. An old dependency path follows the selected source paths.
+        child_env = {**os.environ, "PYTHONPATH": inherited + os.pathsep + str(old)}
+        child = subprocess.run([sys.executable, "-c", "import json,selflearn_core; "
+            "print(json.dumps([selflearn_core.SOURCE,selflearn_core.__file__]))"],
+            cwd=nfl, env=child_env, text=True, capture_output=True, timeout=10, check=True)
+        source, origin = json.loads(child.stdout)
+        assert source == "selected" and Path(origin) == package / "__init__.py"
+        if initial is not None:
+            assert str(before_cwd / initial) in inherited.split(os.pathsep)
+    assert Path.cwd() == before_cwd and sys.path == before_path
+    assert {key: os.environ.get(key) for key in before_env} == before_env
+
+
+def test_source_context_restores_absent_environment_and_nested_error(tmp_path, monkeypatch):
+    root, nested, nfl = tmp_path / "root", tmp_path / "nested", tmp_path / "nfl"
+    for directory in (root, nested, nfl):
+        directory.mkdir()
+    monkeypatch.delenv("PYTHONPATH", raising=False)
+    monkeypatch.delenv("NFL2026_CHECKOUT", raising=False)
+    before_cwd, before_path = Path.cwd(), sys.path[:]
+    with pytest.raises(RuntimeError, match="test collection failed"):
+        with source_environment(root, nfl):
+            outer_env = {key: os.environ[key] for key in ("PYTHONPATH", "NFL2026_CHECKOUT")}
+            outer_path = sys.path[:]
+            with pytest.raises(LookupError):
+                with source_environment(nested, nfl):
+                    assert Path.cwd() == nested
+                    raise LookupError("nested failure")
+            assert Path.cwd() == root and sys.path == outer_path
+            assert {key: os.environ[key] for key in outer_env} == outer_env
+            raise RuntimeError("test collection failed")
+    assert Path.cwd() == before_cwd and sys.path == before_path
+    assert "PYTHONPATH" not in os.environ and "NFL2026_CHECKOUT" not in os.environ
+
+
+@pytest.mark.parametrize("module", ["selflearn_core", "selflearn_core.adapters.nfl_generation",
+                                    "services.web", "services.web.application"])
+def test_measure_refuses_cached_modules_from_another_checkout_before_tests(tmp_path, module):
+    root, nfl = tmp_path / "selected", tmp_path / "nfl"
+    root.mkdir(); nfl.mkdir()
+    (root / "target.py").write_text("VALUE = 1\n", encoding="utf-8")
+    stale = SimpleNamespace(__file__=str(tmp_path / "old/module.py"))
+    with patch("tools.measure_critical_coverage.CRITICAL_FILES", ("target.py",)), \
+         patch("tools.measure_critical_coverage.NFL_PRODUCER_FILES", ()), \
+         patch.dict(sys.modules, {module: stale}), \
+         patch("tools.measure_critical_coverage.CriticalTrace") as tracer:
+        with pytest.raises(ValueError, match="another checkout"):
+            measure(root, nfl)
+        tracer.assert_not_called()
+
+
+def test_source_context_restores_caller_when_selected_root_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setenv("PYTHONPATH", "existing-relative")
+    monkeypatch.setenv("NFL2026_CHECKOUT", "existing-nfl")
+    before = (Path.cwd(), sys.path[:], os.environ["PYTHONPATH"], os.environ["NFL2026_CHECKOUT"])
+    with pytest.raises(FileNotFoundError):
+        with source_environment(tmp_path / "missing", tmp_path):
+            pytest.fail("A missing selected root must not run tests")
+    assert (Path.cwd(), sys.path[:], os.environ["PYTHONPATH"], os.environ["NFL2026_CHECKOUT"]) == before

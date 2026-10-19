@@ -7,6 +7,7 @@ selflearn-core and hosted suites, with the real NFL checkout required explicitly
 """
 import argparse
 from collections import Counter
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -105,7 +106,18 @@ NFL_PRODUCER_FILES = ("scripts/learning_journal.py", "scripts/learning_receipts.
                       ".github/workflows/ci.yml", ".github/workflows/data-ci.yml",
                       "scripts/pilot_config.py", "scripts/publish_my_generation.py",
                       "config/selflearning_pilot.json", "scripts/selected_my_publication_gate.py",
-                      "scripts/selected_legacy_bootstrap.py")
+                      "scripts/selected_legacy_bootstrap.py", "app/main.js",
+                      "app/views/parlays.js", "app/bet-types.js", "app/built-card-policy.js",
+                      "scripts/weekly_replay.py", "scripts/weather_source_contract.py",
+                      "scripts/build_weather_forecast.py", "scripts/build_weather_history.py",
+                      "scripts/weather_corpus.py", "scripts/backtest_weather.py",
+                      "scripts/signals/weather.py", "scripts/promote_signals.py",
+                      "scripts/scrape/stadiums.py", "scripts/scrape/renames.py", "scripts/injury_duration.py",
+                      "app/render.js", "app/views/slate.js",
+                      "data/contracts/player_weekly.schema.json",
+                      "data/contracts/weather_forecast.schema.json",
+                      "data/contracts/weather_history.schema.json",
+                      "data/contracts/weather_backtest.schema.json")
 
 
 class CriticalTrace(trace.Trace):
@@ -200,6 +212,38 @@ def suite_sources(root):
             if path.is_file()}
 
 
+@contextmanager
+def source_environment(root, nfl_checkout):
+    """Use the selected source checkout in this process AND Python children.
+
+    A sys.path edit alone does not survive subprocess.run. In particular, an
+    NFL test child may otherwise import an older wheel from the shared venv.
+    Preserve caller-supplied dependency paths as absolute paths, then restore
+    the complete caller context even when collection or a test raises.
+    """
+    root, nfl_checkout = Path(root).resolve(), Path(nfl_checkout).resolve()
+    prefixes = (str(root), str(root / "packages/selflearn-core"))
+    old_cwd, old_path = Path.cwd(), sys.path[:]
+    previous = {key: os.environ.get(key) for key in ("NFL2026_CHECKOUT", "PYTHONPATH")}
+    inherited = ([] if previous["PYTHONPATH"] is None else
+                 [os.path.abspath(item) for item in previous["PYTHONPATH"].split(os.pathsep)])
+    try:
+        os.environ["NFL2026_CHECKOUT"] = str(nfl_checkout)
+        os.environ["PYTHONPATH"] = os.pathsep.join([*prefixes, *inherited])
+        sys.path[:] = [*prefixes, *(os.path.abspath(item) if isinstance(item, str)
+                                  else item for item in old_path)]
+        os.chdir(root)
+        yield prefixes
+    finally:
+        os.chdir(old_cwd)
+        sys.path[:] = old_path
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 def report_name(root, output):
     """Generated evidence may replace only a direct docs/reviews JSON report."""
     root = Path(root).resolve()
@@ -265,6 +309,15 @@ def measure(root, nfl_checkout):
     paths = [root / name for name in CRITICAL_FILES]
     if any(not path.is_file() for path in paths):
         raise ValueError("Every critical target must exist; targets cannot be silently excluded")
+    package_roots = {"selflearn_core": root / "packages/selflearn-core/selflearn_core",
+                     "services.web": root / "services/web"}
+    for name, module in tuple(sys.modules.items()):
+        for package, directory in package_roots.items():
+            if name != package and not name.startswith(package + "."):
+                continue
+            filename = getattr(module, "__file__", None)
+            if filename and not Path(filename).resolve().is_relative_to(directory):
+                raise ValueError("Run in a fresh interpreter; modules from another checkout are already imported")
     target_names = {str(path) for path in paths}
     already_imported = [name for name, module in tuple(sys.modules.items())
                         if getattr(module, "__file__", None)
@@ -278,31 +331,20 @@ def measure(root, nfl_checkout):
     line_tables = {name: executable_lines(root / name) for name in CRITICAL_FILES}
     repo_head = _head(root)
     nfl_head = _head(nfl_checkout)
-    old_cwd = Path.cwd()
-    previous_checkout = os.environ.get("NFL2026_CHECKOUT")
-    old_path = sys.path[:]
     old_sys_trace, old_thread_trace = sys.gettrace(), threading.gettrace()
-    os.environ["NFL2026_CHECKOUT"] = str(nfl_checkout)
-    sys.path[:0] = [str(root), str(root / "packages/selflearn-core")]
-    os.chdir(root)
     plugin = SuiteResults()
     start = time.monotonic()
     tracer = CriticalTrace(paths)
     try:
-        import pytest  # existing dev dependency, never installed by this tool
-        context = {"pytest": pytest, "args": ["-q", *SUITES], "plugin": plugin}
-        tracer.runctx("exit_code = int(pytest.main(args, plugins=[plugin]))", context, context)
+        with source_environment(root, nfl_checkout) as child_source_paths:
+            import pytest  # existing dev dependency, never installed by this tool
+            context = {"pytest": pytest, "args": ["-q", *SUITES], "plugin": plugin}
+            tracer.runctx("exit_code = int(pytest.main(args, plugins=[plugin]))", context, context)
     finally:
         # Trace.runctx intentionally clears these hooks rather than restoring
         # them. A caller's debugger/instrumentation must not be left disabled.
         sys.settrace(old_sys_trace)
         threading.settrace(old_thread_trace)
-        os.chdir(old_cwd)
-        sys.path[:] = old_path
-        if previous_checkout is None:
-            os.environ.pop("NFL2026_CHECKOUT", None)
-        else:
-            os.environ["NFL2026_CHECKOUT"] = previous_checkout
     after = {name: _hash(root / name) for name in CRITICAL_FILES}
     tool_after = _hash(Path(__file__))
     tests_after = suite_sources(root)
@@ -324,6 +366,8 @@ def measure(root, nfl_checkout):
         "generated_chicago": now.astimezone(ZoneInfo("America/Chicago")).isoformat(),
         "repository_head": repo_head, "root": str(root), "nfl_checkout": str(nfl_checkout),
         "nfl_head": nfl_head, "nfl_integration_enabled": True,
+        "python_child_source_paths": list(child_source_paths),
+        "python_child_source_policy": "selected_checkout_first_v1",
         "nfl_sources": [{"path": name, "source_sha256_before": nfl_before[name],
                          "source_sha256_after": nfl_after[name]} for name in NFL_PRODUCER_FILES],
         "test_sources": [{"path": name, "source_sha256_before": tests_before.get(name),
@@ -344,6 +388,7 @@ def measure(root, nfl_checkout):
             "Synthetic line 0 is not a physical source line; observed physical line events are also included.",
             "Trace.runctx traces the current thread and threads created during the run, not pre-existing threads.",
             "Child-process execution is not traced. These measured suites use fake Supabase transports, not a live database round trip.",
+            "Python children inherit selected-checkout paths; a child that deliberately replaces PYTHONPATH must pin its own sources.",
             "The separate PostgreSQL SQL/adapter/native suites are not included in this Python line-coverage run.",
             "Per-file source hashes identify dirty local code; a commit SHA alone does not describe this measurement.",
         ],

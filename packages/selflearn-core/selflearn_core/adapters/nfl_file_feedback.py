@@ -25,10 +25,15 @@ NS={"domain":"nfl","task":"nfl.parlay_leg","producer_id":"nfl2026"}
 BASIS="prepared_repository_internal_evidence_not_hosted_ACK_or_publication"
 MAX_BYTES=128*1024*1024
 MAX_RECEIPTS,MAX_GENERATIONS,MAX_REVISIONS=50000,4096,200000
+PARTITION_PROFILE="partitioned_repository_history_v2"
 FLAGS={"durable_ack":False,"working_live_loop":False,"model_adoption":False,
        "public_serving_verified":False,"provider_authenticated":False,"accuracy_improvement_verified":False}
 STATE_KEYS={"version","kind","namespace","basis","sequence","previous_state_id","updated_utc",
     "source_object_ids","source_imports","receipts","receipt_imports","generation_records","observation_records","revisions","capture_records","state_id"}
+STATE_LIST_LIMITS=(("receipts",MAX_RECEIPTS),("receipt_imports",MAX_RECEIPTS),("generation_records",MAX_GENERATIONS),
+    ("observation_records",MAX_REVISIONS),("revisions",MAX_REVISIONS),("source_object_ids",3*MAX_GENERATIONS),
+    ("source_imports",3*MAX_GENERATIONS),("capture_records",4096))
+GRAPH_LIST_LIMITS=(("source_objects",3*MAX_GENERATIONS),("generations",MAX_GENERATIONS))
 
 
 def need(value,reason="invalid_file_feedback"):
@@ -38,8 +43,8 @@ def need(value,reason="invalid_file_feedback"):
 def _encoded(value):return json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=True,allow_nan=False).encode()
 
 
-def plain(value):
-    """Snapshot bounded strict JSON, counting expanded aliases before encoding."""
+def _plain_with_size(value):
+    """Snapshot strict JSON and retain the canonical size already checked."""
     nodes,characters=0,0
     def visit(item,depth):
         nonlocal nodes,characters
@@ -55,7 +60,61 @@ def plain(value):
         if kind is dict:
             need(all(type(k) is str for k in item));return {visit(k,depth+1):visit(v,depth+1)for k,v in item.items()}
         raise ValueError("invalid_file_feedback_json")
-    result=visit(value,0);need(len(_encoded(result))<=MAX_BYTES,"file_feedback_work_limit");return result
+    result=visit(value,0);size=len(_encoded(result));need(size<=MAX_BYTES,"file_feedback_work_limit");return result,size
+
+
+def plain(value):
+    """Snapshot bounded strict JSON, counting expanded aliases before encoding."""
+    return _plain_with_size(value)[0]
+
+
+def _snapshot(value,*,keys,list_limits,snapshot_profile):
+    """Clone complete history under an explicit registered work profile.
+
+    V1 still snapshots one object through unchanged plain(). The selected
+    repository profile treats each source/generation/state row as one object,
+    retaining that same 2M-node guard for every expanded record. Temporary
+    structural wrappers preserve the COMPLETE document's depth-32 ceiling. An
+    incremental canonical-byte budget covers the COMPLETE root, including list
+    separators and keys, before another record can be appended. The controller
+    additionally owns enforced process memory/CPU/wall-clock ceilings.
+    """
+    need(snapshot_profile is None or type(snapshot_profile)is str and snapshot_profile==PARTITION_PROFILE,
+         "file_feedback_snapshot_profile_unknown")
+    if snapshot_profile is None:return plain(value)
+    need(type(value)is dict and all(type(k)is str for k in value)and set(value)==keys)
+    limits=dict(list_limits)
+    for key,maximum in list_limits:
+        need(type(value[key])is list and len(value[key])<=maximum,"file_feedback_work_limit")
+    used=0
+    def charge(size):
+        nonlocal used
+        used+=size;need(used<=MAX_BYTES,"file_feedback_work_limit")
+    def record(item,depth):
+        # Keep the original full-root depth rather than granting every row
+        # another 32 levels. The two wrappers also count toward plain's node
+        # guard; neither wrapper is part of the persisted/hashable document.
+        wrapped,size=_plain_with_size([[item]]if depth==2 else[item])
+        # The exact canonical byte count was already checked above. Each
+        # single-item structural wrapper contributes only its two brackets;
+        # reuse that count without encoding the same private clone again.
+        charge(size-2*depth)
+        return wrapped[0][0]if depth==2 else wrapped[0]
+    result={};charge(2)
+    for index,key in enumerate(sorted(value)):
+        charge(bool(index)+len(_encoded(key))+1)
+        if key in limits:
+            rows=[];charge(2)
+            for position,item in enumerate(value[key]):
+                charge(bool(position));rows.append(record(item,2))
+            result[key]=rows
+        else:result[key]=record(value[key],1)
+    return result
+
+
+def _graph(value,*,snapshot_profile):
+    return _snapshot(value,keys={"source_objects","generations"},list_limits=GRAPH_LIST_LIMITS,
+                     snapshot_profile=snapshot_profile)
 
 
 def digest(value):need(type(value) is str and generation.HASH.fullmatch(value));return value
@@ -64,17 +123,15 @@ def digest(value):need(type(value) is str and generation.HASH.fullmatch(value));
 def _sealed(value):return {**value,"state_id":fingerprint(value)}
 
 
-def _state(value):
-    value=plain(value)
+def _state(value,*,snapshot_profile=None):
+    value=_snapshot(value,keys=STATE_KEYS,list_limits=STATE_LIST_LIMITS,snapshot_profile=snapshot_profile)
     need(type(value) is dict and set(value)==STATE_KEYS and type(value["version"]) is int and value["version"]==1
          and value["kind"]=="nfl.file_feedback_state.v1"and value["namespace"]==NS and value["basis"]==BASIS)
     need(value["state_id"]==fingerprint({k:v for k,v in value.items()if k!="state_id"}),"file_feedback_state_hash_mismatch")
     need(type(value["sequence"]) is int and 1<=value["sequence"]<=1000000000)
     if value["previous_state_id"] is not None:digest(value["previous_state_id"])
     observed=instant(value["updated_utc"])
-    for key,maximum in(("receipts",MAX_RECEIPTS),("receipt_imports",MAX_RECEIPTS),("generation_records",MAX_GENERATIONS),
-        ("observation_records",MAX_REVISIONS),("revisions",MAX_REVISIONS),("source_object_ids",3*MAX_GENERATIONS),
-        ("source_imports",3*MAX_GENERATIONS),("capture_records",4096)):
+    for key,maximum in STATE_LIST_LIMITS:
         need(type(value[key]) is list and len(value[key])<=maximum,"file_feedback_work_limit")
     source_ids=set(value["source_object_ids"])
     need(value["source_object_ids"]==sorted(source_ids))
@@ -146,20 +203,20 @@ class _View:
             "observations":[r["payload"]for r in self.state["observation_records"]],"observation_records":self.state["observation_records"]}
 
 
-def prepare(graph,*,previous=None,captures=(),observed_utc):
+def prepare(graph,*,previous=None,captures=(),observed_utc,snapshot_profile=None):
     """Prepare complete forecast/correction state; caller must persist the result.
 
     Each capture is (verified envelope metadata, trusted raw-chunk reader).
     Existing state clocks/IDs and original forecast envelopes are preserved.
     A same capture is rebound after new forecast membership, not ACK-cached.
     """
-    observed=instant(observed_utc);graph=plain(graph)
+    observed=instant(observed_utc);graph=_graph(graph,snapshot_profile=snapshot_profile)
     need(type(captures) in(list,tuple)and len(captures)<=32,"file_feedback_work_limit")
     need(all(type(pair) in(list,tuple)and len(pair)==2 and callable(pair[1])for pair in captures))
     need(type(graph) is dict and set(graph)=={"source_objects","generations"})
     need(type(graph["source_objects"]) is list and len(graph["source_objects"])<=3*MAX_GENERATIONS)
     need(type(graph["generations"]) is list and len(graph["generations"])<=MAX_GENERATIONS)
-    state=_state(previous)if previous is not None else {"version":1,"kind":"nfl.file_feedback_state.v1","namespace":dict(NS),
+    state=_state(previous,snapshot_profile=snapshot_profile)if previous is not None else {"version":1,"kind":"nfl.file_feedback_state.v1","namespace":dict(NS),
         "basis":BASIS,"sequence":0,"previous_state_id":None,"updated_utc":observed_utc,"source_object_ids":[],"source_imports":[],
         "receipts":[],"receipt_imports":[],"generation_records":[],"observation_records":[],"revisions":[],"capture_records":[]}
     need(instant(state["updated_utc"])<=observed,"file_feedback_clock_regressed")
@@ -227,21 +284,21 @@ def prepare(graph,*,previous=None,captures=(),observed_utc):
     changed=previous is None or fingerprint({k:v for k,v in old.items()if k!="state_id"})!=fingerprint({k:v for k,v in state.items()if k!="state_id"})
     if changed:
         state.update(sequence=old["sequence"]+1,previous_state_id=old.get("state_id"),updated_utc=observed_utc);state.pop("state_id",None);state=_sealed(state)
-    state=_state(state)
+    state=_state(state,snapshot_profile=snapshot_profile)
     return {"version":1,"kind":"nfl.file_feedback_preparation.v1","state":state,"changed":changed,"capture_results":summaries,
         "forecast_quarantine":batch["summary"]["quarantine_reasons"],**FLAGS}
 
 
-def evaluate(state,graph,*,as_of_utc,population="eligible_pool",bootstrap_replicates=200):
+def evaluate(state,graph,*,as_of_utc,population="eligible_pool",bootstrap_replicates=200,snapshot_profile=None):
     """Actual shared fitter; no alternate formula, public record or adoption."""
-    state=_state(state);need(population in("eligible_pool","offered_my"))
+    state=_state(state,snapshot_profile=snapshot_profile);need(population in("eligible_pool","offered_my"))
     need(instant(as_of_utc)>=instant(state["updated_utc"]),"file_feedback_evaluation_clock_regressed")
     need(type(bootstrap_replicates) is int and 200<=bootstrap_replicates<=2000)
     # Rejoin the COMPLETE graph rather than accepting a selected subset of
     # receipts that happens to agree with a caller's claimed state hash.
-    checked=prepare(graph,previous=state,observed_utc=state["updated_utc"])
+    checked=prepare(graph,previous=state,observed_utc=state["updated_utc"],snapshot_profile=snapshot_profile)
     need(not checked["changed"],"file_feedback_evaluation_graph_changed")
-    graph=plain(graph)
+    graph=_graph(graph,snapshot_profile=snapshot_profile)
     sources={}
     for row in graph["generations"]:
         for item in row["request"]["payload"]["receipts"]:
