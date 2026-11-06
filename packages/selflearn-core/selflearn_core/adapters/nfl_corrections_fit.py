@@ -1,4 +1,9 @@
-"""Offline fit for NFL v1 corrections artifacts. No serving side effects."""
+"""Offline fit for NFL v1 corrections artifacts. No serving side effects.
+
+Caller-supplied grade lists remain integrity-hashed only — not authenticated
+provenance. No engine journal grade-revision/as-of eligibility binding is
+claimed here (Beta: none validated for corrections). Digests ≠ signatures.
+"""
 from __future__ import annotations
 
 import math
@@ -22,6 +27,8 @@ from .nfl_corrections_policy import (
     _cap_pp,
     _prob,
     _text,
+    is_void_status,
+    segment_key,
 )
 
 
@@ -30,6 +37,7 @@ def _eligible_record(row, *, trained_through):
         return None
     try:
         market = _text(row.get("market"), name="market", maximum=100)
+        selection = _text(row.get("selection"), name="selection", maximum=100)
         baseline = _prob(row.get("baseline_prob"))
         served_at = instant(row.get("served_at"))
         kickoff_at = instant(row.get("kickoff_at"))
@@ -39,7 +47,7 @@ def _eligible_record(row, *, trained_through):
         status = row.get("status")
     except (CorrectionsError, ValueError, TypeError):
         return None
-    if status in ("PUSH", "VOID", "push", "void"):
+    if is_void_status(status):
         return None
     if type(outcome) is not bool:
         return None
@@ -47,6 +55,8 @@ def _eligible_record(row, *, trained_through):
         return None
     return {
         "market": market,
+        "selection": selection,
+        "segment": segment_key(market, selection),
         "baseline_prob": baseline,
         "outcome": outcome,
         "served_at": row["served_at"],
@@ -55,17 +65,25 @@ def _eligible_record(row, *, trained_through):
     }
 
 
+def require_clock_order(*, trained_through, fitted_at, expires_at):
+    trained = instant(trained_through)
+    fitted = instant(fitted_at)
+    expires = instant(expires_at)
+    if not (trained <= fitted <= expires):
+        raise CorrectionsError("invalid_artifact_clock_order")
+
+
 def fit_corrections_artifact(graded_records, *, trained_through, expires_at,
-                             fitted_at=None, source="graded_journal_receipts",
+                             fitted_at=None, source="graded_caller_list_untrusted",
                              prior_strength=DEFAULT_PRIOR_STRENGTH,
                              min_graded_total=DEFAULT_MIN_GRADED_TOTAL,
                              min_graded_per_market=DEFAULT_MIN_GRADED_PER_MARKET,
                              leg_cap_pp=HARD_LEG_CAP_PP):
     """Build a content-addressed corrections artifact from graded records.
 
-    Storage without a migration: persist the sealed payload as an existing
-    journal ``source_snapshot`` object (content-addressed by ``artifact_id``)
-    and pin it with ``SELFLEARN_CORRECTIONS_ARTIFACT_ID``.
+    Storage without a migration: persist body (sans nested artifact_id) as an
+    existing journal ``source_snapshot`` and pin with
+    ``SELFLEARN_CORRECTIONS_ARTIFACT_ID``. Digests detect mutation only.
     """
     if not isinstance(graded_records, list):
         raise CorrectionsError("invalid_graded_records")
@@ -76,20 +94,18 @@ def fit_corrections_artifact(graded_records, *, trained_through, expires_at,
     if type(min_graded_per_market) is not int or min_graded_per_market < 1:
         raise CorrectionsError("invalid_min_graded_per_market")
     leg_cap_pp = _cap_pp(leg_cap_pp, hard=HARD_LEG_CAP_PP)
-    instant(trained_through)
-    instant(expires_at)
     fitted = fitted_at or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    instant(fitted)
+    require_clock_order(trained_through=trained_through, fitted_at=fitted, expires_at=expires_at)
     eligible = []
     for row in graded_records:
         item = _eligible_record(row, trained_through=trained_through)
         if item is not None:
             eligible.append(item)
-    by_market = defaultdict(list)
+    by_segment = defaultdict(list)
     for row in eligible:
-        by_market[row["market"]].append(row["outcome"] - row["baseline_prob"])
+        by_segment[row["segment"]].append(row["outcome"] - row["baseline_prob"])
     segments = {}
-    for market, residuals in sorted(by_market.items()):
+    for key, residuals in sorted(by_segment.items()):
         n = len(residuals)
         raw = sum(residuals) / n
         delta = raw * (n / (n + float(prior_strength)))
@@ -97,7 +113,7 @@ def fit_corrections_artifact(graded_records, *, trained_through, expires_at,
             delta = math.copysign(leg_cap_pp, delta)
         if not math.isfinite(delta):
             delta = 0.0
-        segments[market] = {
+        segments[key] = {
             "n_eligible": n,
             "raw_bias": round(raw, 8),
             "delta": round(delta, 8),
@@ -106,7 +122,7 @@ def fit_corrections_artifact(graded_records, *, trained_through, expires_at,
     fit_inputs = {
         "trained_through": trained_through,
         "eligibility_rules": list(ELIGIBILITY_RULES),
-        "eligible": [{k: r[k] for k in ("market", "baseline_prob", "outcome",
+        "eligible": [{k: r[k] for k in ("market", "selection", "baseline_prob", "outcome",
                                         "served_at", "kickoff_at", "graded_at")}
                      for r in eligible],
         "method": METHOD,

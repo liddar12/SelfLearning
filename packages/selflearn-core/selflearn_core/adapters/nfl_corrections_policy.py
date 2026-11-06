@@ -24,16 +24,21 @@ ELIGIBILITY_RULES = (
     "exclude_after_trained_through",
     "baseline_prob_as_served_in_(0,1)",
     "binary_outcome_only",
+    "segment_market_and_selection",
 )
+VOID_STATUSES = frozenset({"push", "void"})
 REQUEST_KEYS = frozenset({
     "schema_version", "request_id", "season", "week", "baseline_model_version",
     "generated_at", "legs", "parlays",
 })
 LEG_KEYS = frozenset({"leg_id", "game_id", "market", "selection", "baseline_prob"})
 PARLAY_KEYS = frozenset({"parlay_id", "leg_ids", "baseline_prob"})
+# Consumer-visible provenance (breaking additive expansion vs first draft response).
 ARTIFACT_PUBLIC_KEYS = (
     "artifact_id", "model_version", "method", "trained_through", "fitted_at",
-    "expires_at", "n_graded", "source",
+    "expires_at", "n_graded", "source", "eligibility_rules", "fit_inputs_hash",
+    "prior_strength", "min_graded_total", "min_graded_per_market", "leg_cap_pp",
+    "parlay_cap_pp", "parlay_cap_rel", "clamp", "segments", "sufficient_total",
 )
 
 
@@ -46,6 +51,15 @@ def corrections_mode(raw):
         return "off"
     value = raw.strip().casefold()
     return value if value in MODES else "off"
+
+
+def is_void_status(status):
+    return isinstance(status, str) and status.casefold() in VOID_STATUSES
+
+
+def segment_key(market, selection):
+    return _text(market, name="market", maximum=100) + "|" + _text(
+        selection, name="selection", maximum=100)
 
 
 def _prob(value):

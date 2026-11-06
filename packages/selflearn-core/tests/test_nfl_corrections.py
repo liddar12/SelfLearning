@@ -26,9 +26,11 @@ def _stamp(day=1, hour=12):
     return f"2026-10-{day:02d}T{hour:02d}:00:00Z"
 
 
-def graded_row(market="qb_pass_yds", baseline=0.55, hit=True, day=1, status=None):
+def graded_row(market="qb_pass_yds", baseline=0.55, hit=True, day=1, status=None,
+               selection="over"):
     row = {
         "market": market,
+        "selection": selection,
         "baseline_prob": baseline,
         "served_at": _stamp(day, 10),
         "kickoff_at": _stamp(day, 18),
@@ -163,8 +165,8 @@ def test_insufficient_segment_gets_no_inherited_global():
              for i in range(20)]
     artifact = make_artifact(graded_records=rows, min_graded_total=100,
                              min_graded_per_market=50)
-    assert artifact["segments"]["wr_rec_yds"]["eligible_for_application"] is False
-    assert artifact["segments"]["qb_pass_yds"]["eligible_for_application"] is True
+    assert artifact["segments"]["wr_rec_yds|over"]["eligible_for_application"] is False
+    assert artifact["segments"]["qb_pass_yds|over"]["eligible_for_application"] is True
     request = make_request(legs=[
         {"leg_id": "Lq", "game_id": "G1", "market": "qb_pass_yds",
          "selection": "over", "baseline_prob": 0.55},
@@ -183,7 +185,11 @@ def test_insufficient_segment_gets_no_inherited_global():
 
 
 def test_stale_artifact_refuses_application():
-    artifact = make_artifact(expires_at="2026-11-01T00:00:00Z")
+    artifact = make_artifact(
+        trained_through="2026-10-15T00:00:00Z",
+        fitted_at="2026-10-15T01:00:00Z",
+        expires_at="2026-11-01T00:00:00Z",
+    )
     response = plan_corrections(make_request(), mode="on", artifact=artifact,
                                 now="2026-11-02T00:00:00Z")
     assert all(row["reason"] == "stale_artifact" for row in response["legs"])
@@ -238,10 +244,10 @@ def test_clamp_direction_flip_refuses_application():
     # Force a large negative segment delta via direct mutation of a copy.
     mutated = copy.deepcopy(artifact)
     body = {k: v for k, v in mutated.items() if k != "artifact_id"}
-    body["segments"]["qb_pass_yds"]["delta"] = -0.03
-    body["segments"]["qb_pass_yds"]["eligible_for_application"] = True
-    body["sufficient_total"] = True
-    body["n_graded"] = max(body["n_graded"], body["min_graded_total"])
+    body["segments"]["qb_pass_yds|over"]["delta"] = -0.03
+    body["segments"]["qb_pass_yds|over"]["eligible_for_application"] = True
+    body["n_graded"] = sum(row["n_eligible"] for row in body["segments"].values())
+    body["sufficient_total"] = body["n_graded"] >= body["min_graded_total"]
     from selflearn_core.probability_receipts import fingerprint
     mutated = {**body, "artifact_id": fingerprint(body)}
     request = make_request(legs=[{
@@ -261,16 +267,20 @@ def test_parlay_product_formula_and_relative_cap():
     # Two legs with known applied deltas.
     mutated = copy.deepcopy(artifact)
     body = {k: v for k, v in mutated.items() if k != "artifact_id"}
-    body["segments"]["qb_pass_yds"] = {
-        "n_eligible": 60, "raw_bias": -0.05, "delta": -0.02,
-        "eligible_for_application": True,
+    body["segments"] = {
+        "qb_pass_yds|over": {
+            "n_eligible": 100, "raw_bias": -0.05, "delta": -0.02,
+            "eligible_for_application": True,
+        },
+        "rb_rush_yds|over": {
+            "n_eligible": 100, "raw_bias": -0.05, "delta": -0.02,
+            "eligible_for_application": True,
+        },
     }
-    body["segments"]["rb_rush_yds"] = {
-        "n_eligible": 60, "raw_bias": -0.05, "delta": -0.02,
-        "eligible_for_application": True,
-    }
-    body["sufficient_total"] = True
     body["n_graded"] = 200
+    body["min_graded_total"] = 150
+    body["min_graded_per_market"] = 50
+    body["sufficient_total"] = True
     from selflearn_core.probability_receipts import fingerprint
     mutated = {**body, "artifact_id": fingerprint(body)}
     legs = [

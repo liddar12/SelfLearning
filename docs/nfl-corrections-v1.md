@@ -4,6 +4,12 @@ Draft API contract for NFL2026 learned parlay adjustments. This does **not**
 promise improved predictions. With little graded data, adjustments stay near
 zero or are refused.
 
+**Activation remains blocked.** There is no validated engine journal
+grade-revision/as-of eligibility binding for corrections, no verified fitted
+production artifact, and **no viable rapid-disable** on either side (see
+Rollback). Do not fit or upload a production artifact from NFL owner relay
+archives alone.
+
 ## Endpoint
 
 `POST /api/v1/nfl/corrections` (server-side only).
@@ -25,18 +31,27 @@ Values: `off` | `shadow` | `on`. Unset or invalid → **`off`**.
 | `shadow` | Exact submitted baselines | `false` | Computes would-be adjustments and logs them. |
 | `on` | Adjusted when learned rules pass | `true` only for learned fits | Still fails closed to baseline on any fault. |
 
-### How the flag is read / redeploy
+### How the flag is read / redeploy (not rapid)
 
-The mode is read **per request** from the process environment (`os.environ`),
-so no code change is required to flip it. On Vercel, changing an env var still
-requires a **redeploy** before workers see the new value. A no-redeploy kill
-switch is not available in this v1 without an external config store; use
-`off` + redeploy, or leave the mode unset (defaults to off).
+The mode is read **per request** from the process environment (`os.environ`).
+On Vercel, changing an env var still requires a **redeploy** before workers see
+the new value. Engine `off` does **not** rewrite already-served NFL static JSON.
+
+NFL served site is Netlify static `data/*.json` — consumer OFF requires
+**rebuild + publish + Netlify deploy** (minutes; `/data/*` SWR ≤120s).
+
+**There is no viable rapid-disable today on either side.** Do not invent a
+no-redeploy kill switch or call deploy-based OFF immediate.
 
 ## Artifact storage (no migration)
 
 Fit offline with `tools/fit_nfl_corrections.py` or
 `fit_corrections_artifact(...)`.
+
+Caller-supplied grade lists are integrity-hashed only — **not** authenticated
+provenance. Default `source` is `graded_caller_list_untrusted`. Digests detect
+mutation; they are **not** signatures. No engine journal grade-revision /
+`_latest_as_of` eligibility API is claimed for corrections.
 
 Store the sealed artifact **body** (all fields except nested `artifact_id`)
 as an existing receipt-journal **`source_snapshot`** object whose
@@ -49,7 +64,9 @@ No new Supabase migration is required.
 
 ## Method
 
-Per-market additive bias with empirical-Bayes shrinkage toward zero:
+Per-**segment** additive bias with empirical-Bayes shrinkage toward zero.
+Segment key is `market|selection` (case-sensitive market/selection text as
+submitted; void/push status matching is casefold):
 
 `delta = mean(hit - baseline_prob) * n / (n + prior_strength)`
 
@@ -57,11 +74,15 @@ then capped at ±`leg_cap_pp` (hard ceiling 3pp).
 
 - Minimum **200** eligible graded legs overall, else nothing applies
   (`insufficient_graded_data`).
-- Minimum **50** eligible graded legs **per market segment**, else that
-  segment is refused (`insufficient_segment_data`). No inherited global
-  correction.
-- Eligibility: `served_at` before kickoff, binary outcome, exclude push/void,
-  `graded_at <= trained_through`.
+- Minimum **50** eligible graded legs **per segment**, else that segment is
+  refused (`insufficient_segment_data`). No inherited global correction.
+- `eligible_for_application` must equal `n_eligible >= min_graded_per_market`;
+  `n_graded` must equal the sum of segment `n_eligible`; `sufficient_total`
+  must equal `n_graded >= min_graded_total`.
+- `eligibility_rules` must equal the canon list exactly (reject empty/fake).
+- Clock order required: `trained_through <= fitted_at <= expires_at`.
+- Eligibility: `served_at` before kickoff, binary outcome, exclude push/void
+  (casefold), `graded_at <= trained_through`, required `selection`.
 - Expired `expires_at` → `stale_artifact`.
 
 ## Caps
@@ -96,7 +117,10 @@ Request:
 }
 ```
 
-Response:
+Response `artifact` (when present) includes full public provenance:
+`artifact_id`, `model_version`, `method`, clocks, `n_graded`, `source`,
+`eligibility_rules`, `fit_inputs_hash`, floors/caps/clamp, and `segments`
+(keyed `market|selection`).
 
 ```json
 {
@@ -111,16 +135,34 @@ Response:
     "fitted_at": "...",
     "expires_at": "...",
     "n_graded": 180,
-    "source": "graded_journal_receipts"
+    "source": "graded_caller_list_untrusted",
+    "eligibility_rules": ["served_at_before_kickoff", "exclude_push_void",
+      "exclude_after_trained_through", "baseline_prob_as_served_in_(0,1)",
+      "binary_outcome_only", "segment_market_and_selection"],
+    "fit_inputs_hash": "sha256:...",
+    "prior_strength": 50.0,
+    "min_graded_total": 200,
+    "min_graded_per_market": 50,
+    "leg_cap_pp": 0.03,
+    "parlay_cap_pp": 0.03,
+    "parlay_cap_rel": 0.15,
+    "clamp": [0.01, 0.99],
+    "segments": {
+      "qb_pass_yds|over": {
+        "n_eligible": 60, "raw_bias": -0.08, "delta": -0.0436,
+        "eligible_for_application": true
+      }
+    },
+    "sufficient_total": false
   },
   "legs": [
-    {"leg_id": "L1", "baseline_prob": 0.55, "adjusted_prob": 0.53,
-     "delta": -0.02, "applied": true, "reason": "learned_segment_bias",
+    {"leg_id": "L1", "baseline_prob": 0.55, "adjusted_prob": 0.55,
+     "delta": 0.0, "applied": false, "reason": "insufficient_graded_data",
      "cap_pp": 0.03}
   ],
   "parlays": [
-    {"parlay_id": "P1", "baseline_prob": 0.55, "adjusted_prob": 0.53,
-     "delta": -0.02, "applied": true, "reason": "learned_parlay_product",
+    {"parlay_id": "P1", "baseline_prob": 0.55, "adjusted_prob": 0.55,
+     "delta": 0.0, "applied": false, "reason": "insufficient_graded_data",
      "cap_pp": 0.03}
   ]
 }
@@ -130,10 +172,31 @@ Duplicate or missing `leg_id` references force affected legs/parlays to
 `applied=false` with exact baseline echoes. `request_id` and all baseline
 fields are echoed exactly.
 
+## NFL owner relay — minimum evidence gaps (read-only)
+
+Scoped read-only pin (do not modify NFL repo / secrets):
+
+`https://github.com/jliddar-omilia/NFL2026/blob/0612b161d955ea78a6231f5a8d3e8fbf28d271ef/docs/pilot/selflearning-parlay-corrections-20261106.md`
+
+Document sha256 (raw): `e418482db0ff3526d9201c0f66889bbfb84e4292155575b9b532ae02e3fcf379`.
+
+Reported candidates (counts **unverified** here; independently verify identity,
+uniqueness, `graded_at`, revision/as-of, and actual served proof before
+accepting any record):
+
+| Candidate | Gap vs fit-ready |
+|-----------|------------------|
+| `data/estimates/parlays_2026.json` + `data/parlay_leg_scores.json` | Flat ledger missing `baseline_model_version`; lock ≠ proof actually served |
+| `data/my_cards/2026_wk02..09.json` + `data/my_card_scores.json` | Has `learning_receipt` fields, but TEAM-seed reconstructed offerings — not all browser cards |
+| Engine journal grades | Owner: none captured via engine yet |
+
+Do **not** fit or upload a production artifact from this relay.
+
 ## Rollback
 
-Set `SELFLEARN_CORRECTIONS_MODE=off` (or unset it) and redeploy. Served picks
-return to exact baselines. Do not merge this draft until explicitly approved.
+Set `SELFLEARN_CORRECTIONS_MODE=off` (or unset it) and **redeploy**. That is
+not immediate. NFL static JSON OFF is separately rebuild+publish+Netlify.
+Do not merge this draft until explicitly approved. Activation blocked.
 
 ## Limits
 
@@ -143,3 +206,5 @@ return to exact baselines. Do not merge this draft until explicitly approved.
 - Fail closed to baseline on error, timeout, missing/stale data, NaN, or cap
   violation — never serve an error body in place of picks once the request is
   valid (invalid requests still return 422).
+- Liar timestamps / future cutoffs without authenticated provenance remain
+  activation blockers (caller lists are untrusted).

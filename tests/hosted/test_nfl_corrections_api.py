@@ -23,6 +23,7 @@ def graded_rows(n=60):
         for i in range(n):
             rows.append({
                 "market": market,
+                "selection": "over",
                 "baseline_prob": 0.60,
                 "served_at": f"2026-10-{(i % 20) + 1:02d}T10:00:00Z",
                 "kickoff_at": f"2026-10-{(i % 20) + 1:02d}T18:00:00Z",

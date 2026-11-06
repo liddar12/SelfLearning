@@ -25,7 +25,7 @@ def main(argv=None):
     parser.add_argument("--trained-through", required=True)
     parser.add_argument("--expires-at", required=True)
     parser.add_argument("--fitted-at")
-    parser.add_argument("--source", default="graded_journal_receipts")
+    parser.add_argument("--source", default="graded_caller_list_untrusted")
     parser.add_argument("--prior-strength", type=float, default=50.0)
     parser.add_argument("--min-graded-total", type=int, default=200)
     parser.add_argument("--min-graded-per-market", type=int, default=50)

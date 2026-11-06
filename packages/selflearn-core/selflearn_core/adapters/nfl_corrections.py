@@ -1,8 +1,9 @@
 """NFL v1 learned-corrections planner. Fail closed to the submitted baseline.
 
-Method: per-market additive probability bias with empirical-Bayes shrinkage
-toward zero (see ``nfl_corrections_fit``). Segments below the per-market floor
-get no correction; a global pooled correction is never inherited.
+Method: per-segment (market|selection) additive probability bias with
+empirical-Bayes shrinkage toward zero (see ``nfl_corrections_fit``). Segments
+below the per-segment floor get no correction; a global pooled correction is
+never inherited. Caller grade lists are untrusted; digests are not signatures.
 """
 from __future__ import annotations
 
@@ -12,10 +13,11 @@ import math
 from datetime import datetime, timezone
 
 from ..probability_receipts import fingerprint, finite_number, instant
-from .nfl_corrections_fit import fit_corrections_artifact
+from .nfl_corrections_fit import fit_corrections_artifact, require_clock_order
 from .nfl_corrections_policy import (
     ARTIFACT_PUBLIC_KEYS,
     CorrectionsError,
+    ELIGIBILITY_RULES,
     HARD_CLAMP,
     HARD_LEG_CAP_PP,
     HARD_PARLAY_CAP_PP,
@@ -25,6 +27,7 @@ from .nfl_corrections_policy import (
     _cap_pp,
     _text,
     corrections_mode,
+    segment_key,
 )
 from .nfl_corrections_request import validate_request
 
@@ -55,25 +58,38 @@ def validate_artifact(artifact):
     if type(artifact.get("n_graded")) is not int or artifact["n_graded"] < 0:
         raise CorrectionsError("invalid_artifact_n_graded")
     _cap_pp(artifact.get("leg_cap_pp"), hard=HARD_LEG_CAP_PP)
+    min_total = artifact.get("min_graded_total")
+    min_seg = artifact.get("min_graded_per_market")
     if (artifact.get("parlay_cap_pp") != HARD_PARLAY_CAP_PP
             or artifact.get("parlay_cap_rel") != HARD_PARLAY_CAP_REL
             or artifact.get("clamp") != list(HARD_CLAMP)
             or type(artifact.get("segments")) is not dict
             or type(artifact.get("sufficient_total")) is not bool
-            or type(artifact.get("min_graded_total")) is not int
-            or type(artifact.get("min_graded_per_market")) is not int
-            or type(artifact.get("eligibility_rules")) is not list):
+            or type(min_total) is not int or min_total < 1
+            or type(min_seg) is not int or min_seg < 1
+            or artifact.get("eligibility_rules") != list(ELIGIBILITY_RULES)):
         raise CorrectionsError("invalid_artifact_policy")
-    for market, row in artifact["segments"].items():
-        _text(market, name="market", maximum=100)
+    require_clock_order(trained_through=artifact["trained_through"],
+                        fitted_at=artifact["fitted_at"],
+                        expires_at=artifact["expires_at"])
+    counted = 0
+    for key, row in artifact["segments"].items():
+        _text(key, name="segment", maximum=201)
+        if "|" not in key:
+            raise CorrectionsError("invalid_segment_key")
         if (not isinstance(row, dict) or type(row.get("n_eligible")) is not int
                 or row["n_eligible"] < 0 or not finite_number(row.get("delta"))
                 or not finite_number(row.get("raw_bias"))
                 or type(row.get("eligible_for_application")) is not bool):
             raise CorrectionsError("invalid_segment")
-    instant(artifact["trained_through"])
-    instant(artifact["fitted_at"])
-    instant(artifact["expires_at"])
+        expected = row["n_eligible"] >= min_seg
+        if row["eligible_for_application"] is not expected:
+            raise CorrectionsError("segment_eligibility_flag_mismatch")
+        counted += row["n_eligible"]
+    if counted != artifact["n_graded"]:
+        raise CorrectionsError("n_graded_segment_sum_mismatch")
+    if artifact["sufficient_total"] is not (artifact["n_graded"] >= min_total):
+        raise CorrectionsError("sufficient_total_mismatch")
     return artifact
 
 
@@ -142,8 +158,11 @@ def _leg_result(leg, *, mode, artifact, now, cap_pp):
         if (not artifact.get("sufficient_total")
                 or artifact["n_graded"] < artifact["min_graded_total"]):
             return _echo_leg(leg, reason="insufficient_graded_data", cap_pp=cap_pp)
-        segment = artifact["segments"].get(leg["market"])
+        key = segment_key(leg["market"], leg["selection"])
+        segment = artifact["segments"].get(key)
         if segment is None or not segment.get("eligible_for_application"):
+            return _echo_leg(leg, reason="insufficient_segment_data", cap_pp=cap_pp)
+        if type(segment.get("n_eligible")) is not int or segment["n_eligible"] < artifact["min_graded_per_market"]:
             return _echo_leg(leg, reason="insufficient_segment_data", cap_pp=cap_pp)
         delta = segment["delta"]
         if not finite_number(delta) or delta == 0.0:
