@@ -1,8 +1,9 @@
 """Offline fit for NFL v1 corrections artifacts. No serving side effects.
 
 Caller-supplied grade lists remain integrity-hashed only — not authenticated
-provenance. No engine journal grade-revision/as-of eligibility binding is
-claimed here (Beta: none validated for corrections). Digests ≠ signatures.
+provenance. Digests ≠ signatures. Runtime ``applied=true`` requires
+``source=receipt_journal_as_of_v1`` from ``fit_corrections_from_journal``.
+``generated_unverified`` capture rows are never fit-eligible.
 """
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ import math
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from ..probability_receipts import fingerprint, finite_number, instant
+from ..probability_receipts import fingerprint, finite_number, instant, validate_probability_receipt
 from .nfl_corrections_policy import (
     CorrectionsError,
     DEFAULT_MIN_GRADED_PER_MARKET,
@@ -24,6 +25,8 @@ from .nfl_corrections_policy import (
     KIND,
     METHOD,
     MODEL_VERSION,
+    TRUSTED_ARTIFACT_SOURCE,
+    UNTRUSTED_ARTIFACT_SOURCE,
     _cap_pp,
     _prob,
     _text,
@@ -74,7 +77,7 @@ def require_clock_order(*, trained_through, fitted_at, expires_at):
 
 
 def fit_corrections_artifact(graded_records, *, trained_through, expires_at,
-                             fitted_at=None, source="graded_caller_list_untrusted",
+                             fitted_at=None, source=UNTRUSTED_ARTIFACT_SOURCE,
                              prior_strength=DEFAULT_PRIOR_STRENGTH,
                              min_graded_total=DEFAULT_MIN_GRADED_TOTAL,
                              min_graded_per_market=DEFAULT_MIN_GRADED_PER_MARKET,
@@ -84,6 +87,7 @@ def fit_corrections_artifact(graded_records, *, trained_through, expires_at,
     Storage without a migration: persist body (sans nested artifact_id) as an
     existing journal ``source_snapshot`` and pin with
     ``SELFLEARN_CORRECTIONS_ARTIFACT_ID``. Digests detect mutation only.
+    Default ``source`` is untrusted and cannot yield runtime ``applied=true``.
     """
     if not isinstance(graded_records, list):
         raise CorrectionsError("invalid_graded_records")
@@ -154,3 +158,73 @@ def fit_corrections_artifact(graded_records, *, trained_through, expires_at,
         "sufficient_total": len(eligible) >= min_graded_total,
     }
     return {**body, "artifact_id": fingerprint(body)}
+
+
+def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted_at=None,
+                                 prior_strength=DEFAULT_PRIOR_STRENGTH,
+                                 min_graded_total=DEFAULT_MIN_GRADED_TOTAL,
+                                 min_graded_per_market=DEFAULT_MIN_GRADED_PER_MARKET,
+                                 leg_cap_pp=HARD_LEG_CAP_PP):
+    """Fit from immutable journal receipts + authoritative revisions as-of cutoff.
+
+    Uses existing ``nfl_calibration._latest_as_of`` chain rules (recorded_utc <
+    trained_through; supersession; no future corrections). Only
+    ``publication_status=verified_publication`` receipts are considered;
+    ``generated_unverified`` M1 capture rows are explicitly excluded. Missing
+    market/selection on features skips the row (no invention). Empty eligible
+    sets still seal an untrusted-ineligible artifact with trusted source label
+    and n_graded=0 (runtime floors refuse application).
+    """
+    from .nfl_calibration import _latest_as_of
+
+    cutoff = instant(trained_through)
+    graded = []
+    for receipt in journal.receipts():
+        try:
+            validate_probability_receipt(receipt)
+        except (ValueError, TypeError, KeyError, OverflowError):
+            continue
+        if receipt.get("publication_status") != "verified_publication":
+            continue
+        features = receipt.get("features")
+        if not isinstance(features, dict):
+            continue
+        market = features.get("market")
+        selection = features.get("selection") or features.get("direction")
+        if not isinstance(market, str) or not isinstance(selection, str):
+            continue
+        try:
+            head = _latest_as_of(receipt, journal.resolution_history(receipt["receipt_id"]), cutoff)
+        except (ValueError, TypeError, KeyError, OverflowError):
+            continue
+        if head is None:
+            continue
+        resolution = head.get("resolution")
+        if (not isinstance(resolution, dict) or resolution.get("status") == "VOID"
+                or type(resolution.get("hit")) is not bool):
+            continue
+        baseline = receipt.get("served_prob")
+        if not finite_number(baseline) or not 0.0 < float(baseline) < 1.0:
+            continue
+        graded.append({
+            "market": market,
+            "selection": selection,
+            "baseline_prob": float(baseline),
+            "served_at": receipt["first_seen_utc"],
+            "kickoff_at": receipt["event_start_utc"],
+            "graded_at": resolution["resolved_utc"],
+            "outcome": resolution["hit"],
+            "receipt_id": receipt["receipt_id"],
+            "revision_id": head.get("revision_id"),
+        })
+    return fit_corrections_artifact(
+        graded,
+        trained_through=trained_through,
+        expires_at=expires_at,
+        fitted_at=fitted_at,
+        source=TRUSTED_ARTIFACT_SOURCE,
+        prior_strength=prior_strength,
+        min_graded_total=min_graded_total,
+        min_graded_per_market=min_graded_per_market,
+        leg_cap_pp=leg_cap_pp,
+    )

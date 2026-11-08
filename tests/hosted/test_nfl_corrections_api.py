@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from fastapi.testclient import TestClient
 
 from selflearn_core.adapters.nfl_corrections import fit_corrections_artifact
+from selflearn_core.adapters.nfl_corrections_policy import TRUSTED_ARTIFACT_SOURCE
 from selflearn_core.store.receipt_journal import ReceiptJournal
 from services.web.application import create_app
 from services.web.nfl_corrections import artifact_snapshot_payload
@@ -41,6 +42,7 @@ def artifact():
         fitted_at="2026-11-01T01:00:00Z",
         min_graded_total=150,
         min_graded_per_market=50,
+        source=TRUSTED_ARTIFACT_SOURCE,
     )
 
 

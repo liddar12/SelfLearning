@@ -4,11 +4,15 @@ Draft API contract for NFL2026 learned parlay adjustments. This does **not**
 promise improved predictions. With little graded data, adjustments stay near
 zero or are refused.
 
-**Activation remains blocked.** There is no validated engine journal
-grade-revision/as-of eligibility binding for corrections, no verified fitted
-production artifact, and **no viable rapid-disable** on either side (see
-Rollback). Do not fit or upload a production artifact from NFL owner relay
-archives alone.
+**Activation remains blocked for learned `applied=true`.** M1 forecast capture
+(`generated_unverified`) is allowed and is **fit-ineligible**. Runtime
+application requires `artifact.source=receipt_journal_as_of_v1` from
+`fit_corrections_from_journal` over `verified_publication` receipts plus
+authoritative revisions as-of cutoff. Caller-list / digest-only artifacts
+echo baseline with `untrusted_artifact_source`. No invented served enum.
+
+Pinned ingest fixtures for NFL producer conformance:
+`fixtures/nfl-ingest-m1/` (see `index.json` / `contract.json`).
 
 ## Endpoint
 
@@ -49,9 +53,10 @@ Fit offline with `tools/fit_nfl_corrections.py` or
 `fit_corrections_artifact(...)`.
 
 Caller-supplied grade lists are integrity-hashed only — **not** authenticated
-provenance. Default `source` is `graded_caller_list_untrusted`. Digests detect
-mutation; they are **not** signatures. No engine journal grade-revision /
-`_latest_as_of` eligibility API is claimed for corrections.
+provenance. Default `source` is `graded_caller_list_untrusted` and **cannot**
+set `applied=true`. Trusted fits use `fit_corrections_from_journal` →
+`source=receipt_journal_as_of_v1` (existing revision/`_latest_as_of` primitives).
+Digests detect mutation; they are **not** signatures.
 
 Store the sealed artifact **body** (all fields except nested `artifact_id`)
 as an existing receipt-journal **`source_snapshot`** object whose

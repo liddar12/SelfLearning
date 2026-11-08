@@ -27,7 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `n_graded` == sum of segment `n_eligible`, and
   `trained_through <= fitted_at <= expires_at`
 - Expand public artifact provenance (segments, floors, caps, fit hash, rules)
-- Default fit `source` is `graded_caller_list_untrusted` (digests ≠ signatures;
-  no journal grade-revision/as-of trust claimed)
+- Default fit `source` is `graded_caller_list_untrusted` and cannot
+  `applied=true`; journal binder `fit_corrections_from_journal` seals
+  `receipt_journal_as_of_v1` (excludes `generated_unverified`)
+- Publish `fixtures/nfl-ingest-m1/` pinned objects/generations/MANIFEST/ACK
+  contract for NFL producer (Supabase 12s per request; Vercel maxDuration 60)
 - Document that rapid-disable is unavailable (Vercel redeploy + Netlify
-  rebuild/SWR) and activation remains blocked
+  rebuild/SWR) and learned activation remains blocked

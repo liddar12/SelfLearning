@@ -27,6 +27,11 @@ ELIGIBILITY_RULES = (
     "segment_market_and_selection",
 )
 VOID_STATUSES = frozenset({"push", "void"})
+# Only journal-bound as-of fits may set applied=true. Caller lists / digests alone
+# are never runtime trust. generated_unverified capture is fit-ineligible.
+TRUSTED_ARTIFACT_SOURCE = "receipt_journal_as_of_v1"
+UNTRUSTED_ARTIFACT_SOURCE = "graded_caller_list_untrusted"
+TRUSTED_ARTIFACT_SOURCES = frozenset({TRUSTED_ARTIFACT_SOURCE})
 REQUEST_KEYS = frozenset({
     "schema_version", "request_id", "season", "week", "baseline_model_version",
     "generated_at", "legs", "parlays",
@@ -40,6 +45,10 @@ ARTIFACT_PUBLIC_KEYS = (
     "prior_strength", "min_graded_total", "min_graded_per_market", "leg_cap_pp",
     "parlay_cap_pp", "parlay_cap_rel", "clamp", "segments", "sufficient_total",
 )
+
+
+def artifact_source_trusted(source):
+    return isinstance(source, str) and source in TRUSTED_ARTIFACT_SOURCES
 
 
 class CorrectionsError(ValueError):

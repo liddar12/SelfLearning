@@ -12,7 +12,11 @@ from selflearn_core.adapters.nfl_corrections import (
     public_artifact,
     validate_artifact,
 )
-from selflearn_core.adapters.nfl_corrections_policy import ARTIFACT_PUBLIC_KEYS, ELIGIBILITY_RULES
+from selflearn_core.adapters.nfl_corrections_policy import (
+    ARTIFACT_PUBLIC_KEYS,
+    ELIGIBILITY_RULES,
+    TRUSTED_ARTIFACT_SOURCE,
+)
 from selflearn_core.probability_receipts import fingerprint
 
 
@@ -73,7 +77,7 @@ def handcraft(**segment_overrides):
         "fitted_at": "2026-11-01T01:00:00Z",
         "expires_at": "2026-12-01T00:00:00Z",
         "n_graded": sum(s["n_eligible"] for s in segments.values()),
-        "source": "adversarial_handcraft",
+        "source": TRUSTED_ARTIFACT_SOURCE,
         "prior_strength": 50.0,
         "min_graded_total": 200,
         "min_graded_per_market": 50,
@@ -171,7 +175,8 @@ def test_hold_over_delta_does_not_cross_apply_to_under():
     art = fit_corrections_artifact(
         rows, trained_through="2026-11-01T00:00:00Z",
         expires_at="2026-12-01T00:00:00Z", fitted_at="2026-11-01T01:00:00Z",
-        min_graded_total=100, min_graded_per_market=50)
+        min_graded_total=100, min_graded_per_market=50,
+        source=TRUSTED_ARTIFACT_SOURCE)
     under_req = request_leg(market="qb_pass_yds", selection="under", p=0.55)
     response = plan_corrections(under_req, mode="on", artifact=art,
                                 now="2026-11-02T00:00:00Z")

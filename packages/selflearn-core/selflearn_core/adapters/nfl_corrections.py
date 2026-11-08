@@ -13,7 +13,11 @@ import math
 from datetime import datetime, timezone
 
 from ..probability_receipts import fingerprint, finite_number, instant
-from .nfl_corrections_fit import fit_corrections_artifact, require_clock_order
+from .nfl_corrections_fit import (
+    fit_corrections_artifact,
+    fit_corrections_from_journal,
+    require_clock_order,
+)
 from .nfl_corrections_policy import (
     ARTIFACT_PUBLIC_KEYS,
     CorrectionsError,
@@ -26,6 +30,7 @@ from .nfl_corrections_policy import (
     SCHEMA_VERSION,
     _cap_pp,
     _text,
+    artifact_source_trusted,
     corrections_mode,
     segment_key,
 )
@@ -37,6 +42,7 @@ __all__ = [
     "CorrectionsError",
     "corrections_mode",
     "fit_corrections_artifact",
+    "fit_corrections_from_journal",
     "plan_corrections",
     "public_artifact",
     "validate_artifact",
@@ -155,6 +161,8 @@ def _leg_result(leg, *, mode, artifact, now, cap_pp):
     try:
         if instant(now) > instant(artifact["expires_at"]):
             return _echo_leg(leg, reason="stale_artifact", cap_pp=cap_pp)
+        if not artifact_source_trusted(artifact.get("source")):
+            return _echo_leg(leg, reason="untrusted_artifact_source", cap_pp=cap_pp)
         if (not artifact.get("sufficient_total")
                 or artifact["n_graded"] < artifact["min_graded_total"]):
             return _echo_leg(leg, reason="insufficient_graded_data", cap_pp=cap_pp)

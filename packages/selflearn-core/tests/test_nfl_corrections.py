@@ -19,6 +19,8 @@ from selflearn_core.adapters.nfl_corrections_policy import (
     HARD_LEG_CAP_PP,
     HARD_PARLAY_CAP_PP,
     HARD_PARLAY_CAP_REL,
+    TRUSTED_ARTIFACT_SOURCE,
+    UNTRUSTED_ARTIFACT_SOURCE,
 )
 
 
@@ -63,6 +65,9 @@ def make_artifact(**kwargs):
         min_graded_total=150,
         min_graded_per_market=50,
         prior_strength=50.0,
+        # Application mechanics tests use the trusted source label; separate
+        # tests assert caller-list/untrusted sources never set applied=true.
+        source=TRUSTED_ARTIFACT_SOURCE,
     )
     defaults.update(kwargs)
     return fit_corrections_artifact(**defaults)
@@ -117,6 +122,16 @@ def test_off_is_byte_for_byte_baseline_echo():
         assert out["baseline_prob"] == src["baseline_prob"]
         assert out["adjusted_prob"] == src["baseline_prob"]
         assert out["applied"] is False
+
+
+def test_untrusted_caller_list_artifact_never_applies():
+    artifact = make_artifact(source=UNTRUSTED_ARTIFACT_SOURCE)
+    assert artifact["source"] == UNTRUSTED_ARTIFACT_SOURCE
+    response = plan_corrections(make_request(), mode="on", artifact=artifact,
+                                now="2026-11-02T00:00:00Z")
+    assert all(row["applied"] is False for row in response["legs"])
+    assert all(row["reason"] == "untrusted_artifact_source" for row in response["legs"])
+    assert all(row["adjusted_prob"] == row["baseline_prob"] for row in response["legs"])
 
 
 def test_shadow_serves_baseline_and_never_applied():
