@@ -29,6 +29,7 @@ from .nfl_ingestion import register_nfl_routes
 from .nfl_capture_intake import register_capture_routes
 from .capture_configuration import select_capture_factory
 from .nfl_capture_applications import register_application_routes
+from .nfl_corrections import register_corrections_routes
 from .owner_intents import register_owner_intent_routes
 from . import private_uploads
 from . import nfl_trace
@@ -291,7 +292,8 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
     app = FastAPI(title="SelfLearning", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.add_middleware(OwnerBoundary, token=token, origins=origins,
                        ingest_token=env.get("SELFLEARN_NFL_INGEST_TOKEN", ""),
-                       capture_token=env.get("SELFLEARN_NFL_OUTCOME_INGEST_TOKEN", ""))
+                       capture_token=env.get("SELFLEARN_NFL_OUTCOME_INGEST_TOKEN", ""),
+                       corrections_token=env.get("SELFLEARN_NFL_CORRECTIONS_TOKEN", ""))
 
     @app.exception_handler(StoreError)
     async def store_error(request, exc):
@@ -428,6 +430,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
     register_nfl_routes(app, journal_factory, body)
     register_capture_routes(app, capture_factory, body)
     register_application_routes(app, capture_factory, body)
+    register_corrections_routes(app, journal_factory, body, env=env)
     # Explicit trusted server injection only. Environment/store credentials do
     # not enable this decision journal, and recording an intent never activates
     # a model. The existing operator boundary (not either producer token) owns
