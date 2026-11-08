@@ -77,7 +77,7 @@ def handcraft(**segment_overrides):
         "fitted_at": "2026-11-01T01:00:00Z",
         "expires_at": "2026-12-01T00:00:00Z",
         "n_graded": sum(s["n_eligible"] for s in segments.values()),
-        "source": TRUSTED_ARTIFACT_SOURCE,
+        "source": TRUSTED_ARTIFACT_SOURCE,  # handcraft for validate-only; apply tests pass binder_verified
         "prior_strength": 50.0,
         "min_graded_total": 200,
         "min_graded_per_market": 50,
@@ -176,10 +176,10 @@ def test_hold_over_delta_does_not_cross_apply_to_under():
         rows, trained_through="2026-11-01T00:00:00Z",
         expires_at="2026-12-01T00:00:00Z", fitted_at="2026-11-01T01:00:00Z",
         min_graded_total=100, min_graded_per_market=50,
-        source=TRUSTED_ARTIFACT_SOURCE)
+        source=TRUSTED_ARTIFACT_SOURCE, allow_trusted_source=True)
     under_req = request_leg(market="qb_pass_yds", selection="under", p=0.55)
     response = plan_corrections(under_req, mode="on", artifact=art,
-                                now="2026-11-02T00:00:00Z")
+                                binder_verified=True, now="2026-11-02T00:00:00Z")
     row = response["legs"][0]
     assert row["applied"] is False
     assert row["adjusted_prob"] == 0.55

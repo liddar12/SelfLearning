@@ -65,12 +65,20 @@ def make_artifact(**kwargs):
         min_graded_total=150,
         min_graded_per_market=50,
         prior_strength=50.0,
-        # Application mechanics tests use the trusted source label; separate
-        # tests assert caller-list/untrusted sources never set applied=true.
+        # Mechanics tests may seal a trusted label only via allow_trusted_source
+        # (binder-equivalent). Apply still requires binder_verified at plan time.
         source=TRUSTED_ARTIFACT_SOURCE,
+        allow_trusted_source=True,
     )
     defaults.update(kwargs)
+    if defaults.get("source") != TRUSTED_ARTIFACT_SOURCE:
+        defaults["allow_trusted_source"] = False
     return fit_corrections_artifact(**defaults)
+
+
+def plan_on(request, artifact, **kwargs):
+    return plan_corrections(request, mode="on", artifact=artifact,
+                            binder_verified=True, **kwargs)
 
 
 def make_request(*, legs=None, parlays=None, request_id="req-1"):
@@ -134,6 +142,27 @@ def test_untrusted_caller_list_artifact_never_applies():
     assert all(row["adjusted_prob"] == row["baseline_prob"] for row in response["legs"])
 
 
+def test_trusted_label_without_binder_verification_never_applies():
+    artifact = make_artifact()
+    assert artifact["source"] == TRUSTED_ARTIFACT_SOURCE
+    response = plan_corrections(make_request(), mode="on", artifact=artifact,
+                                now="2026-11-02T00:00:00Z", binder_verified=False)
+    assert all(row["applied"] is False for row in response["legs"])
+    assert all(row["reason"] == "unverified_binder_origin" for row in response["legs"])
+    assert all(row["adjusted_prob"] == row["baseline_prob"] for row in response["legs"])
+
+
+def test_caller_list_cannot_seal_trusted_source_label():
+    with pytest.raises(CorrectionsError, match="trusted_source_requires_journal_binder"):
+        fit_corrections_artifact(
+            make_graded(),
+            trained_through="2026-11-01T00:00:00Z",
+            expires_at="2026-12-01T00:00:00Z",
+            fitted_at="2026-11-01T01:00:00Z",
+            source=TRUSTED_ARTIFACT_SOURCE,
+        )
+
+
 def test_shadow_serves_baseline_and_never_applied():
     artifact = make_artifact()
     response = plan_corrections(make_request(), mode="shadow", artifact=artifact,
@@ -147,8 +176,7 @@ def test_shadow_serves_baseline_and_never_applied():
 
 def test_on_applies_within_caps_and_clamp():
     artifact = make_artifact()
-    response = plan_corrections(make_request(), mode="on", artifact=artifact,
-                                now="2026-11-02T00:00:00Z")
+    response = plan_on(make_request(), artifact, now="2026-11-02T00:00:00Z")
     assert response["corrections_mode"] == "on"
     applied = [row for row in response["legs"] if row["applied"]]
     assert applied
@@ -167,8 +195,7 @@ def test_on_applies_within_caps_and_clamp():
 def test_insufficient_total_graded_blocks_everything():
     artifact = make_artifact(graded_records=make_graded(n_per_market=40),
                              min_graded_total=200, min_graded_per_market=30)
-    response = plan_corrections(make_request(), mode="on", artifact=artifact,
-                                now="2026-11-02T00:00:00Z")
+    response = plan_on(make_request(), artifact, now="2026-11-02T00:00:00Z")
     assert all(row["applied"] is False for row in response["legs"])
     assert all(row["reason"] == "insufficient_graded_data" for row in response["legs"])
 
@@ -188,8 +215,7 @@ def test_insufficient_segment_gets_no_inherited_global():
         {"leg_id": "Lw", "game_id": "G1", "market": "wr_rec_yds",
          "selection": "over", "baseline_prob": 0.55},
     ], parlays=[{"parlay_id": "P1", "leg_ids": ["Lq", "Lw"], "baseline_prob": 0.3}])
-    response = plan_corrections(request, mode="on", artifact=artifact,
-                                now="2026-11-02T00:00:00Z")
+    response = plan_on(request, artifact, now="2026-11-02T00:00:00Z")
     by_id = {row["leg_id"]: row for row in response["legs"]}
     assert by_id["Lq"]["applied"] is True
     assert by_id["Lw"]["applied"] is False
@@ -205,8 +231,7 @@ def test_stale_artifact_refuses_application():
         fitted_at="2026-10-15T01:00:00Z",
         expires_at="2026-11-01T00:00:00Z",
     )
-    response = plan_corrections(make_request(), mode="on", artifact=artifact,
-                                now="2026-11-02T00:00:00Z")
+    response = plan_on(make_request(), artifact, now="2026-11-02T00:00:00Z")
     assert all(row["reason"] == "stale_artifact" for row in response["legs"])
     assert all(row["applied"] is False for row in response["legs"])
 
@@ -241,8 +266,7 @@ def test_duplicate_leg_ids_and_missing_parlay_refs():
         {"parlay_id": "P1", "leg_ids": ["L1", "L2"], "baseline_prob": 0.28},
         {"parlay_id": "P2", "leg_ids": ["L2", "Lmissing"], "baseline_prob": 0.2},
     ])
-    response = plan_corrections(request, mode="on", artifact=make_artifact(),
-                                now="2026-11-02T00:00:00Z")
+    response = plan_on(request, make_artifact(), now="2026-11-02T00:00:00Z")
     assert all(row["leg_id"] != "L1" or row["reason"] == "duplicate_leg_id"
                for row in response["legs"])
     assert all(row["applied"] is False for row in response["legs"] if row["leg_id"] == "L1")
@@ -269,8 +293,7 @@ def test_clamp_direction_flip_refuses_application():
         "leg_id": "Ledge", "game_id": "G1", "market": "qb_pass_yds",
         "selection": "over", "baseline_prob": 0.005,
     }], parlays=[])
-    response = plan_corrections(request, mode="on", artifact=mutated,
-                                now="2026-11-02T00:00:00Z")
+    response = plan_on(request, mutated, now="2026-11-02T00:00:00Z")
     row = response["legs"][0]
     assert row["applied"] is False
     assert row["adjusted_prob"] == 0.005
@@ -308,8 +331,7 @@ def test_parlay_product_formula_and_relative_cap():
     request = make_request(legs=legs, parlays=[
         {"parlay_id": "P", "leg_ids": ["A", "B"], "baseline_prob": 0.25},
     ])
-    response = plan_corrections(request, mode="on", artifact=mutated,
-                                now="2026-11-02T00:00:00Z")
+    response = plan_on(request, mutated, now="2026-11-02T00:00:00Z")
     assert all(row["applied"] for row in response["legs"])
     expected = 0.25 * (0.48 / 0.50) * (0.48 / 0.50)
     bound = min(HARD_PARLAY_CAP_PP, 0.25 * HARD_PARLAY_CAP_REL)
@@ -323,8 +345,7 @@ def test_no_graded_data_yields_zero_adjustment():
     artifact = make_artifact(graded_records=[], min_graded_total=1, min_graded_per_market=1)
     assert artifact["n_graded"] == 0
     assert artifact["segments"] == {}
-    response = plan_corrections(make_request(), mode="on", artifact=artifact,
-                                now="2026-11-02T00:00:00Z")
+    response = plan_on(make_request(), artifact, now="2026-11-02T00:00:00Z")
     assert all(row["applied"] is False for row in response["legs"])
 
 
@@ -369,6 +390,7 @@ def test_property_caps_and_fallbacks_hold_under_randomization():
         mode = rng.choice(["off", "shadow", "on"])
         response = plan_corrections(make_request(legs=legs, parlays=parlays),
                                     mode=mode, artifact=artifact,
+                                    binder_verified=(mode == "on"),
                                     now="2026-11-02T00:00:00Z")
         assert response["request_id"] == "req-1"
         for row in response["legs"]:

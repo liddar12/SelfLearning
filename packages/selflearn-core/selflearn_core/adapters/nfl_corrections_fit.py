@@ -81,16 +81,21 @@ def fit_corrections_artifact(graded_records, *, trained_through, expires_at,
                              prior_strength=DEFAULT_PRIOR_STRENGTH,
                              min_graded_total=DEFAULT_MIN_GRADED_TOTAL,
                              min_graded_per_market=DEFAULT_MIN_GRADED_PER_MARKET,
-                             leg_cap_pp=HARD_LEG_CAP_PP):
+                             leg_cap_pp=HARD_LEG_CAP_PP,
+                             allow_trusted_source=False):
     """Build a content-addressed corrections artifact from graded records.
 
     Storage without a migration: persist body (sans nested artifact_id) as an
     existing journal ``source_snapshot`` and pin with
     ``SELFLEARN_CORRECTIONS_ARTIFACT_ID``. Digests detect mutation only.
     Default ``source`` is untrusted and cannot yield runtime ``applied=true``.
+    Trusted source labels are refused here unless ``allow_trusted_source``
+    (binder-only); caller-list / CLI paths must not claim binder origin.
     """
     if not isinstance(graded_records, list):
         raise CorrectionsError("invalid_graded_records")
+    if source == TRUSTED_ARTIFACT_SOURCE and allow_trusted_source is not True:
+        raise CorrectionsError("trusted_source_requires_journal_binder")
     if not finite_number(prior_strength) or prior_strength <= 0:
         raise CorrectionsError("invalid_prior_strength")
     if type(min_graded_total) is not int or min_graded_total < 1:
@@ -227,4 +232,31 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
         min_graded_total=min_graded_total,
         min_graded_per_market=min_graded_per_market,
         leg_cap_pp=leg_cap_pp,
+        allow_trusted_source=True,
     )
+
+
+def authorize_corrections_artifact(journal, artifact):
+    """Recompute binder fit from live journal; require exact artifact_id match.
+
+    A caller-controlled ``source`` string or content digest alone never
+    authorizes apply. Returns the sealed artifact only when the journal as-of
+    recomputation matches. Raises ``CorrectionsError`` on mismatch/shape fault.
+    """
+    if not isinstance(artifact, dict):
+        raise CorrectionsError("invalid_artifact")
+    if artifact.get("source") != TRUSTED_ARTIFACT_SOURCE:
+        raise CorrectionsError("trusted_source_required_for_authorization")
+    recomputed = fit_corrections_from_journal(
+        journal,
+        trained_through=artifact["trained_through"],
+        expires_at=artifact["expires_at"],
+        fitted_at=artifact["fitted_at"],
+        prior_strength=artifact["prior_strength"],
+        min_graded_total=artifact["min_graded_total"],
+        min_graded_per_market=artifact["min_graded_per_market"],
+        leg_cap_pp=artifact["leg_cap_pp"],
+    )
+    if recomputed.get("artifact_id") != artifact.get("artifact_id"):
+        raise CorrectionsError("trusted_artifact_journal_mismatch")
+    return artifact

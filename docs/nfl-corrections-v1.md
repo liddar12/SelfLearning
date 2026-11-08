@@ -54,9 +54,12 @@ Fit offline with `tools/fit_nfl_corrections.py` or
 
 Caller-supplied grade lists are integrity-hashed only — **not** authenticated
 provenance. Default `source` is `graded_caller_list_untrusted` and **cannot**
-set `applied=true`. Trusted fits use `fit_corrections_from_journal` →
-`source=receipt_journal_as_of_v1` (existing revision/`_latest_as_of` primitives).
-Digests detect mutation; they are **not** signatures.
+set `applied=true`. The caller-list fitter and CLI **refuse** to seal
+`source=receipt_journal_as_of_v1`. Trusted fits come only from
+`fit_corrections_from_journal`. At serve time, a trusted label is accepted for
+`applied=true` only after `authorize_corrections_artifact` recomputes the binder
+fit from the live journal and matches `artifact_id`. Digests detect mutation;
+they are **not** signatures.
 
 Store the sealed artifact **body** (all fields except nested `artifact_id`)
 as an existing receipt-journal **`source_snapshot`** object whose

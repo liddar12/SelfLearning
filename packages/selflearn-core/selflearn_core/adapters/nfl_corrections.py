@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 
 from ..probability_receipts import fingerprint, finite_number, instant
 from .nfl_corrections_fit import (
+    authorize_corrections_artifact,
     fit_corrections_artifact,
     fit_corrections_from_journal,
     require_clock_order,
@@ -40,6 +41,7 @@ LOG = logging.getLogger(__name__)
 
 __all__ = [
     "CorrectionsError",
+    "authorize_corrections_artifact",
     "corrections_mode",
     "fit_corrections_artifact",
     "fit_corrections_from_journal",
@@ -151,7 +153,7 @@ def _apply_leg_delta(baseline, delta, *, cap_pp):
     return adjusted, applied_delta
 
 
-def _leg_result(leg, *, mode, artifact, now, cap_pp):
+def _leg_result(leg, *, mode, artifact, now, cap_pp, binder_verified):
     if mode == "off":
         return _echo_leg(leg, reason="corrections_off", cap_pp=cap_pp)
     if leg["duplicate"]:
@@ -163,6 +165,9 @@ def _leg_result(leg, *, mode, artifact, now, cap_pp):
             return _echo_leg(leg, reason="stale_artifact", cap_pp=cap_pp)
         if not artifact_source_trusted(artifact.get("source")):
             return _echo_leg(leg, reason="untrusted_artifact_source", cap_pp=cap_pp)
+        # Trusted label alone is forgeable; apply only after journal recompute auth.
+        if binder_verified is not True:
+            return _echo_leg(leg, reason="unverified_binder_origin", cap_pp=cap_pp)
         if (not artifact.get("sufficient_total")
                 or artifact["n_graded"] < artifact["min_graded_total"]):
             return _echo_leg(leg, reason="insufficient_graded_data", cap_pp=cap_pp)
@@ -252,11 +257,18 @@ def _parlay_result(parlay, *, legs_by_id, mode, cap_pp):
     }
 
 
-def plan_corrections(request, *, mode="off", artifact=None, now=None):
-    """Plan corrections. Invalid requests raise; serving faults echo baseline."""
+def plan_corrections(request, *, mode="off", artifact=None, now=None,
+                     binder_verified=False):
+    """Plan corrections. Invalid requests raise; serving faults echo baseline.
+
+    ``binder_verified=True`` only after ``authorize_corrections_artifact`` (or
+    equivalent journal recompute match). A trusted ``source`` string alone
+    never authorizes ``applied=true``.
+    """
     mode = corrections_mode(mode)
     parsed = validate_request(request)
     now = now or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    verified = binder_verified is True
     if mode == "off":
         return {
             "schema_version": SCHEMA_VERSION,
@@ -273,7 +285,8 @@ def plan_corrections(request, *, mode="off", artifact=None, now=None):
             validate_artifact(artifact)
         leg_cap = HARD_LEG_CAP_PP if artifact is None else _cap_pp(
             artifact["leg_cap_pp"], hard=HARD_LEG_CAP_PP)
-        legs = [_leg_result(leg, mode=mode, artifact=artifact, now=now, cap_pp=leg_cap)
+        legs = [_leg_result(leg, mode=mode, artifact=artifact, now=now, cap_pp=leg_cap,
+                            binder_verified=verified)
                 for leg in parsed["legs"]]
         by_id = {}
         for row in legs:
