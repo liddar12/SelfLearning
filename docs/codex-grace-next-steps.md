@@ -8,6 +8,34 @@ branches below. It does not authorize live trades or change account permissions.
 - Account context: $2,000. The older $1,500 trade-loss figure is not an approved
   policy for this account.
 
+## Updated owner checklist after Vercel consent
+
+The Vercel team grant now works. Authenticated reads confirm the intended
+`self-learning` and `liddar-terminal-2tpb` projects. The current SelfLearning
+production aliases point at the newer main build; the prior NFL production
+deployment from the handoff is READY and belongs to the expected release branch.
+No production rollback or branch-setting change has been performed.
+
+| Step | Owner intervention | Work delegated to the agents |
+|---|---|---|
+| Vercel team consent | Completed and verified | Inspect deployments and logs through the connected tool |
+| SelfLearning production branch | In the existing Vercel project, open Settings → Environments → Production → Branch Tracking; set `release/optimized-nfl-runtime-20261018` if different, save, and confirm the saved value | Verify restoration of the intended runtime and production aliases; branch tracking and rollback are separate changes |
+| Supabase access | Connect the personal account/organization owning the intended project; current access still exposes only AYSO | Inspect schema, isolation and grants; prepare and validate the appropriate database setup |
+| Codex environment | Select both repositories in Grace's actual ChatGPT account/workspace and publish the tested environment | Install tools and reproduce the checks using the committed setup |
+| Grace handoff | Give Grace the coordination prompt once and identify the published environment | Prove a delegated Codex task returns, then manage routine engineering and exceptions |
+| Private credentials and owner login | Complete provider OAuth, secret entry, and owner password/email verification when required | Configure references and run secret-safe connectivity/integration checks |
+| Live operating policy | Later: select the funded broker/account and approve instruments, position/loss limits and the live stage | Prepare a concrete policy and evidence from shadow/paper operation; enforce it deterministically |
+
+The connected Vercel update-project tool does not expose production branch
+tracking, and the cloud dashboard browser is signed out. The documented UI
+location above is the smallest current owner action; no raw credential is
+needed in chat. The terminal's preview build compatibility fix belongs to
+the coding task and requires no owner key change.
+
+Use free services where suitable and keep new automation spending within
+the owner's existing $50/month additional budget across automation projects.
+Do not treat that operations budget as authority to fund or trade an account.
+
 ## 1. Who does what
 
 | Role | Next responsibility |
@@ -24,7 +52,7 @@ Grace's access to that environment has not been demonstrated in this session.
 First prove one delegated task and returned result; then use that connection
 for routine engineering. See [Cloud environment setup](https://learn.chatgpt.com/docs/environments/cloud-environments).
 
-## 2. First owner action: make the environment available
+## 2. Publish the reusable Codex environment once
 
 In the signed-in account used by Grace, publish or select a Cloud environment
 with access to **both** GitHub repositories. It needs Python 3.11+, **Node
@@ -96,7 +124,7 @@ See [Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp).
 | Connection | Exact owner action still needed |
 |---|---|
 | GitHub and Cloud | Grant access to both repositories and make the selected environment available to Grace/Codex. |
-| Vercel | Grant the correct `liddar-terminal` team access. The reviewed session received 403 for that team. |
+| Vercel | Team access is now verified. Complete the production Branch Tracking dashboard step above; the runtime restoration still needs verification. |
 | Supabase | Connect the account/organization owning the intended learning project, reported as `omavgimpnvrpuxqhfxpf`, then verify the actual project. Do not substitute AYSO. |
 | Terminal owner sign-in | Provision the owner's verified Supabase Auth account privately, disable public signup, and set its immutable UUID as `TERMINAL_OWNER_USER_ID` on the server. Follow the terminal's `docs/owner-auth-setup.md`. |
 | Alpaca paper | Supply paper-only `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` through the approved secret mechanism, if Alpaca is the selected paper broker. |
@@ -123,12 +151,18 @@ establish paper-strategy performance or options readiness.
 **Do not merge either setup branch to main until the reported Vercel
 production collision has been verified and repaired.**
 
-The handoff says SelfLearning PR #14 replaced the NFL runtime because Vercel's
-`self-learning` project publishes main. After correct team access is granted,
-this chat or an authorized implementation task should inspect the project,
-current deployment, intended previous deployment, repository, root directory,
-and production branch. Restore only the verified intended deployment and
-correct the routing, then observe the result.
+Authenticated Vercel reads confirm that SelfLearning's production aliases now
+point to the main build `dpl_8gTsvAs91dar9ss9jJX9Ay7y9J8q`. The prior deployment
+`dpl_GxxQXJhijdURfsXUZyCAPBvy4cd3` is READY, belongs to the same project, and was
+built from `release/optimized-nfl-runtime-20261018` at `aacb19c`.
+The dashboard Branch Tracking setting is not exposed by the connected tool;
+use the owner step above. Inspect runtime behavior before restoring the verified
+intended deployment, correct the routing, then observe the actual result.
+An Instant Rollback disables automatic production-domain assignment; a later
+promotion reenables it. Do not silently add that promotion as cleanup.
+
+Primary references: [production branch configuration](https://vercel.com/docs/git#customizing-the-production-branch)
+and [Instant Rollback](https://vercel.com/docs/instant-rollback).
 
 Use the terminal target `liddar-terminal-2tpb`. Leave the original March
 `liddar-terminal` project and `liddar-terminal.vercel.app` domain alone.

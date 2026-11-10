@@ -4,6 +4,13 @@ Checked November 10, 2026 against the final Claude handoff and the connected
 accounts available to this ChatGPT task. This is a dated observation, not a
 live status feed. Recheck access before acting.
 
+Update after owner consent: Vercel access is now verified for the intended
+team and both projects. The SelfLearning production aliases are confirmed on
+the newer main build; the named prior NFL deployment is verified READY on the
+expected release branch. Production branch tracking still needs the owner's
+dashboard action because the connected update-project tool omits that field
+and the cloud browser is signed out. No rollback or branch change has occurred.
+
 ## Working arrangement
 
 Grace coordinates the project, keeps the backlog and reports exceptions.
@@ -20,10 +27,10 @@ configuration does not install plugins into Grace's account.
 
 | Component | Verified observation | Remaining action |
 | --- | --- | --- |
-| GitHub | Both repositories are readable; current baseline is SelfLearning `46be142de18823ec86be2e33d8a421ce272616a8`, terminal `6f4af51` | Publish/review the setup feature branches; respect the main-merge restrictions |
+| GitHub | Both repositories are readable; setup work is published as SelfLearning PR #15 and terminal PR #13 | Review current CI/preview evidence and respect the main-merge restrictions |
 | Python development tools | Isolated setup and all three library suites run in this cloud checkout | Recreate using the committed setup command on the actual execution host |
 | Infrastructure CLIs | Netlify `27.17.0`, Vercel `65.14.0`, Supabase `3.1.0` installed and version-verified | OAuth/account authorization is separate from installation |
-| Vercel | Plugin installed; intended team requests return 403 | Owner team consent for `liddar-terminal` (`team_iQtnIckXS2Om0FEzZzYUtn9l`), then inspect and repair the production collision |
+| Vercel | Plugin and CLI installed; owner team consent verified for `liddar-terminal` (`team_iQtnIckXS2Om0FEzZzYUtn9l`) | Owner production Branch Tracking dashboard action; verify runtime restoration and terminal preview |
 | Supabase | Connected account exposes only an unrelated AYSO organization/project; intended learning project access is denied | Connect the account/organization owning `omavgimpnvrpuxqhfxpf`; inspect schema before choosing a fresh project or migration |
 | Netlify | Official CLI and local Codex MCP configuration prepared; no callable installed ChatGPT plugin found in this session | Owner Netlify OAuth and an explicit target site if used; current terminal remains on Vercel |
 | Grace and Codex Cloud | Native delegation is documented, but account/environment access is not verified here | Publish or select one environment containing both repositories and demonstrate one delegated task with a returned result |
@@ -36,10 +43,11 @@ configuration does not install plugins into Grace's account.
 ## Priority: repair deployment routing before main merges
 
 The handoff reports that SelfLearning PR #14 caused Vercel `self-learning` to
-publish main in place of the NFL runtime. This session could not inspect the
-private deployment because the target team grant is missing.
+publish main in place of the NFL runtime. With team access restored, this
+session confirmed that the production aliases point to `dpl_8gTsvAs91dar9ss9jJX9Ay7y9J8q`
+from main `46be142`, while the named prior deployment is READY on the release branch.
 
-After the owner grants team access:
+Remaining repair sequence:
 
 1. Inspect project `self-learning`, its current production deployment and its
    production Git branch. Verify the project's repository and root directory.
