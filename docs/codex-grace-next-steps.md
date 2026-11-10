@@ -1,15 +1,15 @@
 # Next steps for Codex, Grace, and this chat
 
-Updated November 10, 2026 after the verified Vercel production repair. This
-guide uses the reviewed handoff and the setup branches below. It does not
-authorize live trades or change account permissions.
+Updated November 10, 2026 after the Vercel repair and verified Supabase
+reconnection. This guide uses the reviewed handoff and setup branches below.
+It does not authorize live trades or change account permissions.
 
 - Backend: `liddar12/SelfLearning`, branch `codex/automation-tooling-shadow`.
 - Terminal: `liddar12/liddar-terminal`, branch `codex/terminal-owner-auth`.
 - Account context: $2,000. The older $1,500 trade-loss figure is not an approved
   policy for this account.
 
-## Updated owner checklist after the production repair
+## Updated owner checklist after Supabase reconnection
 
 SelfLearning's intended NFL deployment has been restored. Both production
 aliases now resolve to the verified release deployment, and the hosted health
@@ -20,15 +20,22 @@ not independently read through the API. See the
 and its limits. Preserve the rollback's pause in automatic production-domain
 assignment. Both setup PRs remain draft; neither has been merged.
 
-**The next owner action is Supabase access.** Reconnect the Supabase plugin
-using the account/organization that owns `omavgimpnvrpuxqhfxpf`. Current access
-exposes only the unrelated AYSO project. Complete consent privately and report
-that reconnection is done; agents can then verify access without receiving
-passwords, tokens or database keys in chat.
+**Supabase access now works.** The intended `SelfLearningAI` project
+(`omavgimpnvrpuxqhfxpf`) is ACTIVE_HEALTHY in the SelfLearningAI organization.
+Read-only catalog inspection confirms an existing shared learning/NFL store.
+See the [access and isolation record](supabase-access-and-isolation-2026-11-10.md).
+
+**Next owner action:** confirm, "Use the SelfLearningAI organization for the
+separate trading project." The prepared proposal is a new `liddar-trading`
+project in `us-east-2`, initially for SHADOW/paper work. The Supabase cost and
+creation tools require the user to choose the organization before invocation.
+After that choice, obtain the current quote and check free-project eligibility;
+no zero-cost claim or project creation has been made.
 
 | Step | Owner intervention | Work delegated to the agents |
 |---|---|---|
-| Supabase access | **Next:** reconnect the account/organization owning `omavgimpnvrpuxqhfxpf`; current access still exposes only AYSO | Verify the project, then inspect schema, isolation and grants before choosing database setup |
+| Trading project organization | **Next:** confirm SelfLearningAI for the proposed separate `liddar-trading` project | Obtain the current quote and eligibility, then prepare/create the reviewed isolated project within authorization |
+| Supabase access | Completed and verified; no repeat reconnection needed | Existing learning/NFL catalog inspected read-only; preserve that database and the separate AYSO project |
 | Vercel team consent | Completed and verified | Use the existing authorized connection for scoped verification |
 | SelfLearning production repair | Branch Tracking save confirmed by Jimmy; no repeat dashboard action needed now | Rollback, both production aliases, deployment provenance and hosted health verified; preserve the automatic-assignment pause |
 | Codex environment | Select both repositories in Grace's actual ChatGPT account/workspace and publish the tested environment | Install tools and reproduce the checks using the committed setup |
@@ -49,7 +56,7 @@ Do not treat that operations budget as authority to fund or trade an account.
 |---|---|
 | Codex | Run setup, test both branches, implement scoped engineering tasks, and produce reviewable PRs with evidence. |
 | Grace | Coordinate the backlog, delegate to Codex once her environment access works, follow up on tasks, and present decisions or exceptions. |
-| This chat | Help connect the correct Supabase account, preserve the production repair evidence, review the architecture and results, and prepare concrete owner decisions. |
+| This chat | Verify the selected trading organization and current project cost, preserve the existing NFL services, and prepare the isolated database/Auth integration. |
 | External worker, once built | Run the actual trading application and its deterministic controls. A chat conversation is not the worker. |
 | Jimmy | Complete private account consent, select the correct database/hosting account and any paid tier, and eventually authorize the live operating policy. |
 
@@ -132,8 +139,8 @@ See [Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp).
 |---|---|
 | GitHub and Cloud | Grant access to both repositories and make the selected environment available to Grace/Codex. |
 | Vercel | Team access and runtime routing/health are verified; Jimmy confirmed the branch-setting save. No repeat repair step is needed. Preserve the rollback's automatic-assignment pause. |
-| Supabase | Connect the account/organization owning the intended learning project, reported as `omavgimpnvrpuxqhfxpf`, then verify the actual project. Do not substitute AYSO. |
-| Terminal owner sign-in | Provision the owner's verified Supabase Auth account privately, disable public signup, and set its immutable UUID as `TERMINAL_OWNER_USER_ID` on the server. Follow the terminal's `docs/owner-auth-setup.md`. |
+| Supabase | Access is verified. Confirm SelfLearningAI as the organization for the proposed separate `liddar-trading` project so its current cost/eligibility can be checked. |
+| Terminal owner sign-in | After the isolated project is selected, provision the verified owner privately and set `TERMINAL_OWNER_USER_ID`. Apply the owner-auth runbook to that selected project; do not change shared NFL Auth signup settings blindly. |
 | Alpaca paper | Supply paper-only `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` through the approved secret mechanism, if Alpaca is the selected paper broker. |
 | Model providers | Choose the provider/account and provide runtime credentials privately. Actual model IDs and entitlements must be verified before calls. |
 | Netlify | Complete OAuth and identify a site only if Netlify is used. No duplicate deployment or site migration is required now. |
@@ -181,13 +188,19 @@ Use the terminal target `liddar-terminal-2tpb`. Leave the original March
 `liddar-terminal` project and `liddar-terminal.vercel.app` domain alone.
 Do not merge merely to expose a manual workflow-dispatch button.
 
-## 5. Next: Supabase access, then inspect the unapplied candidate
+## 5. Next: select the isolated trading organization
 
-The connected Supabase account currently exposes only the unrelated AYSO
-project, and the intended SelfLearning project `omavgimpnvrpuxqhfxpf` remains
-inaccessible. Reconnect the correct account/organization first. Once access
-works, agents should verify the exact project and perform read-only inspection.
-No hosted schema, grants, Auth settings or migrations have been changed.
+Supabase access and the existing project identity are verified. Catalog
+inspection found four public learning tables and 15 private journal tables
+in the active SelfLearningAI project. The [dated inspection and proposal](supabase-access-and-isolation-2026-11-10.md)
+records the bounded evidence and remaining checks. No journal contents, Auth
+users or secrets were read; no hosted settings or schema were changed.
+
+The current terminal shares one project URL between Auth and storage, and
+its service-key reads use only an optional task filter. Existing shared NFL
+records therefore would not be isolated by the prepared terminal. Recommend
+a separate `liddar-trading` project in the SelfLearningAI organization and
+`us-east-2`. This is a proposal, not an approved or provisioned project.
 
 `tools/automation/supabase` contains a **candidate for an empty dedicated
 database**, read-only diagnostics, and local disposable PostgreSQL tests.
@@ -202,10 +215,11 @@ npm test --prefix tools/automation/supabase
 .venv/bin/python -m unittest discover -s tools/automation/supabase/test -p 'test_*.py'
 ```
 
-The next hosted step is to inspect the intended project's schema, grants,
-migrations, isolation and cost. If a new project is selected, review the exact
-organization and tier before creating it. The unrelated AYSO project must not
-be repurposed.
+The next owner step is the organization choice stated above. The tools require
+that choice before a project-cost quote or creation call. Check the current
+plan, free-project eligibility and exact cost after selection; do not assume
+$0 or treat the $50/month shared automation budget as a new dedicated budget.
+Preserve both the existing learning/NFL database and unrelated AYSO project.
 
 Enable the terminal in the order documented in its owner-auth runbook:
 configure owner sign-in first, verify anonymous and wrong-owner denial, then
@@ -249,8 +263,8 @@ $1,500 value from an older conversation.
 > liddar-terminal repositories. Start from codex/automation-tooling-shadow and
 > codex/terminal-owner-auth, preserving any current work. Read AGENTS.md,
 > CLAUDE.md, the November 10 handoff, docs/automation-setup.md,
-> docs/automation-service-readiness.md, docs/vercel-production-repair-2026-11-10.md
-> and this next-steps guide.
+> docs/automation-service-readiness.md, docs/vercel-production-repair-2026-11-10.md,
+> docs/supabase-access-and-isolation-2026-11-10.md and this next-steps guide.
 >
 > Run the reproducible setup and both repositories' tests. Report installed
 > dependencies, authenticated services, tested application behavior and
@@ -288,22 +302,24 @@ $1,500 value from an older conversation.
 
 ### For this chat
 
-> Help finish the account prerequisites for this handoff. The Vercel repair is
-> recorded; preserve its automatic-assignment pause. First verify Supabase
-> access to omavgimpnvrpuxqhfxpf after I reconnect the correct account/organization.
-> Inspect that project before choosing reuse or a fresh-project migration.
-> Prepare any cost or owner-access decision
-> with the exact target and effect. Review Codex's evidence and keep Grace's
-> environment/delegation status honest. Continue independent setup work while
-> account access is pending; keep trading and schedules disabled.
+> Continue from the recorded Vercel repair and verified Supabase reconnection.
+> Preserve the existing NFL deployment, database and rollback pause. The
+> proposed trading project is liddar-trading in the SelfLearningAI organization,
+> us-east-2. First obtain my organization choice required by the Supabase tools,
+> then verify current cost and eligibility before creating the reviewed project.
+> Prepare isolated owner Auth and database integration with exact targets.
+> Review Codex's evidence and keep Grace's environment/delegation status honest.
+> Continue independent engineering while setup is pending; keep live trading
+> and schedules disabled.
 
 ## 8. What "ready for the next stage" means
 
 The immediate success condition is: both prepared branches are available,
 the actual Codex/Grace environment reproduces the tests, one delegated task
-returns successfully, and correct Supabase account access allows the database
-choice to be resolved. Production routing and health are already verified in
-the dated repair record; database and ingestion readiness remain separate.
+returns successfully, and the selected isolated trading project passes hosted
+Auth/storage integration. Supabase management/catalog access and production
+routing/health are now verified in the dated records; trading application
+readiness and existing NFL ingestion remain separate.
 
 The next engineering milestone is a manually started shadow run that writes a
 real stamped prediction to the isolated store, later resolves it, scores it,
