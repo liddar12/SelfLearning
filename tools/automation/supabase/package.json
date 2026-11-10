@@ -1,0 +1,13 @@
+{
+  "name": "automated-trade-bot-supabase-readiness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/schema.test.mjs"
+  },
+  "devDependencies": {
+    "supabase": "3.1.0",
+    "@electric-sql/pglite": "0.5.16"
+  }
+}
