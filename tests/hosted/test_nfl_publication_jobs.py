@@ -347,3 +347,64 @@ def test_new_proof_path_never_scans_global_receipts_or_fetches_each_generic(port
     with patch.object(journal,"receipts",side_effect=AssertionError("unbounded history scan")),patch.object(journal,"get_receipt",side_effect=AssertionError("N generic lookups")):
         result=run(ports)
     assert result["recording_complete"] is True and len(calls)==1
+
+
+def raw_leg_graph(updates=None):
+    """Freeze the existing NFL v1 omission without changing receipt identity."""
+    doc,sources=graph(kickoff="2030-01-01T13:00:00Z")
+    for player in sources["leg_pool"]["players"]:
+        for rung in player["rungs"]:
+            for key in ("direction","comparison_operator"):rung.pop(key,None)
+            rung.update(updates or {})
+    for row in doc["receipts"]:
+        for key in ("direction","comparison_operator"):row["leg"].pop(key,None)
+        row["leg"].update(updates or {})
+    gen=doc["generations"][0]
+    gen["source_snapshots"]={k:fingerprint(v) for k,v in sources.items()}
+    gen["generation_id"]=fingerprint({k:gen[k] for k in MANIFEST_KEYS})
+    for row in doc["receipts"]:row["generation_id"]=gen["generation_id"]
+    doc["envelope_id"]=fingerprint({k:v for k,v in doc.items() if k!="envelope_id"})
+    return doc,sources
+
+
+def store_graph(journal,doc,sources):
+    for value in sources.values():journal.append_object("source_snapshot",fingerprint(value),value)
+    journal.append_object("generation",doc["envelope_id"],doc)
+
+
+def test_frozen_v1_leg_omissions_use_read_only_contract_defaults_and_preserve_hashes(ports):
+    jobs,journal,verifier,_,calls,_,_=ports
+    doc,sources=raw_leg_graph();original=copy.deepcopy(doc)
+    source_ids=[row["receipt_id"] for row in doc["receipts"]]
+    store_graph(journal,doc,sources)
+    ack=finalize_generation(journal,doc["envelope_id"])
+    assert len(ack["receipts"])==1 and ack["rejections"]==[]
+    def fetch(url):
+        calls.append(url)
+        return 200,{"Content-Type":"application/json"},json.dumps(sources["leg_pool"]).encode(),url
+    verifier.transport=fetch
+    queued=W.enqueue(jobs,journal,doc["envelope_id"],verifier.policy,CODE)
+    result=run(ports)
+    assert result["recording_complete"] is True and result["job_id"]==queued["definition"]["job_id"]
+    stored=journal.get_object(doc["envelope_id"])["payload"]
+    assert stored==original==doc
+    assert fingerprint({k:v for k,v in stored.items() if k!="envelope_id"})==doc["envelope_id"]
+    assert [row["receipt_id"] for row in stored["receipts"]]==source_ids
+    assert all("direction" not in row["leg"] and "comparison_operator" not in row["leg"] for row in stored["receipts"])
+    assert len(calls)==1
+
+
+@pytest.mark.parametrize("updates",[{"direction":"under"},{"direction":None},
+    {"comparison_operator":"gt"},{"comparison_operator":None}])
+def test_explicit_frozen_leg_conflicts_or_nulls_are_not_overridden(ports,updates):
+    jobs,journal,verifier,_,calls,_,_=ports
+    doc,sources=raw_leg_graph(updates);original=copy.deepcopy(doc)
+    store_graph(journal,doc,sources)
+    # Deliberately bypass the HTTP adapter using the generic journal commit to
+    # prove the worker also rejects a malformed but durably partitioned graph.
+    # The original generic receipt is unchanged; its source ID matches this row.
+    receipt=journal.receipts()[0]
+    journal.commit_generation(doc["envelope_id"],[receipt],[])
+    with pytest.raises(ValueError,match="missing_canonical_identity"):
+        W.enqueue(jobs,journal,doc["envelope_id"],verifier.policy,CODE)
+    assert journal.get_object(doc["envelope_id"])["payload"]==original and calls==[]

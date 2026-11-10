@@ -3,10 +3,11 @@ import copy
 import hashlib
 import json
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 
-from publication_fit_fixture import FIXTURES, seed_publication_journal
+from publication_fit_fixture import FIXTURES, PUBLICATION_TIME, seed_publication_journal
 from selflearn_core.adapters.nfl import adapt_prospective
 from selflearn_core.adapters.nfl_generation import MANIFEST_KEYS
 from selflearn_core.adapters.nfl_corrections_fit import (
@@ -73,6 +74,91 @@ def test_real_m1_shape_fits_only_after_independent_proof_without_receipt_upgrade
     assert artifact["n_graded"] == 3
     assert set(artifact["segments"]) == {m + "|over" for m in ("qb_pass_yds","rb_rush_yds","wr_rec_yds")}
     assert snapshot["receipts"] == originals
+
+
+def seed_producer_shaped_generation(journal):
+    """Issue a fresh synthetic wire graph with actual NFL v1 omitted leg fields.
+
+    Complete source learning receipts retain their canonical direction. Only
+    redundant player/rung/leg fields are omitted, as the real producer emits.
+    Every changed source/generation is independently hashed and finalized.
+    """
+    with ReceiptJournal(":memory:") as templates:
+        material = seed_publication_journal(templates, publish=False)
+    doc, pool = copy.deepcopy(material["doc"]), copy.deepcopy(material["pool"])
+    for player in pool["players"]:
+        for field in ("direction", "comparison_operator"):
+            player.pop(field, None)
+        for rung in player["rungs"]:
+            for field in ("direction", "comparison_operator"):
+                rung.pop(field, None)
+    gen = doc["generations"][0]
+    gen["source_snapshots"]["leg_pool"] = fingerprint(pool)
+    gen["generation_id"] = fingerprint({key:gen[key] for key in MANIFEST_KEYS})
+    for row in doc["receipts"]:
+        row["generation_id"] = gen["generation_id"]
+        for field in ("direction", "comparison_operator"):
+            row["leg"].pop(field, None)
+    doc["envelope_id"] = fingerprint({key:value for key,value in doc.items() if key != "envelope_id"})
+    schedule = json.loads((FIXTURES / "source_snapshot_schedule.json").read_text())["payload"]
+    for payload in (pool, schedule, None):
+        journal.append_object("source_snapshot", fingerprint(payload), payload)
+    journal.append_object("generation", doc["envelope_id"], doc)
+    batch = adapt_prospective(journal_docs=[doc])
+    assert not batch["rejections"] and len(batch["receipts"]) == 3
+    journal.commit_generation(doc["envelope_id"], batch["receipts"], [])
+    observation = {"version":1, "policy":{"version":1,"kind":"nfl.pool_http_publication.v1",
+        "origin":"https://publication-fixture.example", "path":"/data/leg_pool.json"},
+        "observed_started_utc":"2026-09-01T14:02:00Z", "observed_completed_utc":"2026-09-01T14:02:01Z",
+        "http_status":200, "body_utf8":json.dumps(pool)}
+    with patch.object(journal, "_publication_recorded_utc", return_value=PUBLICATION_TIME):
+        journal.commit_publication_attestation(doc["envelope_id"], observation)
+    for receipt in batch["receipts"]:
+        journal.append_resolution({"receipt_id":receipt["receipt_id"], "contract_id":receipt["contract_id"],
+            "event_id":receipt["event_id"], "status":"FINAL", "hit":False,
+            "resolved_utc":"2026-09-02T04:00:00Z", "source":"synthetic outcome fixture"},
+            revision_id="producer-shaped-revision-" + receipt["receipt_id"])
+
+
+def test_real_producer_omitted_leg_fields_fit_after_actual_finalize_publication_and_outcome():
+    with ReceiptJournal(":memory:") as journal:
+        seed_producer_shaped_generation(journal)
+        before = journal.read_publication_fit_snapshot()
+        assert all("direction" not in row["leg"] and "comparison_operator" not in row["leg"]
+                   for row in before["generation_records"][0]["payload"]["receipts"])
+        assert all("direction" not in row["features"] and "selection" not in row["features"]
+                   for row in before["receipts"])
+        artifact = fit_corrections_from_journal(journal, trained_through="2099-01-01T00:00:00Z",
+            fitted_at="2099-01-01T01:00:00Z", expires_at="2099-02-01T00:00:00Z",
+            min_graded_total=1, min_graded_per_market=1)
+        assert artifact["n_graded"] == 3
+        assert set(artifact["segments"]) == {market + "|over" for market in
+            ("qb_pass_yds", "rb_rush_yds", "wr_rec_yds")}
+        authorize_corrections_artifact(journal, artifact)
+        assert journal.read_publication_fit_snapshot() == before
+
+
+@pytest.mark.parametrize("field,value", [("direction","under"), ("direction",None),
+    ("comparison_operator","lte"), ("comparison_operator",None)])
+def test_omitted_leg_defaults_never_override_explicit_conflicting_or_null_fields(field, value):
+    with ReceiptJournal(":memory:") as journal:
+        seed_producer_shaped_generation(journal)
+        original = journal.read_publication_fit_snapshot()
+    # Detached adversarial snapshot only: persisted history is never rewritten.
+    broken = copy.deepcopy(original)
+    generation = broken["generation_records"][0]
+    doc = generation["payload"]
+    for row in doc["receipts"]:
+        row["leg"][field] = value
+    doc["envelope_id"] = fingerprint({key:child for key,child in doc.items() if key != "envelope_id"})
+    generation["object_id"] = doc["envelope_id"]
+    generation["ack"]["object_id"] = doc["envelope_id"]
+    proof = broken["publication_attestations"][0]
+    proof["object_id"] = doc["envelope_id"]
+    reseal(proof)
+    before = copy.deepcopy(broken)
+    assert fit(broken, cutoff="2099-01-01T00:00:00Z")["n_graded"] == 0
+    assert broken == before
 
 
 @pytest.mark.parametrize("status", ["generated_unverified", "verified_publication"])

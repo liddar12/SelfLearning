@@ -114,7 +114,10 @@ def _generation(jobs, journal, object_id):
     expected = {}
     for sid,rid in accepted.items():
         source = rows[sid]["learning_receipt"]
-        validate_nfl_receipt(source,rows[sid]["leg"],gen["season"],gen["week"])
+        # Frozen NFL v1 legs omit these redundant fixed-contract fields. Match
+        # ingestion's read-only view; explicit conflicts/null remain untouched.
+        leg={"direction":"over","comparison_operator":"gte",**rows[sid]["leg"]}
+        validate_nfl_receipt(source,leg,gen["season"],gen["week"])
         expected[sid] = {"receipt_id":rid, "source_receipt_id":sid,
             "market":source["market"], "direction":source["direction"],
             "served_prob":source["served_prob"], "event_start_utc":rows[sid]["kickoff_utc"]}

@@ -260,7 +260,11 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
                     continue
                 source = source_row["learning_receipt"]
                 from .nfl import validate_nfl_receipt
-                validate_nfl_receipt(source, source_row["leg"], gen["season"], gen["week"])
+                # NFL pool v1 omits these redundant fixed yardage fields.
+                # Normalize only the validation view; explicit conflicts/nulls
+                # win, and the original frozen leg/hash must remain untouched.
+                leg = {"direction": "over", "comparison_operator": "gte", **source_row["leg"]}
+                validate_nfl_receipt(source, leg, gen["season"], gen["week"])
                 if (source["receipt_id"] != sid or receipt["source_receipt_id"] != sid
                         or receipt["contract_id"] != source["contract_id"]
                         or receipt["event_id"] != f'nfl:{gen["season"]}:game:{source["game_id"]}'
