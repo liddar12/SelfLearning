@@ -24,6 +24,7 @@ from .price_action import PriceActionPack, compute_price_action_features
 from .macro_policy import MacroPolicyPack
 from .commodities import CommoditiesPack
 from .families import ALL_PACKS, AiInfraPack, GeopoliticsPack
+from .regime import BreadthPack, VolRegimePack, compute_breadth, compute_vol_regime, regime_string
 
 __all__ = [
     "FeatureFamily",
@@ -48,4 +49,9 @@ __all__ = [
     "GeopoliticsPack",
     "AiInfraPack",
     "ALL_PACKS",
+    "BreadthPack",
+    "VolRegimePack",
+    "compute_breadth",
+    "compute_vol_regime",
+    "regime_string",
 ]

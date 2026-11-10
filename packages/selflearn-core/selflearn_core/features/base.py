@@ -37,6 +37,8 @@ class FeatureFamily(str, Enum):
     COMMODITIES = "commodities"
     # AI buildout, data centers, power, water, chips (the Power 2026 surface).
     AI_INFRA = "ai_infra"
+    # Market-wide regime: breadth (RSP/SPY), volatility (VIX expected move).
+    REGIME = "regime"
 
 
 @dataclass(frozen=True)
