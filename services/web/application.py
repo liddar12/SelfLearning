@@ -23,6 +23,7 @@ from selflearn_core.contracts import validate_prediction_record
 from selflearn_core.contracts_sports import SPORTS_TASKS, validate_sports_record, validate_sports_outcome
 from selflearn_core.store.supabase_store import StoreConflict, StoreError, SupabaseStore
 from selflearn_core.store.supabase_journal import SupabaseReceiptJournal
+from selflearn_core.adapters.nfl_publication_journal import NFLSupabasePublicationJournal
 from selflearn_core.types import Outcome, Prediction
 from .security import OwnerBoundary, MAX_IMAGE
 from .nfl_ingestion import register_nfl_routes
@@ -30,6 +31,8 @@ from .nfl_capture_intake import register_capture_routes
 from .capture_configuration import select_capture_factory
 from .nfl_capture_applications import register_application_routes
 from .nfl_corrections import register_corrections_routes
+from .nfl_publication import register_publication_routes
+from .nfl_publication_verifier import select_verifier
 from .owner_intents import register_owner_intent_routes
 from . import private_uploads
 from . import nfl_trace
@@ -99,7 +102,10 @@ def _journal_selection(env, injected):
     def verified_factory():
         with ExitStack() as stack:
             try:
-                journal = stack.enter_context(SupabaseReceiptJournal(origin, key))
+                journal_class = (NFLSupabasePublicationJournal
+                                 if env.get("SELFLEARN_PUBLICATION_MODE") == "record"
+                                 else SupabaseReceiptJournal)
+                journal = stack.enter_context(journal_class(origin, key))
                 readiness = journal.status()
                 if (not isinstance(readiness, dict) or type(readiness.get("schema_version")) is not int
                         or readiness["schema_version"] != 1 or readiness.get("backend") != "postgres"
@@ -196,7 +202,7 @@ def image_extension(data: bytes, mime: str) -> str:
 
 
 def create_app(*, store=None, env=None, journal_factory=None, capture_factory=None,
-               owner_intent_factory=None):
+               owner_intent_factory=None, publication_transport=None):
     env = os.environ if env is None else env
     token = env.get("SELFLEARN_OPERATOR_TOKEN", "")
     if store is None:
@@ -207,6 +213,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
             store = None  # Never fall back to ephemeral/local storage in production.
     journal_factory, journal_selection = _journal_selection(env, journal_factory)
     capture_factory, capture_selection = select_capture_factory(env, capture_factory)
+    publication_verifier = select_verifier(env, publication_transport)
     local = not env.get("VERCEL")
     hosts = {"self-learning-beige.vercel.app", "self-learning-liddar-terminal.vercel.app"}
     for variable in ("VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_BRANCH_URL"):
@@ -243,7 +250,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
             raise HTTPException(503, "NFL forecast journal is not configured; connection is unverified")
         try:
             with journal_factory() as journal:
-                return operation(nfl_trace.read_snapshot(journal))
+                return operation(nfl_trace.read_snapshot(journal, publication=publication_verifier is not None))
         except Exception:
             # No source payload, SQL, credential, path or provider diagnostics.
             raise HTTPException(503, "NFL forecast trace is unavailable; no connection or freshness is inferred") from None
@@ -293,7 +300,8 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
     app.add_middleware(OwnerBoundary, token=token, origins=origins,
                        ingest_token=env.get("SELFLEARN_NFL_INGEST_TOKEN", ""),
                        capture_token=env.get("SELFLEARN_NFL_OUTCOME_INGEST_TOKEN", ""),
-                       corrections_token=env.get("SELFLEARN_NFL_CORRECTIONS_TOKEN", ""))
+                       corrections_token=env.get("SELFLEARN_NFL_CORRECTIONS_TOKEN", ""),
+                       publication_token=env.get("SELFLEARN_NFL_PUBLICATION_TOKEN", ""))
 
     @app.exception_handler(StoreError)
     async def store_error(request, exc):
@@ -431,6 +439,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
     register_capture_routes(app, capture_factory, body)
     register_application_routes(app, capture_factory, body)
     register_corrections_routes(app, journal_factory, body, env=env)
+    register_publication_routes(app, journal_factory, body, publication_verifier)
     # Explicit trusted server injection only. Environment/store credentials do
     # not enable this decision journal, and recording an intent never activates
     # a model. The existing operator boundary (not either producer token) owns

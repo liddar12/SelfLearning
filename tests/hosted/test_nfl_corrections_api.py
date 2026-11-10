@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from pathlib import Path
+import runpy
 
 from fastapi.testclient import TestClient
 
@@ -14,7 +16,7 @@ from selflearn_core.adapters.nfl_corrections_policy import (
     UNTRUSTED_ARTIFACT_SOURCE,
 )
 from selflearn_core.probability_receipts import fingerprint, seal_receipt
-from selflearn_core.store.receipt_journal import ReceiptJournal
+from selflearn_core.adapters.nfl_publication_journal import NFLPublicationJournal as ReceiptJournal
 from services.web.application import create_app
 from services.web.nfl_corrections import artifact_snapshot_payload
 from .fakes import FakeStore, TEST_KEY
@@ -99,20 +101,11 @@ def _sealed_receipt(i, market, *, hit):
 
 
 def populate_verified_journal(journal, n_per=60):
-    markets = ("qb_pass_yds", "rb_rush_yds", "wr_rec_yds")
-    for mi, market in enumerate(markets):
-        for i in range(n_per):
-            hit = (i % 10) < 4
-            receipt, hit, day = _sealed_receipt(i + 1000 * mi, market, hit=hit)
-            graded_day = min(day + 1, 28)
-            journal.append_receipt(receipt)
-            journal.append_resolution(
-                {"receipt_id": receipt["receipt_id"], "contract_id": receipt["contract_id"],
-                 "event_id": receipt["event_id"], "status": "FINAL", "hit": hit,
-                 "resolved_utc": f"2026-10-{graded_day:02d}T08:00:00Z",
-                 "source": "fixture"},
-                revision_id=f"rev-{mi}-{i}-{receipt['receipt_id'][-8:]}",
-            )
+    # Build actual M1-shaped immutable captures and separate publication proof;
+    # an enum-only generic receipt is no longer a trusted fitting fixture.
+    fixture = Path(__file__).resolve().parents[2] / "packages/selflearn-core/tests/publication_fit_fixture.py"
+    seed = runpy.run_path(str(fixture))["seed_publication_journal"]
+    return seed(journal, n_per=n_per)
 
 
 def binder_artifact(journal):

@@ -20,7 +20,12 @@ class TraceError(ValueError):
     """Static diagnostic, never arbitrary stored content or backend errors."""
 
 
-def read_snapshot(journal):
+def read_snapshot(journal, *, publication=False):
+    if publication:
+        method = getattr(journal, "read_publication_fit_snapshot", None)
+        if not callable(method):
+            raise TraceError("pinned_publication_read_unavailable")
+        return method()
     method = getattr(journal, "read_observed_snapshot", None)
     if not callable(method):
         method = getattr(journal, "read_snapshot", None)
@@ -234,10 +239,36 @@ def forecast_trace(snapshot, receipt_id):
             "evidence_observed_utc_claim": outcome.get("evidence_observed_utc"),
             "evidence_observation_id": outcome.get("evidence_observation_id"),
             "participation_basis": outcome.get("participation_basis")})
+    publication_evidence = []
+    bindings = {g["envelope_id"]: g for g in generations}
+    from selflearn_core.adapters.nfl_publication import validate_publication_attestation
+    for proof in snapshot.get("publication_attestations", []):
+        try:
+            validate_publication_attestation(proof)
+            matched = [row for row in proof["receipts"] if row["receipt_id"] == receipt_id]
+            if not matched:
+                continue
+            generation = bindings.get(proof["object_id"])
+            if (len(matched) != 1 or matched[0]["source_receipt_id"] != receipt["source_receipt_id"]
+                    or matched[0]["served_prob"] != receipt["served_prob"]
+                    or matched[0]["event_start_utc"] != receipt["event_start_utc"]
+                    or generation is None or proof["generation_id"] != generation["generation_id"]
+                    or proof["source_pool_id"] != generation["source_snapshot_ids"]["leg_pool"]):
+                raise ValueError("publication_trace_binding_mismatch")
+            publication_evidence.append({"attestation_id": proof["attestation_id"],
+                "generation_object_id": proof["object_id"], "policy_id": proof["policy_id"],
+                "origin": proof["policy"]["origin"], "path": proof["policy"]["path"],
+                "observed_completed_utc": proof["observation"]["observed_completed_utc"],
+                "database_recorded_utc": proof["recorded_utc"],
+                "scope": proof["scope"]})
+        except (ValueError, TypeError, KeyError, OverflowError):
+            raise TraceError("invalid_trace_publication_evidence") from None
     return {"version": 1, "kind": "nfl.forecast_trace.v1", "watermark": snapshot["watermark"],
         "forecast": _summary(receipt, history), "source_snapshot_id": receipt["source_snapshot_id"],
         "source_timestamps_claims": receipt["source_timestamps"], "source_freshness": "unverified",
         "generations": generations, "outcome_revisions": revisions,
+        "publication_evidence": publication_evidence,
+        "public_pool_availability": "attested" if publication_evidence else "unverified",
         "observed_proof_history_available": type(snapshot.get("observations")) is list,
         "read_only": True, "production_connection_verified": False,
         "warnings": ["Internal capture/database receipt does not prove public pre-event availability.",

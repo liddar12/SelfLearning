@@ -10,6 +10,7 @@ MAX_LEARNING_JSON = 3 * 1024 * 1024
 NFL_INGEST_PATHS = frozenset(("/api/v1/nfl/objects", "/api/v1/nfl/generations"))
 NFL_CAPTURE_PATHS = frozenset(("/api/v1/nfl/capture-chunks", "/api/v1/nfl/capture-deliveries"))
 NFL_CORRECTIONS_PATHS = frozenset(("/api/v1/nfl/corrections",))
+NFL_PUBLICATION_PATHS = frozenset(("/api/v1/nfl/publication-attestations",))
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
@@ -21,11 +22,12 @@ SECURITY_HEADERS = {
 
 class OwnerBoundary:
     def __init__(self, app, *, token: str, origins: set[str], ingest_token: str = "",
-                 capture_token: str = "", corrections_token: str = ""):
+                 capture_token: str = "", corrections_token: str = "", publication_token: str = ""):
         self.app, self.token, self.origins = app, token, origins
         self.ingest_token = ingest_token
         self.capture_token = capture_token
         self.corrections_token = corrections_token
+        self.publication_token = publication_token
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -49,14 +51,18 @@ class OwnerBoundary:
             await JSONResponse({"detail": detail}, status_code=status, headers=headers)(scope, receive, secure_send)
 
         if private:
-            tokens = (self.token, self.ingest_token, self.capture_token, self.corrections_token)
+            tokens = (self.token, self.ingest_token, self.capture_token, self.corrections_token,
+                      self.publication_token)
             if any(type(key) is not str for key in tokens):
                 return await reject(503, "Scoped access is not configured")
             nfl_ingest = path in NFL_INGEST_PATHS
             nfl_capture = (path in NFL_CAPTURE_PATHS or path.startswith("/api/v1/nfl/capture-deliveries/")
                            or path == "/api/v2/nfl/capture-applications" or path.startswith("/api/v2/nfl/capture-applications/"))
             nfl_corrections = path in NFL_CORRECTIONS_PATHS
-            if nfl_corrections:
+            nfl_publication = path in NFL_PUBLICATION_PATHS
+            if nfl_publication:
+                credential = self.publication_token
+            elif nfl_corrections:
                 credential = self.corrections_token
             elif nfl_capture:
                 credential = self.capture_token

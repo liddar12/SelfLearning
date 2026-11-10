@@ -1,4 +1,4 @@
-"""Journal as-of binder: generated_unverified excluded; untrusted never applies."""
+"""Publication/as-of binder: unattested captures excluded; untrusted never applies."""
 from __future__ import annotations
 
 
@@ -9,7 +9,9 @@ from selflearn_core.adapters.nfl_corrections import (
 )
 from selflearn_core.adapters.nfl_corrections_policy import TRUSTED_ARTIFACT_SOURCE
 from selflearn_core.probability_receipts import fingerprint, seal_receipt
-from selflearn_core.store.receipt_journal import ReceiptJournal
+from selflearn_core.adapters.nfl_publication_journal import NFLPublicationJournal as ReceiptJournal
+from publication_fit_fixture import seed_publication_journal
+import copy
 
 
 def _sealed(*, publication_status="verified_publication", market="qb_pass_yds",
@@ -40,15 +42,11 @@ def _sealed(*, publication_status="verified_publication", market="qb_pass_yds",
 
 
 class _FakeJournal:
-    def __init__(self, receipts, histories):
-        self._receipts = receipts
-        self._histories = histories
+    def __init__(self, snapshot):
+        self.snapshot = snapshot
 
-    def receipts(self):
-        return list(self._receipts)
-
-    def resolution_history(self, receipt_id):
-        return list(self._histories.get(receipt_id, []))
+    def read_publication_fit_snapshot(self):
+        return copy.deepcopy(self.snapshot)
 
 
 def test_generated_unverified_receipts_are_fit_ineligible(tmp_path):
@@ -74,7 +72,13 @@ def test_generated_unverified_receipts_are_fit_ineligible(tmp_path):
 
 
 def test_binder_as_of_excludes_future_recorded_revisions():
-    receipt = _sealed()
+    with ReceiptJournal(":memory:") as original:
+        seeded = seed_publication_journal(original)
+        snapshot = original.read_publication_fit_snapshot()
+    receipt = seeded["receipts"][0]
+    snapshot["receipts"] = [receipt]
+    for generation in snapshot["generation_records"]:
+        generation["recorded_utc"] = "2026-09-01T14:01:01Z"
     rev1 = {
         "version": 1, "revision_id": "rev-1", "supersedes": None, "reason": None,
         "recorded_utc": "2026-09-02T05:00:00Z",
@@ -94,7 +98,8 @@ def test_binder_as_of_excludes_future_recorded_revisions():
             "resolved_utc": "2026-09-10T04:00:00Z", "source": "fixture-correction",
         },
     }
-    journal = _FakeJournal([receipt], {receipt["receipt_id"]: [rev1, rev2]})
+    snapshot["revisions"] = [rev1, rev2]
+    journal = _FakeJournal(snapshot)
     early = fit_corrections_from_journal(
         journal,
         trained_through="2026-09-03T00:00:00Z",
@@ -110,9 +115,9 @@ def test_binder_as_of_excludes_future_recorded_revisions():
         min_graded_total=1, min_graded_per_market=1,
     )
     assert early["n_graded"] == 1
-    assert early["segments"]["qb_pass_yds|over"]["raw_bias"] < 0
+    assert early["segments"][receipt["features"]["market"] + "|over"]["raw_bias"] < 0
     assert late["n_graded"] == 1
-    assert late["segments"]["qb_pass_yds|over"]["raw_bias"] > 0
+    assert late["segments"][receipt["features"]["market"] + "|over"]["raw_bias"] > 0
 
 
 def test_default_caller_list_source_cannot_apply_even_with_floors():

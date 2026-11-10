@@ -74,6 +74,26 @@ def probe(monkeypatch):
     return LocalProbe
 
 
+@pytest.mark.parametrize("mode", [None, "off", "record"])
+def test_publication_policy_is_explicitly_composed_without_enabling_writes(monkeypatch, mode):
+    class Generic(ProbeJournal):
+        calls = []
+    class Publication(ProbeJournal):
+        calls = []
+    monkeypatch.setattr(application, "SupabaseReceiptJournal", Generic)
+    monkeypatch.setattr(application, "NFLSupabasePublicationJournal", Publication)
+    env = {**ENV, "SELFLEARN_JOURNAL_BACKEND": "supabase"}
+    if mode is not None:
+        env["SELFLEARN_PUBLICATION_MODE"] = mode
+    factory, _ = application._journal_selection(env, None)
+    assert Generic.calls == Publication.calls == []
+    expected, unused = (Publication, Generic) if mode == "record" else (Generic, Publication)
+    with factory() as journal:
+        assert type(journal) is expected
+    assert [row[0] for row in expected.calls] == ["init", "enter", "status", "exit"]
+    assert unused.calls == []
+
+
 @pytest.mark.parametrize("selection", [None, "", "disabled"])
 def test_credentials_alone_never_enable_learning(probe, selection):
     env = {**ENV}

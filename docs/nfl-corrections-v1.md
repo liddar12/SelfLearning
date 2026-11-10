@@ -5,11 +5,19 @@ promise improved predictions. With little graded data, adjustments stay near
 zero or are refused.
 
 **Activation remains blocked for learned `applied=true`.** M1 forecast capture
-(`generated_unverified`) is allowed and is **fit-ineligible**. Runtime
-application requires `artifact.source=receipt_journal_as_of_v1` from
-`fit_corrections_from_journal` over `verified_publication` receipts plus
-authoritative revisions as-of cutoff. Caller-list / digest-only artifacts
-echo baseline with `untrusted_artifact_source`. No invented served enum.
+(`generated_unverified`) alone is **fit-ineligible**. The local November 9
+checkpoint adds a separate, immutable public-pool attestation; original receipts
+keep their status and hash. Runtime application requires
+`artifact.source=receipt_journal_publication_as_of_v2` from
+`fit_corrections_from_journal` over a pinned journal snapshot joining those
+attestations to original source/generic receipts, finalized generations and
+authoritative outcome revisions as of the cutoff. A caller-provided
+`verified_publication` enum is insufficient. Caller-list, digest-only and legacy
+source artifacts echo baseline with `untrusted_artifact_source`.
+
+See [publication evidence](nfl-publication-evidence.md) for configuration,
+scope and remaining deployment/evaluation boundaries. This proves public pool
+availability, not display or selection of every browser-built card.
 
 Pinned ingest fixtures for NFL producer conformance:
 `fixtures/nfl-ingest-m1/` (see `index.json` / `contract.json`).
@@ -21,7 +29,7 @@ Pinned ingest fixtures for NFL producer conformance:
 Auth: `Authorization: Bearer <SELFLEARN_NFL_CORRECTIONS_TOKEN>`.
 
 - Token must be at least 32 characters.
-- Must differ from operator, ingest, and outcome tokens.
+- Must differ from operator, ingest, outcome, and publication tokens.
 - Compared with `hmac.compare_digest`.
 - Missing/invalid/duplicate-scope configuration fails closed with **503**.
 
@@ -55,7 +63,7 @@ Fit offline with `tools/fit_nfl_corrections.py` or
 Caller-supplied grade lists are integrity-hashed only — **not** authenticated
 provenance. Default `source` is `graded_caller_list_untrusted` and **cannot**
 set `applied=true`. The caller-list fitter and CLI **refuse** to seal
-`source=receipt_journal_as_of_v1`. Trusted fits come only from
+`source=receipt_journal_publication_as_of_v2`. Trusted fits come only from
 `fit_corrections_from_journal`. At serve time, a trusted label is accepted for
 `applied=true` only after `authorize_corrections_artifact` recomputes the binder
 fit from the live journal and matches `artifact_id`. Digests detect mutation;
@@ -68,7 +76,9 @@ as an existing receipt-journal **`source_snapshot`** object whose
 
 `SELFLEARN_CORRECTIONS_ARTIFACT_ID=sha256:…`
 
-No new Supabase migration is required.
+Artifact storage itself needs no new table. Publication-aware fitting requires
+the separate publication-attestation migration and an explicitly composed NFL
+publication journal; neither is deployed by this local checkpoint.
 
 ## Method
 

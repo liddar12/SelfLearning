@@ -2,8 +2,8 @@
 
 Caller-supplied grade lists remain integrity-hashed only — not authenticated
 provenance. Digests ≠ signatures. Runtime ``applied=true`` requires
-``source=receipt_journal_as_of_v1`` from ``fit_corrections_from_journal``.
-``generated_unverified`` capture rows are never fit-eligible.
+``source=receipt_journal_publication_as_of_v2`` from the publication/as-of binder.
+Original capture receipts are never rewritten to claim public availability.
 """
 from __future__ import annotations
 
@@ -170,59 +170,164 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
                                  min_graded_total=DEFAULT_MIN_GRADED_TOTAL,
                                  min_graded_per_market=DEFAULT_MIN_GRADED_PER_MARKET,
                                  leg_cap_pp=HARD_LEG_CAP_PP):
-    """Fit from immutable journal receipts + authoritative revisions as-of cutoff.
+    """Join independently attested publication and outcomes at one journal fence.
 
-    Uses existing ``nfl_calibration._latest_as_of`` chain rules (recorded_utc <
-    trained_through; supersession; no future corrections). Only
-    ``publication_status=verified_publication`` receipts are considered;
-    ``generated_unverified`` M1 capture rows are explicitly excluded. Missing
-    market/selection on features skips the row (no invention). Empty eligible
-    sets still seal an untrusted-ineligible artifact with trusted source label
-    and n_graded=0 (runtime floors refuse application).
+    A publication enum alone never establishes eligibility. Direction comes
+    from the original frozen NFL source receipt, not invented feature fields.
+    Generation, publication and revision knowledge must precede the cutoff.
     """
     from .nfl_calibration import _latest_as_of
+    from .nfl_publication import validate_publication_attestation
 
     cutoff = instant(trained_through)
-    graded = []
-    for receipt in journal.receipts():
+    reader = getattr(journal, "read_publication_fit_snapshot", None)
+    if not callable(reader):
+        raise CorrectionsError("publication_snapshot_required")
+    snapshot = reader()
+    if (type(snapshot) is not dict or type(snapshot.get("version")) is not int or snapshot["version"] != 1
+            or type(snapshot.get("watermark")) is not str or not snapshot["watermark"].isdigit()
+            or any(type(snapshot.get(k)) is not list for k in
+                   ("receipts", "generation_records", "revisions", "publication_attestations"))):
+        raise CorrectionsError("invalid_publication_snapshot")
+    # Never mix separate live readers with this pinned snapshot.
+    receipts = {}
+    for receipt in snapshot["receipts"]:
         try:
             validate_probability_receipt(receipt)
+            if receipt.get("domain") != "nfl" or receipt.get("task") != "nfl.parlay_leg":
+                continue
+            rid = receipt["receipt_id"]
         except (ValueError, TypeError, KeyError, OverflowError):
             continue
-        if receipt.get("publication_status") != "verified_publication":
-            continue
-        features = receipt.get("features")
-        if not isinstance(features, dict):
-            continue
-        market = features.get("market")
-        selection = features.get("selection") or features.get("direction")
-        if not isinstance(market, str) or not isinstance(selection, str):
-            continue
+        if rid in receipts:
+            raise CorrectionsError("duplicate_snapshot_receipt")
+        receipts[rid] = receipt
+    generations = {}
+    for record in snapshot["generation_records"]:
         try:
-            head = _latest_as_of(receipt, journal.resolution_history(receipt["receipt_id"]), cutoff)
+            if instant(record["recorded_utc"]) >= cutoff:
+                continue
+            doc, ack, oid = record["payload"], record["ack"], record["object_id"]
+            if (doc["envelope_id"] != oid
+                    or fingerprint({k:v for k,v in doc.items() if k != "envelope_id"}) != oid
+                    or len(doc["generations"]) != 1 or ack["object_id"] != oid or ack["durable"] is not True):
+                continue
+            gen = doc["generations"][0]
+            from .nfl_generation import MANIFEST_KEYS
+            if gen["generation_id"] != fingerprint({k:gen[k] for k in MANIFEST_KEYS}):
+                continue
+            if instant(gen["recorded_utc"]) >= cutoff:
+                continue
+            accepted = {r["receipt_id"]:r["source_receipt_id"] for r in ack["receipts"]}
+            sources = {r["receipt_id"]:r for r in doc["receipts"]}
+            ack_sources = list(accepted.values()) + [r["source_receipt_id"] for r in ack["rejections"]]
+            if (len(accepted) != len(ack["receipts"]) or len(sources) != len(doc["receipts"])
+                    or len(set(ack_sources)) != len(ack_sources) or set(ack_sources) != set(sources)
+                    or gen["receipt_ids"] != sorted(sources)):
+                continue
+            generations[oid] = (gen, accepted, sources)
         except (ValueError, TypeError, KeyError, OverflowError):
             continue
-        if head is None:
+    histories = defaultdict(list)
+    for revision in snapshot["revisions"]:
+        try:
+            histories[revision["resolution"]["receipt_id"]].append(revision)
+        except (TypeError, KeyError):
             continue
-        resolution = head.get("resolution")
-        if (not isinstance(resolution, dict) or resolution.get("status") == "VOID"
-                or type(resolution.get("hit")) is not bool):
+    candidates = defaultdict(list)
+    for proof in snapshot["publication_attestations"]:
+        try:
+            validate_publication_attestation(proof)
+            if instant(proof["recorded_utc"]) >= cutoff:
+                continue
+            gen, accepted, sources = generations[proof["object_id"]]
+            if (proof["generation_id"] != gen["generation_id"]
+                    or proof["source_pool_id"] != gen["source_snapshots"]["leg_pool"]):
+                continue
+            partition = {row["receipt_id"]:row["source_receipt_id"]
+                         for row in proof["receipts"] + proof["rejections"]}
+            if partition != accepted:
+                continue
+            completed = proof["observation"]["observed_completed_utc"]
+            if (instant(completed) >= cutoff or instant(gen["recorded_utc"])
+                    > instant(proof["observation"]["observed_started_utc"])):
+                continue
+            for publication in proof["receipts"]:
+                rid, sid = publication["receipt_id"], publication["source_receipt_id"]
+                receipt = receipts.get(rid)
+                source_row = sources.get(sid)
+                if receipt is None or source_row is None or accepted.get(rid) != sid:
+                    continue
+                source = source_row["learning_receipt"]
+                from .nfl import validate_nfl_receipt
+                validate_nfl_receipt(source, source_row["leg"], gen["season"], gen["week"])
+                if (source["receipt_id"] != sid or receipt["source_receipt_id"] != sid
+                        or receipt["contract_id"] != source["contract_id"]
+                        or receipt["event_id"] != f'nfl:{gen["season"]}:game:{source["game_id"]}'
+                        or source_row["generation_id"] != gen["generation_id"]
+                        or source_row["recorded_utc"] != gen["recorded_utc"]
+                        or instant(source["forecast_created_utc"]) != instant(gen["pool_generated_utc"])
+                        or instant(source["forecast_created_utc"]) > instant(gen["recorded_utc"])
+                        or source_row["kickoff_utc"] != receipt["event_start_utc"]
+                        or any(fingerprint(receipt.get(k)) != fingerprint(source.get(k)) for k in
+                               ("base_prob", "served_prob", "base_model_version", "calibrator_version",
+                                "forecast_created_utc", "source_snapshot_id", "source_timestamps", "features"))
+                        or publication["market"] != source["market"]
+                        or publication["direction"] != source["direction"]
+                        or publication["served_prob"] != receipt["served_prob"]
+                        or publication["event_start_utc"] != receipt["event_start_utc"]):
+                    continue
+                if not (instant(source["forecast_created_utc"]) <= instant(completed)
+                        <= instant(proof["recorded_utc"]) < instant(receipt["event_start_utc"])):
+                    continue
+                candidates[rid].append((proof, source, completed))
+        except (ValueError, TypeError, KeyError, OverflowError):
             continue
-        baseline = receipt.get("served_prob")
-        if not finite_number(baseline) or not 0.0 < float(baseline) < 1.0:
+    # Freeze the contract/event population BEFORE looking at outcomes. Refresh
+    # vintages are repeated forecasts of the same contract, not extra samples;
+    # a later resolved vintage cannot replace an earlier unresolved original.
+    contracts = defaultdict(list)
+    for rid, publications in sorted(candidates.items()):
+        receipt = receipts[rid]
+        proof, source, completed = min(publications, key=lambda p:
+            (instant(p[0]["recorded_utc"]), p[0]["attestation_id"]))
+        contracts[(receipt["contract_id"], receipt["event_id"])].append((rid, proof, source, completed))
+    selected = []
+    for _, vintages in sorted(contracts.items()):
+        selected.append(min(vintages, key=lambda v:
+            (instant(receipts[v[0]]["forecast_created_utc"]),
+             instant(receipts[v[0]]["first_seen_utc"]), v[0])))
+    cohort = [{"contract_id":receipts[rid]["contract_id"], "event_id":receipts[rid]["event_id"],
+        "receipt_id":rid, "source_receipt_id":receipts[rid]["source_receipt_id"],
+        "generation_object_id":proof["object_id"], "generation_id":proof["generation_id"],
+        "source_pool_id":proof["source_pool_id"], "attestation_id":proof["attestation_id"],
+        "policy_id":proof["policy_id"]} for rid,proof,_,_ in selected]
+    graded, provenance = [], []
+    for rid, proof, source, completed in sorted(selected, key=lambda v:v[0]):
+        receipt = receipts[rid]
+        try:
+            head = _latest_as_of(receipt, histories[rid], cutoff)
+            if head is None:
+                continue
+            resolution = head["resolution"]
+            if resolution.get("status") == "VOID" or type(resolution.get("hit")) is not bool:
+                continue
+            baseline = receipt["served_prob"]
+            if not finite_number(baseline) or not 0 < baseline < 1:
+                continue
+        except (ValueError, TypeError, KeyError, OverflowError):
             continue
-        graded.append({
-            "market": market,
-            "selection": selection,
+        graded.append({"market": source["market"], "selection": source["direction"],
             "baseline_prob": float(baseline),
-            "served_at": receipt["first_seen_utc"],
+            "served_at": completed,
             "kickoff_at": receipt["event_start_utc"],
             "graded_at": resolution["resolved_utc"],
-            "outcome": resolution["hit"],
-            "receipt_id": receipt["receipt_id"],
-            "revision_id": head.get("revision_id"),
-        })
-    return fit_corrections_artifact(
+            "outcome": resolution["hit"]})
+        provenance.append({"receipt_id": rid, "source_receipt_id": receipt["source_receipt_id"],
+            "generation_object_id": proof["object_id"], "generation_id": proof["generation_id"],
+            "source_pool_id": proof["source_pool_id"], "revision_id": head["revision_id"],
+            "attestation_id": proof["attestation_id"], "policy_id": proof["policy_id"]})
+    artifact = fit_corrections_artifact(
         graded,
         trained_through=trained_through,
         expires_at=expires_at,
@@ -234,6 +339,11 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
         leg_cap_pp=leg_cap_pp,
         allow_trusted_source=True,
     )
+    body = {k:v for k,v in artifact.items() if k != "artifact_id"}
+    body["fit_inputs_hash"] = fingerprint({"version": 2, "source": TRUSTED_ARTIFACT_SOURCE,
+        "cohort_policy":"first_independently_attested_contract_event_v1", "forecast_cohort":cohort,
+        "graded_inputs_hash": artifact["fit_inputs_hash"], "publication_provenance": provenance})
+    return {**body, "artifact_id": fingerprint(body)}
 
 
 def authorize_corrections_artifact(journal, artifact):

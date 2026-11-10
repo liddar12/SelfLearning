@@ -28,8 +28,9 @@ ELIGIBILITY_RULES = (
 )
 VOID_STATUSES = frozenset({"push", "void"})
 # Only journal-bound as-of fits may set applied=true. Caller lists / digests alone
-# are never runtime trust. generated_unverified capture is fit-ineligible.
-TRUSTED_ARTIFACT_SOURCE = "receipt_journal_as_of_v1"
+# are never runtime trust. Publication must be independently attested without
+# changing the original capture receipt. Enum-only v1 artifacts are untrusted.
+TRUSTED_ARTIFACT_SOURCE = "receipt_journal_publication_as_of_v2"
 UNTRUSTED_ARTIFACT_SOURCE = "graded_caller_list_untrusted"
 TRUSTED_ARTIFACT_SOURCES = frozenset({TRUSTED_ARTIFACT_SOURCE})
 REQUEST_KEYS = frozenset({

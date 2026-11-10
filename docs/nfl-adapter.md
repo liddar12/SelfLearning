@@ -67,8 +67,11 @@ The receipt's capture provenance retains its first generation ID, source schedul
 digest, population label and relevant offered-card IDs. Full cross-generation
 card membership remains authoritative in the NFL generation documents. **Pool
 candidates and actually offered cards are different evaluation populations**;
-do not report pool scores as card accuracy. Both remain `generated_unverified`;
-public serving confirmation is a separate, still-unimplemented evidence path.
+do not report pool scores as card accuracy. Both remain `generated_unverified`.
+The November 9 local [publication checkpoint](nfl-publication-evidence.md) adds
+separate server-observed evidence for exact public pool bytes. It preserves the
+original receipt and proves neither browser display nor card selection. Hosted
+verification and deployment remain separate unfinished steps.
 
 ## Append-only local persistence
 
@@ -126,8 +129,10 @@ Local integration tests inject a real temporary SQLite journal. Production
 `create_app()` does **not** select SQLite or an in-memory store: without a
 receipt-aware durable journal it returns 503 and acknowledges nothing. The
 ported `SupabaseStore` still serves only the legacy prediction/outcome tables;
-it is not the new journal implementation. The Supabase receipt/object/revision
-schema, transactional port, deployment and deployed round trip remain open.
+it is not the new journal implementation. A separate `SupabaseReceiptJournal`
+and receipt/object/revision migrations now implement the durable journal port.
+The NFL publication specialization adds the new attestation boundary. Local
+tests and migrations in source do not establish a deployed round trip.
 
 ## Typed shadow calibration and offline job boundary
 

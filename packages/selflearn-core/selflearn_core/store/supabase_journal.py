@@ -24,6 +24,8 @@ _RPC = {
     "generation": "selflearn_journal_commit_generation_v1",
     "revision": "selflearn_journal_append_resolution_v1",
     "read": "selflearn_journal_read_v1",
+    "publication": "selflearn_journal_commit_publication_v1",
+    "publication_read": "selflearn_journal_read_publication_v1",
 }
 
 
@@ -182,7 +184,7 @@ class SupabaseReceiptJournal:
             raise StoreError(502)
         return int(value)
 
-    def _read(self, view, *, key=None, watermark=None):
+    def _read(self, view, *, key=None, watermark=None, rpc_operation="read"):
         """Read an entire bounded-keyset view at one server-pinned watermark."""
         if key is not None and not isinstance(key, str):
             raise ValueError("journal_read_key_must_be_text")
@@ -192,9 +194,10 @@ class SupabaseReceiptJournal:
         # A generation contains the entire producer document and may be close
         # to the 3 MiB request boundary. Count-bounded pages of 500 such rows
         # would exceed the transport's 8 MiB response cap by orders of magnitude.
-        limit = 1 if view in {"status", "object", "receipt", "generation_ack", "generations"} else self.page_size
+        limit = 1 if view in {"status", "object", "receipt", "generation_ack", "generations",
+                              "publication_attestation", "publication_attestations"} else self.page_size
         while True:
-            response = self._rpc("read", {
+            response = self._rpc(rpc_operation, {
                 "p_view": view, "p_key": key, "p_after": after,
                 "p_limit": limit, "p_watermark": watermark,
             })
@@ -472,17 +475,20 @@ class SupabaseReceiptJournal:
         The DB contract serializes commit/sequence assignment so a concurrent
         writer cannot commit later underneath the already pinned watermark.
         """
-        receipt_rows, watermark = self._read("receipts")
+        return self._snapshot(self._read)
+
+    def _snapshot(self, read):
+        receipt_rows, watermark = read("receipts")
         receipts = self._receipt_rows(receipt_rows)
         receipt_map = {r["receipt_id"]: r for r in receipts}
-        generation_rows, _ = self._read("generations", watermark=watermark)
+        generation_rows, _ = read("generations", watermark=watermark)
         generations = self._generation_rows(generation_rows)
         for generation in generations:
             for accepted in generation["ack"]["receipts"]:
                 stored = receipt_map.get(accepted["receipt_id"])
                 if stored is None or stored["source_receipt_id"] != accepted["source_receipt_id"]:
                     raise StoreError(502)
-        revision_rows, _ = self._read("revisions", watermark=watermark)
+        revision_rows, _ = read("revisions", watermark=watermark)
         revisions = self._revision_rows(revision_rows, receipt_map)
         self._validate_chains(revisions)
         return {"version": 1, "watermark": watermark,
