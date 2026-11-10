@@ -42,6 +42,10 @@ class FrozenJournal:
     def receipts(self):
         return self.rows
 
+    def publication_generation_receipts(self, _):
+        accepted = {r["receipt_id"] for r in self.ack["receipts"]}
+        return [r for r in self.rows if r["receipt_id"] in accepted]
+
     def generation_ack(self, _):
         return self.ack
 
@@ -151,6 +155,10 @@ class NativePublicationTests(unittest.TestCase):
             "FROM selflearn_private.journal_publication_attestations WHERE object_id=" + native.literal(doc["envelope_id"]) + ";")
         self.assertEqual(stored, {"observation": obs, "ack": journal.ack})
         self.assertEqual(record["observation"]["body_sha256"], "sha256:" + hashlib.sha256(obs["body_utf8"].encode()).hexdigest())
+        unrelated = native.forecast('outside-publication-membership-' + uuid.uuid4().hex)
+        self.pg.rpc("append_receipt", [native.canonical(unrelated)])
+        bounded = self.read("publication_generation_receipts", doc["envelope_id"])
+        self.assertEqual({row["receipt_id"] for row in bounded["rows"]}, {row["receipt_id"] for row in journal.rows})
         replay = self.pg.one("SET ROLE service_role;" + statement(doc["envelope_id"], "malformed new evidence"))
         self.assertTrue(replay["replayed"])
         self.assertEqual(replay["attestation"], record)

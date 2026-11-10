@@ -45,15 +45,23 @@ def module_version(configured):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--rungs', type=int, default=1, choices=range(1, 1001), metavar='1..1000')
+    parser.add_argument('--body-bytes', type=int, default=0, metavar='0..4194304',
+                        help='Pad the same synthetic public JSON with legal whitespace, without changing source IDs')
     args = parser.parse_args()
     configured = os.environ.get('SELFLEARN_PGLITE_MODULE')
     if not configured:
         parser.error('SELFLEARN_PGLITE_MODULE must name an already installed module; no SQL was run')
     journal, doc, observation = publication_fixture('synthetic-publication-scale', datetime.now(timezone.utc), count=args.rungs)
+    if args.body_bytes:
+        current = len(observation['body_utf8'].encode('utf-8'))
+        if not current <= args.body_bytes <= 4194304:
+            parser.error('body-bytes must fit the existing synthetic body through 4194304')
+        observation['body_utf8'] += ' ' * (args.body_bytes - current)
     wire = {'object_id': doc['envelope_id'],
         'objects': [{'object_id': oid, 'kind': obj['kind'], 'payload_json': native.canonical(obj['payload'])}
                     for oid, obj in journal.objects.items()],
         'receipts_json': native.canonical(journal.rows), 'observation_json': native.canonical(observation)}
+    wire['unrelated_receipt_json'] = native.canonical(native.forecast('unrelated-synthetic-history'))
     try:
         completed = subprocess.run(['node', 'tests/postgres/publication_sql_smoke.mjs'],
             input=json.dumps(wire), capture_output=True, text=True, cwd=ROOT, timeout=55, check=False)

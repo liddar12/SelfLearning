@@ -5,6 +5,7 @@ not authenticate an operator, clock or namespace. Complete event histories are
 independently reexecuted before any result is returned to the caller.
 """
 from .. import learning_jobs as dto
+from .. import learning_job_discovery as discovery
 from .supabase_journal import SupabaseReceiptJournal
 from .supabase_store import StoreConflict, StoreError
 
@@ -47,6 +48,18 @@ class SupabaseLearningJobJournal(SupabaseReceiptJournal):
     def read_job(self, job_id):
         return self._checked(self._job_rpc("read", {"p_authority_id": self.authority_id,
             "p_job_id": dto.digest(job_id)}), job_id)
+
+    def list_claimable_jobs(self, namespace, operation, *, code_id=None, policy_object_id=None, limit=16):
+        _, namespace, operation, code_id, policy_object_id, limit = discovery.scope(
+            self.authority_id, namespace, operation, code_id, policy_object_id, limit)
+        result = self._job_rpc("discover", {"p_authority_id": self.authority_id,
+            "p_namespace_json": dto.canonical(namespace), "p_operation": operation,
+            "p_code_id": code_id, "p_policy_object_id": policy_object_id, "p_limit": limit})
+        try:
+            return discovery.validate(result, authority_id=self.authority_id,
+                namespace=namespace, operation=operation, code_id=code_id, policy_object_id=policy_object_id, limit=limit)
+        except Exception:
+            raise StoreError(502) from None
 
     def append_job_command(self, command):
         command = dto.validate_command(command, authority_id=self.authority_id)

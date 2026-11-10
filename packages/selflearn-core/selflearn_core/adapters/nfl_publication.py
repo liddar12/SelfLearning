@@ -13,11 +13,11 @@ import math
 import re
 from urllib.parse import urlsplit
 
-from ..probability_receipts import fingerprint, instant, finite_number
+from ..probability_receipts import fingerprint, instant, finite_number, validate_probability_receipt
 from .nfl import adapt_prospective
 from .nfl_generation import validate_generation
 
-MAX_BODY_BYTES = 3 * 1024 * 1024
+MAX_BODY_BYTES = 4 * 1024 * 1024
 MAX_JSON_DEPTH = 24
 HASH = re.compile(r"sha256:[0-9a-f]{64}\Z")
 MARKETS = {"qb_pass_yds", "rb_rush_yds", "wr_rec_yds"}
@@ -197,11 +197,31 @@ def build_publication_attestation(journal, object_id, observation, recorded_utc)
     expected = {row["receipt_id"] for row in doc["receipts"]}
     _need(len(set(list(accepted) + rejected)) == len(accepted) + len(rejected)
           and set(accepted) | set(rejected) == expected, "invalid_publication_generation_partition")
-    reproduced = adapt_prospective(journal_docs=[doc], existing_receipts=journal.receipts())
+    # The finalized ACK is the complete bounded membership authority. Do not
+    # fetch unrelated seasons' receipts or perform one HTTP lookup per member.
+    reader = getattr(journal, "publication_generation_receipts", None)
+    _need(callable(reader), "publication_membership_port_required")
+    members = reader(object_id)
+    _need(type(members) is list and len(members) == len(accepted), "publication_receipt_missing")
+    for row in members:
+        validate_probability_receipt(row)
+    actual = {row["source_receipt_id"]: row["receipt_id"] for row in members}
+    _need(len(actual) == len(members) and actual == accepted, "publication_generic_receipt_mismatch")
+    # Python equality conflates numeric types in nested feature metadata.
+    # Independently require canonical immutable forecast parity before allowing
+    # the adapter to retain an earlier first-seen timestamp/generic receipt ID.
+    fresh = {row["source_receipt_id"]: row for row in adapt_prospective(journal_docs=[doc])["receipts"]}
+    def immutable(receipt):
+        return {k: v for k, v in receipt.items() if k not in ("receipt_id", "first_seen_utc", "capture_provenance")}
+    for member in members:
+        proposed = fresh.get(member["source_receipt_id"])
+        _need(proposed is not None and fingerprint(immutable(member)) == fingerprint(immutable(proposed)),
+              "publication_generic_receipt_mismatch")
+    reproduced = adapt_prospective(journal_docs=[doc], existing_receipts=members)
     mapping = {row["source_receipt_id"]: row["receipt_id"] for row in reproduced["receipts"]}
     _need(mapping == accepted, "publication_generic_receipt_mismatch")
     original = {row["receipt_id"]: row for row in doc["receipts"]}
-    generic = {row["receipt_id"]: row for row in journal.receipts()}
+    generic = {row["receipt_id"]: row for row in members}
     receipts, rejections = [], []
     for sid, rid in sorted(accepted.items()):
         _need(rid in generic and generic[rid]["source_receipt_id"] == sid, "publication_receipt_missing")

@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import time
 
-from ..probability_receipts import instant
+from ..probability_receipts import instant, validate_probability_receipt
 from ..store.receipt_journal import ReceiptJournal, _json
 from ..store.supabase_journal import SupabaseReceiptJournal, _canonical, _clock, _decode
 from ..store.supabase_store import StoreError
@@ -52,6 +52,21 @@ class NFLPublicationJournal(ReceiptJournal):
         a claim that the eventual transaction commit completed at this time.
         """
         return self._db.execute("SELECT strftime('%Y-%m-%dT%H:%M:%fZ','now')").fetchone()[0]
+
+    def publication_generation_receipts(self, object_id):
+        """One PK join of the frozen generation ACK, never receipt history."""
+        rows = self._db.execute("""
+            SELECT r.payload FROM receipt_journal_generation_commits c
+            JOIN json_each(c.payload,'$.receipts') member
+            JOIN receipt_journal_receipts r
+              ON r.receipt_id=json_extract(member.value,'$.receipt_id')
+             AND r.source_receipt_id=json_extract(member.value,'$.source_receipt_id')
+            WHERE c.object_id=? ORDER BY r.receipt_id
+        """, (object_id,)).fetchall()
+        result = [json.loads(row[0]) for row in rows]
+        for receipt in result:
+            validate_probability_receipt(receipt)
+        return result
 
     def get_publication_attestation(self, object_id):
         row = self._db.execute(
@@ -126,6 +141,11 @@ class NFLPublicationJournal(ReceiptJournal):
 
 class NFLSupabasePublicationJournal(SupabaseReceiptJournal):
     """Opt-in NFL verification over the service-only publication RPC contract."""
+
+    def publication_generation_receipts(self, object_id):
+        rows, _ = self._read("publication_generation_receipts", key=object_id,
+                             rpc_operation="publication_read")
+        return sorted(self._receipt_rows(rows), key=lambda row: row["receipt_id"])
 
     @staticmethod
     def _publication_row(row):

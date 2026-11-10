@@ -117,7 +117,7 @@ test('new private tables and RPCs deny public roles, derived-column injection an
  const rls=(await db.query("select relrowsecurity,relforcerowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='selflearn_private'and c.relname in('learning_jobs_v1','learning_job_events_v1')")).rows;
  assert.equal(rls.length,2);assert.ok(rls.every(r=>r.relrowsecurity&&r.relforcerowsecurity));
  const functions=(await db.query("select p.proname,p.prosecdef,p.proconfig,has_function_privilege('anon',p.oid,'execute')as anon,has_function_privilege('authenticated',p.oid,'execute')as authenticated,has_function_privilege('service_role',p.oid,'execute')as service from pg_proc p join pg_namespace n on n.oid=p.pronamespace where (n.nspname='selflearn_private'and(p.proname like 'job_%'or p.proname='guard_learning_job_v1'))or(n.nspname='public'and p.proname like 'selflearn_jobs_%')")).rows;
- assert.equal(functions.length,13);
+ assert.equal(functions.length,14);
  assert.ok(functions.every(r=>!r.prosecdef&&!r.anon&&!r.authenticated&&r.service
   &&r.proconfig.some(s=>s==='search_path=""'||s==='search_path=')));
 });

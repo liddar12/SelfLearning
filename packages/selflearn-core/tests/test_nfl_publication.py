@@ -45,6 +45,67 @@ def seed(journal, *, finalize=True, empty=False):
 
 
 class PublicationTests(unittest.TestCase):
+    def test_new_proof_reads_only_finalized_members_once_never_unrelated_history(self):
+        from test_probability_receipts import receipt as unrelated_receipt
+        with ReceiptJournal(":memory:") as journal:
+            oid, observation = seed(journal)
+            original = journal.publication_generation_receipts(oid)
+            journal.append_receipt(unrelated_receipt("unrelated-domain-history"))
+            read_members = journal.publication_generation_receipts
+            seen = []
+            def bounded(identity):
+                rows = read_members(identity)
+                seen.append([r["receipt_id"] for r in rows])
+                return rows
+            with patch.object(journal, "receipts", side_effect=AssertionError("whole-history scan")), \
+                    patch.object(journal, "get_receipt", side_effect=AssertionError("per-member lookup")), \
+                    patch.object(journal, "publication_generation_receipts", side_effect=bounded), \
+                    patch.object(journal, "_publication_recorded_utc", return_value=RECORDED):
+                record = journal.commit_publication_attestation(oid, observation)
+            self.assertEqual(seen, [[r["receipt_id"] for r in original]])
+            self.assertEqual([r["receipt_id"] for r in record["receipts"]], [r["receipt_id"] for r in original])
+            self.assertEqual(record["status"], "accepted")
+
+    def test_missing_duplicate_or_different_finalized_member_fails_before_new_evidence(self):
+        from test_probability_receipts import receipt as unrelated_receipt
+        with ReceiptJournal(":memory:") as journal:
+            oid, observation = seed(journal)
+            members = journal.publication_generation_receipts(oid)
+            for rows in ([], members * 2, [unrelated_receipt("wrong-membership")]):
+                with self.subTest(rows=len(rows)), patch.object(journal, "publication_generation_receipts", return_value=rows), \
+                        patch.object(journal, "_publication_recorded_utc", return_value=RECORDED):
+                    with self.assertRaises(ValueError):
+                        journal.commit_publication_attestation(oid, observation)
+                self.assertIsNone(journal.get_publication_attestation(oid))
+
+    def test_public_body_limit_is_four_mib_independent_of_intake_object_limit(self):
+        from selflearn_core.adapters.nfl_publication import parse_publication_body
+        self.assertEqual(MAX_BODY_BYTES, 4194304)
+        # Legal JSON whitespace makes raw HTTP bigger without fabricating any
+        # forecast/source content or expanding the intake object's size limit.
+        raw = "{}" + " " * (MAX_BODY_BYTES - 2)
+        parsed, body = parse_publication_body(raw)
+        self.assertEqual(parsed, {})
+        self.assertEqual(len(body), MAX_BODY_BYTES)
+        with self.assertRaisesRegex(ValueError, "body_size"):
+            parse_publication_body(raw + " ")
+
+    def test_bounded_generic_join_preserves_integer_float_feature_types(self):
+        from selflearn_core.probability_receipts import seal_receipt
+        with ReceiptJournal(":memory:") as journal:
+            oid, observation = seed(journal)
+            original = journal.publication_generation_receipts(oid)[0]
+            changed = {k: copy.deepcopy(v) for k, v in original.items() if k != "receipt_id"}
+            numeric = next(k for k, v in changed["features"].items() if type(v) is float and v == int(v))
+            changed["features"][numeric] = int(changed["features"][numeric])
+            forged = seal_receipt(changed)
+            ack = journal.generation_ack(oid)
+            ack["receipts"][0]["receipt_id"] = forged["receipt_id"]
+            with patch.object(journal, "generation_ack", return_value=ack), \
+                    patch.object(journal, "publication_generation_receipts", return_value=[forged]):
+                with self.assertRaisesRegex(ValueError, "generic_receipt_mismatch"):
+                    build_publication_attestation(journal, oid, observation, RECORDED)
+
     def test_pure_exact_public_body_joins_original_generic_receipts(self):
         with ReceiptJournal(":memory:") as journal:
             oid, observation = seed(journal)

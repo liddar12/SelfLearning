@@ -60,7 +60,9 @@ begin
   -- scalar types below instead. The body itself still undergoes the strict
   -- recursive canonical digest (duplicate keys, depth, finite numbers), while
   -- its exact original UTF-8 text is retained without reserialization.
-  if p_observation_json is null or pg_catalog.octet_length(p_observation_json)>20971520 then
+  -- A legal 4-MiB body can expand sixfold as an ASCII JSON string (DEL), plus
+  -- bounded policy/clock framing. This bound is ONLY the observation wrapper.
+  if p_observation_json is null or pg_catalog.octet_length(p_observation_json)>25231360 then
     raise sqlstate 'PT422' using message='invalid_publication_observation_size';
   end if;
   obs := p_observation_json::json;
@@ -103,7 +105,7 @@ begin
     raise sqlstate 'PT422' using message='invalid_publication_clock_order';
   end if;
   raw_body := obs->>'body_utf8';
-  if pg_catalog.octet_length(raw_body) not between 1 and 3145728 then
+  if pg_catalog.octet_length(raw_body) not between 1 and 4194304 then
     raise sqlstate 'PT422' using message='invalid_publication_body_size';
   end if;
   -- json (not jsonb) retains duplicates for the existing canonical validator
@@ -350,6 +352,39 @@ begin
     after_seq := p_after::bigint;
   end if;
   if after_seq>ceiling then raise sqlstate 'PT422' using message='cursor_after_watermark'; end if;
+  if p_view='publication_generation_receipts' then
+    if p_key is null or p_key !~ '^sha256:[0-9a-f]{64}$' then
+      raise sqlstate 'PT422' using message='journal_key_required';
+    end if;
+    if not exists(select 1 from selflearn_private.journal_generation_commits c
+                  where c.object_id=p_key and c.journal_seq<=ceiling) then
+      raise sqlstate 'PT422' using message='publication_generation_not_finalized';
+    end if;
+    -- Enumerate the immutable accepted ACK only, then lookup original generic
+    -- payloads by their primary key; unrelated historical receipts never cross
+    -- this RPC boundary. Missing/mismatched members fail the Python join.
+    with bounded as (
+      select r.journal_seq,pg_catalog.json_build_object('receipt_id',r.receipt_id,'payload_json',r.payload_json,
+        'received_utc',pg_catalog.to_char(r.stored_utc at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+        'journal_seq',r.journal_seq::text) item
+      from selflearn_private.journal_generation_commits c
+      cross join lateral pg_catalog.json_array_elements(c.ack_json::json->'receipts') member
+      join selflearn_private.journal_receipts r on r.receipt_id=member.value->>'receipt_id'
+        and r.source_receipt_id=member.value->>'source_receipt_id'
+      where c.object_id=p_key and c.journal_seq<=ceiling and r.journal_seq>after_seq and r.journal_seq<=ceiling
+      order by r.journal_seq limit p_limit+1
+    ), measured as (
+      select *,pg_catalog.row_number() over(order by journal_seq) row_number,
+        pg_catalog.sum(pg_catalog.octet_length(item::text)+1) over(order by journal_seq) wire_bytes from bounded
+    ), page as (
+      select * from measured where wire_bytes<=6291456 or row_number=1 order by journal_seq limit p_limit
+    )
+    select coalesce((select pg_catalog.json_agg(item order by journal_seq) from page),'[]'::json),
+      (select count(*)>(select count(*) from page) from bounded),
+      (select max(journal_seq)::text from page) into rows,more,next_id;
+    return pg_catalog.json_build_object('version',1,'rows',rows,'next_after',case when more then next_id else null end,
+                                       'watermark',ceiling::text);
+  end if;
   if p_view in ('publication_attestation','publication_attestations') then
     if p_view='publication_attestation' and (p_key is null or p_key='') then
       raise sqlstate 'PT422' using message='journal_key_required';

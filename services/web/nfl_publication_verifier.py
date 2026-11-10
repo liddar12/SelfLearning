@@ -12,9 +12,8 @@ import time
 import urllib.error
 import urllib.request
 
-from selflearn_core.adapters.nfl_publication import validate_policy
+from selflearn_core.adapters.nfl_publication import MAX_BODY_BYTES, validate_policy
 
-MAX_BODY_BYTES = 3 * 1024 * 1024
 REQUEST_TIMEOUT = 12
 OBSERVATION_BUDGET = 20
 

@@ -37,6 +37,19 @@ def row(value, seq="10"):
             "recorded_utc": value["recorded_utc"], "journal_seq": seq}
 
 
+def test_generation_membership_pages_are_keyed_to_original_ack_and_one_fence():
+    a, b = receipt("bounded-a"), receipt("bounded-b")
+    object_id = fingerprint("finalized-generation")
+    db, wire = journal([page([receipt_row(a, "1")], next_after="1", watermark="7"),
+                        page([receipt_row(b, "3")], watermark="7")], page_size=1)
+    assert db.publication_generation_receipts(object_id) == sorted([a, b], key=lambda r: r["receipt_id"])
+    assert [call[2]["data"]["p_watermark"] for call in wire.calls] == [None, "7"]
+    assert [call[2]["data"]["p_after"] for call in wire.calls] == [None, "1"]
+    assert all(call[2]["data"]["p_key"] == object_id
+               and call[2]["data"]["p_view"] == "publication_generation_receipts"
+               and call[1].endswith("selflearn_journal_read_publication_v1") for call in wire.calls)
+
+
 def test_existing_publication_returns_original_before_new_observation_validation():
     original = record()
     db, wire = journal([page([row(original)])])

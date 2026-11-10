@@ -34,6 +34,7 @@ jobs:
   hosted:
     name: hosted boundaries (local fakes; no cloud writes)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       PYTHONPATH: packages/selflearn-core
     steps:
@@ -45,6 +46,17 @@ jobs:
         run: python -m pip install -r requirements.txt 'pytest>=8.0'
       - name: Check dependency consistency
         run: python -m pip check
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install pinned local PostgreSQL-WASM test dependency outside application
+        run: |
+          npm install --prefix "$RUNNER_TEMP/selflearn-pglite" --no-save --package-lock=false @electric-sql/pglite@0.3.16
+          printf 'SELFLEARN_PGLITE_MODULE=%s\n' "$RUNNER_TEMP/selflearn-pglite/node_modules/@electric-sql/pglite/dist/index.js" >> "$GITHUB_ENV"
+      - name: Run actual SQL discovery states, filters, fairness and grants sequentially
+        run: node --test --test-concurrency=1 tests/postgres/learning_job_discovery.test.mjs
+      - name: Run Python discovery adapter through actual PostgreSQL-WASM
+        run: python -m pytest tests/postgres/test_learning_job_discovery_adapter.py -q -rs
       - name: Test hosted authorization, persistence contracts and test tooling
         run: python -m pytest tests packages/selflearn-core/tests/test_supabase_store.py --ignore=tests/postgres -q -rs
       - name: Declare independent release evidence still required
@@ -178,3 +190,45 @@ jobs:
           echo 'This fresh disposable database applies journal, observed and publication
           migrations. Actual separate connections verify transaction locking and DB
           clocks; this is not a hosted Supabase/PostgREST or public HTTP proof.'
+
+  native-job-discovery-postgres:
+    name: native job discovery and competing claims (fresh PostgreSQL 17; no cloud writes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: selflearn_journal_test
+          POSTGRES_PASSWORD: selflearn_journal_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d selflearn_journal_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      SELFLEARN_NATIVE_PG_DSN: postgresql://postgres:selflearn_journal_test_only@127.0.0.1:5432/selflearn_journal_test
+      SELFLEARN_REQUIRE_NATIVE_PG: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ensure native PostgreSQL client is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes postgresql-client
+          fi
+          psql --version
+      - name: Execute real discovery, competing claims, expiry, policy filters and grants
+        run: python -m unittest discover -s tests/postgres -p test_native_job_discovery.py -v
+      - name: Declare the independent hosted boundary
+        run: >-
+          echo 'This separate fresh loopback database applies the full migration chain.
+          Discovery is read-only and grants no ownership; atomic claims are verified
+          on separate connections. Native evidence is not hosted Supabase verification
+          or permission to enable learning, deploy or adopt a model.'

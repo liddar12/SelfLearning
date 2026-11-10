@@ -28,6 +28,20 @@ try {
     [fixture.object_id, fixture.receipts_json, '[]'])).rows[0].result;
   timings.generation_commit_ms = performance.now() - stage;
   process.stderr.write(JSON.stringify({ completed_stage: 'generation_commit', timings }) + '\n');
+  await db.query('SELECT public.selflearn_journal_append_receipt_v1($1)', [fixture.unrelated_receipt_json]);
+  // The membership view must return the original ACK's PK-joined receipts,
+  // with a shared fence across pages, excluding unrelated historical rows.
+  const members = [];
+  let after = null, watermark = null;
+  do {
+    const page = (await db.query('SELECT public.selflearn_journal_read_publication_v1($1,$2,$3,500,$4) AS result',
+      ['publication_generation_receipts', fixture.object_id, after, watermark])).rows[0].result;
+    if (watermark !== null) assert.equal(page.watermark, watermark);
+    watermark = page.watermark;
+    members.push(...page.rows.map(row => JSON.parse(row.payload_json)));
+    after = page.next_after;
+  } while (after !== null);
+  assert.deepEqual(members.map(r => r.receipt_id).sort(), ack.receipts.map(r => r.receipt_id).sort());
   const before = (await db.query('SELECT public.selflearn_journal_read_publication_v1($1,NULL,NULL,500,NULL) AS result',
     ['receipts'])).rows[0].result.watermark;
   // Validation happens before the first commit; testing invalid evidence only
@@ -37,6 +51,8 @@ try {
     fixture.observation_json.slice(0, -1) + ',"body_utf8":"{}"}',
     JSON.stringify({ ...observation, policy: { ...observation.policy, kind: 'untrusted-policy' } }),
     JSON.stringify({ ...observation, body_utf8: '{"players":[],"players":[]}' }),
+    JSON.stringify({ ...observation, body_utf8: observation.body_utf8
+      + ' '.repeat(4194305 - Buffer.byteLength(observation.body_utf8, 'utf8')) }),
   ];
   for (const encoded of invalid) {
     await assert.rejects(() => db.query('SELECT public.selflearn_journal_commit_publication_v1($1,$2)',
@@ -71,7 +87,8 @@ try {
   timings.total_ms = performance.now() - started;
   process.stdout.write(JSON.stringify({ engine: 'postgresql-wasm', version,
     result, timings, checks: ['exact_body', 'original_replay', 'pinned_fence', 'private_rpc_grant',
-      'duplicate_outer_key_refused', 'invalid_policy_refused', 'duplicate_body_key_refused'] }) + '\n');
+      'duplicate_outer_key_refused', 'invalid_policy_refused', 'duplicate_body_key_refused',
+      'body_above_four_mib_refused', 'bounded_original_ack_membership_excludes_unrelated_history'] }) + '\n');
 } finally {
   await db.close();
 }

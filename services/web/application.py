@@ -24,6 +24,7 @@ from selflearn_core.contracts_sports import SPORTS_TASKS, validate_sports_record
 from selflearn_core.store.supabase_store import StoreConflict, StoreError, SupabaseStore
 from selflearn_core.store.supabase_journal import SupabaseReceiptJournal
 from selflearn_core.adapters.nfl_publication_journal import NFLSupabasePublicationJournal
+from selflearn_core.store.supabase_learning_jobs import SupabaseLearningJobJournal
 from selflearn_core.types import Outcome, Prediction
 from .security import OwnerBoundary, MAX_IMAGE
 from .nfl_ingestion import register_nfl_routes
@@ -33,6 +34,7 @@ from .nfl_capture_applications import register_application_routes
 from .nfl_corrections import register_corrections_routes
 from .nfl_publication import register_publication_routes
 from .nfl_publication_verifier import select_verifier
+from .publication_worker_routes import select_worker_factory, register_worker_routes
 from .owner_intents import register_owner_intent_routes
 from . import private_uploads
 from . import nfl_trace
@@ -118,6 +120,20 @@ def _journal_selection(env, injected):
                 raise StoreError(503) from None
             yield journal
 
+    def paired_publication_factory(authority_id):
+        @contextmanager
+        def paired():
+            with verified_factory() as journal:
+                if not isinstance(journal, NFLSupabasePublicationJournal):
+                    raise StoreError(503)
+                # One configured project, credential and transport. There is no
+                # second worker database setting or ephemeral hosted fallback.
+                with SupabaseLearningJobJournal(origin, key, authority_id=authority_id,
+                                                transport=journal._request) as jobs:
+                    yield jobs, journal
+        return paired
+
+    verified_factory.publication_job_factory = paired_publication_factory
     return verified_factory, {"backend": "supabase", "journal_configured": True,
                               "configuration_valid": True, "readiness": "configured_unverified"}
 
@@ -202,7 +218,7 @@ def image_extension(data: bytes, mime: str) -> str:
 
 
 def create_app(*, store=None, env=None, journal_factory=None, capture_factory=None,
-               owner_intent_factory=None, publication_transport=None):
+               owner_intent_factory=None, publication_transport=None, publication_job_factory=None):
     env = os.environ if env is None else env
     token = env.get("SELFLEARN_OPERATOR_TOKEN", "")
     if store is None:
@@ -214,6 +230,8 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
     journal_factory, journal_selection = _journal_selection(env, journal_factory)
     capture_factory, capture_selection = select_capture_factory(env, capture_factory)
     publication_verifier = select_verifier(env, publication_transport)
+    publication_job_factory, publication_worker_selection = select_worker_factory(
+        env, publication_job_factory, journal_factory, publication_verifier)
     local = not env.get("VERCEL")
     hosts = {"self-learning-beige.vercel.app", "self-learning-liddar-terminal.vercel.app"}
     for variable in ("VERCEL_URL", "VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_BRANCH_URL"):
@@ -239,10 +257,14 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
             with journal_factory():
                 journal_status.update(readiness="verified", schema_verified=True,
                                       journal_schema_version=1)
-        return {"store": db().status(), "capabilities": CAPABILITIES,
+        capabilities = dict(CAPABILITIES)
+        if publication_worker_selection["configured"]:
+            capabilities["learning_jobs"] = "publication recording configured; runtime and schedule unverified"
+        return {"store": db().status(), "capabilities": capabilities,
                 "release": "hosted-foundation-v1", "code_sha": env.get("VERCEL_GIT_COMMIT_SHA") or None,
                 "nfl_ingestion": journal_status,
                 "nfl_outcome_intake": capture_selection,
+                "nfl_publication_worker": publication_worker_selection,
                 "data_policy": "Imports are unverified, not measured live performance"}
 
     def journal_view(operation):
@@ -301,7 +323,8 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
                        ingest_token=env.get("SELFLEARN_NFL_INGEST_TOKEN", ""),
                        capture_token=env.get("SELFLEARN_NFL_OUTCOME_INGEST_TOKEN", ""),
                        corrections_token=env.get("SELFLEARN_NFL_CORRECTIONS_TOKEN", ""),
-                       publication_token=env.get("SELFLEARN_NFL_PUBLICATION_TOKEN", ""))
+                       publication_token=env.get("SELFLEARN_NFL_PUBLICATION_TOKEN", ""),
+                       publication_worker_token=env.get("SELFLEARN_NFL_PUBLICATION_WORKER_TOKEN", ""))
 
     @app.exception_handler(StoreError)
     async def store_error(request, exc):
@@ -440,6 +463,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
     register_application_routes(app, capture_factory, body)
     register_corrections_routes(app, journal_factory, body, env=env)
     register_publication_routes(app, journal_factory, body, publication_verifier)
+    register_worker_routes(app, publication_job_factory, body, publication_verifier)
     # Explicit trusted server injection only. Environment/store credentials do
     # not enable this decision journal, and recording an intent never activates
     # a model. The existing operator boundary (not either producer token) owns

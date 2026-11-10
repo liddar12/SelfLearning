@@ -21,6 +21,7 @@ const RPCS=new Map([
  ['selflearn_jobs_register_v1',['p_authority_id','p_definition_json']],
  ['selflearn_jobs_append_v1',['p_authority_id','p_command_json']],
  ['selflearn_jobs_read_v1',['p_authority_id','p_job_id']],
+ ['selflearn_jobs_discover_v1',['p_authority_id','p_namespace_json','p_operation','p_code_id','p_policy_object_id','p_limit']],
  ['selflearn_journal_append_object_v1',['p_kind','p_object_id','p_payload_json','p_hash_json']],
  ['selflearn_journal_read_v1',['p_view','p_key','p_after','p_limit','p_watermark']],
 ]);

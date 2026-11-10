@@ -6,6 +6,7 @@ watermarks, and no job transition trains a model or writes serving state.
 import json
 
 from .. import learning_jobs as dto
+from .. import learning_job_discovery as discovery
 from ..probability_receipts import fingerprint, instant
 from .receipt_journal import ReceiptJournal
 
@@ -20,6 +21,12 @@ CREATE TABLE IF NOT EXISTS learning_job_events_v1 (
  PRIMARY KEY(authority_id,job_id,sequence), UNIQUE(authority_id,job_id,command_id),
  FOREIGN KEY(authority_id,job_id) REFERENCES learning_jobs_v1(authority_id,job_id)
 );
+CREATE INDEX IF NOT EXISTS learning_job_discovery_scope_v1 ON learning_jobs_v1 (
+ authority_id,json_extract(definition_json,'$.namespace.domain'),json_extract(definition_json,'$.namespace.task'),
+ json_extract(definition_json,'$.namespace.producer_id'),json_extract(definition_json,'$.operation'),
+ json_extract(definition_json,'$.code_id'),json_extract(definition_json,'$.policy_object_id'),registered_utc,job_id
+);
+CREATE INDEX IF NOT EXISTS learning_job_latest_event_v1 ON learning_job_events_v1(authority_id,job_id,sequence DESC);
 CREATE TRIGGER IF NOT EXISTS learning_jobs_no_update_v1 BEFORE UPDATE ON learning_jobs_v1
  BEGIN SELECT RAISE(ABORT,'immutable learning job'); END;
 CREATE TRIGGER IF NOT EXISTS learning_jobs_no_delete_v1 BEFORE DELETE ON learning_jobs_v1
@@ -35,6 +42,7 @@ class LearningJobJournal(ReceiptJournal):
     def __init__(self, path, *, authority_id):
         self.authority_id = dto.digest(authority_id)
         super().__init__(path);self._db.executescript(_SCHEMA)
+        self._db.create_function("learning_job_clock_us_v1", 1, discovery.clock_microseconds, deterministic=True)
 
     def _now(self):
         return self._db.execute("SELECT strftime('%Y-%m-%dT%H:%M:%fZ','now')").fetchone()[0]
@@ -72,6 +80,53 @@ class LearningJobJournal(ReceiptJournal):
         with self._db:
             self._db.execute("BEGIN IMMEDIATE")
             return self._snapshot(job_id)
+
+    def list_claimable_jobs(self, namespace, operation, *, code_id=None, policy_object_id=None, limit=16):
+        """Return due IDs at one DB clock; each still needs an atomic claim.
+
+        Scoped expression indexes and one indexed latest-event lookup per job
+        avoid loading histories into Python. Retried jobs move behind older
+        untouched work by their latest event clock, then registration and ID.
+        """
+        _, namespace, operation, code_id, policy_object_id, limit = discovery.scope(
+            self.authority_id, namespace, operation, code_id, policy_object_id, limit)
+        with self._db:
+            self._db.execute("BEGIN")
+            observed = self._now()
+            parameters = {"authority": self.authority_id, "domain": namespace["domain"], "task": namespace["task"],
+                "producer": namespace["producer_id"], "operation": operation, "code": code_id,
+                "policy": policy_object_id, "now": discovery.clock_microseconds(observed), "limit": limit}
+            code_clause = " AND json_extract(j.definition_json,'$.code_id')=:code" if code_id is not None else ""
+            if policy_object_id is not None:
+                code_clause += " AND json_extract(j.definition_json,'$.policy_object_id')=:policy"
+            rows = self._db.execute("""
+                SELECT j.job_id FROM learning_jobs_v1 j
+                LEFT JOIN learning_job_events_v1 e ON e.authority_id=j.authority_id AND e.job_id=j.job_id
+                  AND e.sequence=(SELECT max(head.sequence) FROM learning_job_events_v1 head
+                                  WHERE head.authority_id=j.authority_id AND head.job_id=j.job_id)
+                WHERE j.authority_id=:authority AND json_extract(j.definition_json,'$.namespace.domain')=:domain
+                  AND json_extract(j.definition_json,'$.namespace.task')=:task
+                  AND json_extract(j.definition_json,'$.namespace.producer_id')=:producer
+                  AND json_extract(j.definition_json,'$.operation')=:operation
+                """ + code_clause + """
+                  AND learning_job_clock_us_v1(j.registered_utc)<=:now
+                  AND learning_job_clock_us_v1(json_extract(j.definition_json,'$.not_before_utc'))<=:now
+                  AND learning_job_clock_us_v1(json_extract(j.definition_json,'$.not_after_utc'))>:now
+                  AND coalesce(e.sequence,0)<128
+                  AND coalesce(json_extract(e.event_json,'$.state.attempt'),0)<json_extract(j.definition_json,'$.max_attempts')
+                  AND (json_extract(e.event_json,'$.state.runtime_deadline_utc') IS NULL
+                       OR learning_job_clock_us_v1(json_extract(e.event_json,'$.state.runtime_deadline_utc'))>:now)
+                  AND (e.event_json IS NULL OR learning_job_clock_us_v1(json_extract(e.event_json,'$.recorded_utc'))<=:now)
+                  AND (coalesce(json_extract(e.event_json,'$.state.status'),'queued')='queued'
+                       OR (json_extract(e.event_json,'$.state.status')='running'
+                           AND learning_job_clock_us_v1(json_extract(e.event_json,'$.state.lease_until_utc'))<=:now))
+                ORDER BY learning_job_clock_us_v1(coalesce(json_extract(e.event_json,'$.recorded_utc'),j.registered_utc)),
+                         learning_job_clock_us_v1(j.registered_utc),j.job_id LIMIT :limit
+                """, parameters).fetchall()
+            return discovery.validate({"version": 1, "authority_id": self.authority_id, "namespace": namespace,
+                "operation": operation, "code_id": code_id, "policy_object_id": policy_object_id, "observed_utc": observed,
+                "job_ids": [row[0] for row in rows]}, authority_id=self.authority_id,
+                namespace=namespace, operation=operation, code_id=code_id, policy_object_id=policy_object_id, limit=limit)
 
     def append_job_command(self, command):
         command = dto.validate_command(command, authority_id=self.authority_id)
