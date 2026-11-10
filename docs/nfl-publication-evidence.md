@@ -1,6 +1,6 @@
 # NFL public-pool evidence — local checkpoint
 
-Revision 1, November 9, 2026, 7:33 p.m. CST (America/Chicago).
+Revision 2, November 9, 2026, 7:44 p.m. CST (America/Chicago).
 
 Owner: Codex in the current session. No assignments or handoffs to Claude or
 Cursor. Henry/Grok may monitor deployment and intake evidence after its service
@@ -131,8 +131,12 @@ do not already perform this new request.
 
 ## Verification limits and rollback
 
-See the companion local evidence report for exact commands, checkout identities
-and counts. Tests use explicit synthetic clocks and injected HTTP bodies; they
+See the [local evidence report](reviews/NFL_PUBLICATION_EVIDENCE_20261109.json)
+for exact commands, checkout identities and counts. Source `c59c14d1` passes
+1,600 core/hosted tests with no skips. The sequential SQL proof passed for 100
+and 1,000 synthetic rungs; the latter publication RPC took 6.35 seconds in
+PGlite, with 16.04 seconds for the full SQL sequence. These are local measurements,
+not a hosted latency guarantee. Tests use explicit synthetic clocks and injected HTTP bodies; they
 are not historical publication evidence. Native PostgreSQL concurrency and live
 Supabase/Vercel behavior must not be marked passed from these local tests.
 

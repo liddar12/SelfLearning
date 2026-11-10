@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "checkpoint": "local NFL publication evidence and contract-deduplicated corrections",
+  "updated_local": "2026-11-09T19:44:21.726055-06:00",
+  "timezone": "America/Chicago",
+  "owner": "Codex in this session; no Claude or Cursor assignments",
+  "source_commit": "c59c14d1f7c44f909d5666ea3dfebe7b87d3831f",
+  "base_commit": "364daccaa0d845661f00be85c56a5fb7b06d5f7c",
+  "branch": "build/nfl-publication-evidence-20261109",
+  "source_files_sha256": {
+    ".github/workflows/ci.yml": "8eddb4ee0e0c873cb454d8975bebfdb1a623d754b78848d5d9a696cf103d475d",
+    "docs/nfl-adapter.md": "9fb9605157e9147616c02c0f0055502cd5ad54853fb7f5664816c5da38a4fbd5",
+    "docs/nfl-corrections-v1.md": "162326e258ea02518e3af19eb9074581ad17e7e036a725df3abf0d3cacf5cdad",
+    "docs/nfl-publication-evidence.md": "e300f96c131f41a7d26efc4be184098d4c758fafed3eb44ebc8a31059780d87d",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_corrections_fit.py": "745fc2a2eed2ed2843479e543ef8684583a0f5779bc83df3c6b341057df5b116",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_corrections_policy.py": "66208546e74778d9e8282afc46ad10759b84c0f8f95abc3d5efe744b409f8bd0",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_publication.py": "ecc9d904306c1deaa537c66aecff7b27c84afe0278ec4dd28479d2b3dbf95710",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_publication_journal.py": "7e237e96d6a4afac851bfae948a5ee8b83de26059129f25d67801be3dcbcb551",
+    "packages/selflearn-core/selflearn_core/store/supabase_journal.py": "5ac1642d25038709b7a131923ef3050ebd21660650af08555c299c64f73960e7",
+    "packages/selflearn-core/tests/publication_fit_fixture.py": "da752a93f0afbcd25deb9c7a31055ae7d1b880b78519abfe63216f519deb00f8",
+    "packages/selflearn-core/tests/test_nfl_corrections_journal_binder.py": "42c9d8c3327341d6def1664bd57bd183119d8ed721dd46525fbb417ab30a0e28",
+    "packages/selflearn-core/tests/test_nfl_corrections_publication_binder.py": "eaecff0afcd8a0c79741fc8d2535e5cbae148054e593ff21adfba56c5dbd8b30",
+    "packages/selflearn-core/tests/test_nfl_corrections_r3_provenance.py": "21aba8e900021febe31d1a559bbe58a553bec4c0d664fbf58d27116ccd8e0fd5",
+    "packages/selflearn-core/tests/test_nfl_publication.py": "e5a086d4932db83ed9b70d0d6ddebecf68472b0beceb72120d5cecd8f81aab7f",
+    "packages/selflearn-core/tests/test_supabase_publication_journal.py": "f6ff931332b76c21f7a3764adb1953b8189ae9f1d0265ac8b3185d979cf1fb2c",
+    "services/web/application.py": "1347dc64a08eb9ea7abe6b683a0edc9e5dec5e0339f7a0df96c8f169c970a29b",
+    "services/web/nfl_publication.py": "c05b56adaad8a004a23b28045cbe3d4c14b8b0489b9cdeeca5c161a02bc01b02",
+    "services/web/nfl_publication_verifier.py": "225864e86080e5fa7cda4739c178b330f807d960dec4aa541b4a748a68714f02",
+    "services/web/nfl_trace.py": "4b4775bc8c35c89f211ce70a432a395c9a2bde143e2d5748d2ba41e3f4c776df",
+    "services/web/security.py": "3f9ae8f1f8505cf31cfe1a9380d0ec2271f4ea774a94d698cf77ebe0d6d0ed56",
+    "supabase/migrations/20261110011758_publication_attestations_v1.sql": "74988b5c0cb44c01bbacb71a7f0e8d1073957cf38788d1d4cf2ef795497950b9",
+    "tests/hosted/publication_fixture.py": "0945d75ca35d620b21748260f57e47fb22935e2e5630196910dcbeacdddb8dbf",
+    "tests/hosted/test_nfl_corrections_api.py": "0f988e851a588b20579d8fbb3aeb0c0f875e774acc7a3b5ae4085c6370af6d4c",
+    "tests/hosted/test_nfl_publication.py": "23f0b606676cac230f42c52fce600e87edd5ff5a58fc33c5b0aa37af553dd79b",
+    "tests/hosted/test_supabase_journal_config.py": "0c7d50b480fbd3a991de562c803021c2ff5cb5c71b565260446d05ad540852f9",
+    "tests/postgres/publication_sql_smoke.mjs": "e43761ca07bb8c65ec1aeccda887300459aa2c3a6cb31809eacc111b00e9f8ac",
+    "tests/postgres/publication_sql_smoke.py": "3abee732f7ca662560fc9df495fe8d65bcae144d7e7b5a50f38a96555078bc78",
+    "tests/postgres/test_native_publication.py": "efeb8f5bd396780fcafe11f0c9c8bab9744088940141375cf1c6ad19e351167a"
+  },
+  "release": {
+    "pushed": false,
+    "merged": false,
+    "deployed": false,
+    "hosted_migrations_applied": false,
+    "learning_activated": false,
+    "ready_to_deploy": false
+  },
+  "verification": {
+    "core_and_hosted": {
+      "command": "PYTHONPATH=.:packages/selflearn-core:packages/selflearn-core/tests PYTHONDONTWRITEBYTECODE=1 NFL2026_CHECKOUT=/Users/jliddar/code/NFL2026-learning-runtime /Users/jliddar/code/SelfLearning/.venv/bin/python -B -m pytest -q packages/selflearn-core/tests tests --ignore=tests/postgres",
+      "exit_code": 0,
+      "passed": 1600,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 82.86,
+      "warnings": [
+        "Existing Starlette/AnyIO deprecation warning"
+      ],
+      "engine_source": "c59c14d1f7c44f909d5666ea3dfebe7b87d3831f",
+      "producer_checkout": "/Users/jliddar/code/NFL2026-learning-runtime",
+      "producer_commit": "de7e93c0df5984c1b7942df90ec9ef2549a9aee4",
+      "producer_checkout_clean": true,
+      "scope": "Actual core and local ASGI handlers; injected public HTTP bytes/explicit fixtures, not deployed HTTP or Supabase"
+    },
+    "producer_fixture_diagnosis": {
+      "current_nfl_checkout": "/Users/jliddar/code/NFL2026-engine-delivery-20261109",
+      "current_nfl_commit": "217f232720e42978fb3231f2b0ef38d7faf6e65c",
+      "missing_helpers": [
+        "scripts/build_learning_outcomes.py",
+        "scripts/pinned_cohort_oracle.py"
+      ],
+      "baseline_engine_same_two_failures": true,
+      "complete_checkout_targeted_passed": 2,
+      "note": "Legacy outcome/oracle producer tests require the capability-complete checkout; no assertions weakened or skipped. Current-main delivery has separate NFL evidence."
+    },
+    "native_postgres": {
+      "command": "/Users/jliddar/code/SelfLearning/.venv/bin/python -B -m unittest discover -s tests/postgres -p test_native_publication.py -v",
+      "exit_code": 0,
+      "pure_fixture_passed": 1,
+      "native_class_skipped": 1,
+      "reason": "No native PostgreSQL DSN/server available locally",
+      "native_concurrency_verified": false,
+      "ci_job": "native-publication-postgres",
+      "ci_run": "not run for this unpublished local commit",
+      "required_native_pg_in_ci": true
+    },
+    "sequential_sql": [
+      {
+        "command": "SELFLEARN_PGLITE_MODULE=/Users/jliddar/.npm/_npx/ba4f1959e38407b5/node_modules/@electric-sql/pglite/dist/index.js /Users/jliddar/code/SelfLearning/.venv/bin/python tests/postgres/publication_sql_smoke.py --rungs 100",
+        "exit_code": 0,
+        "result": {
+          "evidence": "sequential SQL only; synthetic future fixture",
+          "pglite_version": "0.3.16",
+          "postgres_version": "PostgreSQL 17.5 on aarch64-unknown-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+          "rungs": 100,
+          "body_bytes": 244682,
+          "result_equals_pure_join": true,
+          "accepted": 100,
+          "canonical_float_metadata": [
+            "-0.0",
+            "1.0",
+            "1e20",
+            "1e-20"
+          ],
+          "checks": [
+            "exact_body",
+            "original_replay",
+            "pinned_fence",
+            "private_rpc_grant",
+            "duplicate_outer_key_refused",
+            "invalid_policy_refused",
+            "duplicate_body_key_refused"
+          ],
+          "timings": {
+            "migrations_ms": 546.701791,
+            "objects_ms": 395.10858399999995,
+            "generation_commit_ms": 641.98,
+            "publication_commit_ms": 680.157209,
+            "total_ms": 2292.753833
+          },
+          "native_concurrency": "not executed by this harness"
+        }
+      },
+      {
+        "command": "SELFLEARN_PGLITE_MODULE=/Users/jliddar/.npm/_npx/ba4f1959e38407b5/node_modules/@electric-sql/pglite/dist/index.js /Users/jliddar/code/SelfLearning/.venv/bin/python tests/postgres/publication_sql_smoke.py --rungs 1000",
+        "exit_code": 0,
+        "result": {
+          "evidence": "sequential SQL only; synthetic future fixture",
+          "pglite_version": "0.3.16",
+          "postgres_version": "PostgreSQL 17.5 on aarch64-unknown-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+          "rungs": 1000,
+          "body_bytes": 2446982,
+          "result_equals_pure_join": true,
+          "accepted": 1000,
+          "canonical_float_metadata": [
+            "-0.0",
+            "1.0",
+            "1e20",
+            "1e-20"
+          ],
+          "checks": [
+            "exact_body",
+            "original_replay",
+            "pinned_fence",
+            "private_rpc_grant",
+            "duplicate_outer_key_refused",
+            "invalid_policy_refused",
+            "duplicate_body_key_refused"
+          ],
+          "timings": {
+            "migrations_ms": 596.724042,
+            "objects_ms": 2983.661333,
+            "generation_commit_ms": 6004.568166000001,
+            "publication_commit_ms": 6351.698666,
+            "total_ms": 16044.241584
+          },
+          "native_concurrency": "not executed by this harness"
+        }
+      }
+    ],
+    "cohort_regression": {
+      "old_selection_targeted_failed": 3,
+      "fixed_targeted_passed": 3,
+      "case": "204 distinct refresh receipts over 3 contract/events count as 3 eligible samples; floor 200 stays false. Earlier unresolved forecasts cannot be replaced by later resolved vintages.",
+      "method": "Prior selection logic restored only in memory for the negative run; working files unchanged."
+    },
+    "migration_cli": {
+      "version": "2.117.0",
+      "action": "supabase migration new publication_attestations_v1",
+      "remote_apply": false
+    }
+  },
+  "performance_findings": [
+    "Canonicalizing the whole HTTP body as one escaped JSON string caused quadratic copying; the new wrapper instead validates bounded JSON keys/types and independently validates/hashes its raw body.",
+    "Cache large-document scalar fields and use JSON-preserving indexes; do not normalize identity-bearing float lexemes through JSONB.",
+    "1000 synthetic rungs: publication RPC 6.35 seconds, total SQL 16.04 seconds in PGlite. This is not a native/hosted timeout guarantee; the observed NFL pool has roughly 1297 rungs."
+  ],
+  "remaining": [
+    "Run the dedicated native PostgreSQL 17 concurrency/rollback/privilege CI gate on an authorized published candidate.",
+    "Reconcile deployed migration history and exact runtime stack; verify the actual public NFL origin.",
+    "Build producer publication outbox after finalized generation ACK and matching public deployment.",
+    "Verify actual hosted HTTP, Supabase/PostgREST ACK/readback, restart, duplicate and correction round trips with representative full pools.",
+    "Collect prospective evidence and evaluate a frozen candidate on unseen graded periods with clustered uncertainty before separate controlled adoption."
+  ]
+}
