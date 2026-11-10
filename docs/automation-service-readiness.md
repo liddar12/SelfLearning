@@ -36,7 +36,7 @@ configuration does not install plugins into Grace's account.
 | Python development tools | Isolated setup and all three library suites run in this cloud checkout | Recreate using the committed setup command on the actual execution host |
 | Infrastructure CLIs | Netlify `27.17.0`, Vercel `65.14.0`, Supabase `3.1.0` installed and version-verified | OAuth/account authorization is separate from installation |
 | Vercel | Team consent verified for `liddar-terminal` (`team_iQtnIckXS2Om0FEzZzYUtn9l`); SelfLearning's release deployment, both aliases and hosted health verified; Branch Tracking save owner-confirmed | Preserve the rollback's automatic-assignment pause; database, ingestion and full runtime observability are separate checks |
-| Supabase | Intended SelfLearningAI project `omavgimpnvrpuxqhfxpf` is ACTIVE_HEALTHY; identity, schema catalog, migrations and bounded advisors inspected read-only | Implement additive trading isolation in this existing project, then verify owner/worker Auth and hosted behavior |
+| Supabase | Shared trading migration `20261110233747` applied to SelfLearningAI `omavgimpnvrpuxqhfxpf`; hosted role/rollback checks passed and original NFL catalog/grants/counts preserved | Create and verify owner/worker Auth identities and complete real hosted application integration |
 | Netlify | Official CLI and local Codex MCP configuration prepared; no callable installed ChatGPT plugin found in this session | Owner Netlify OAuth and an explicit target site if used; current terminal remains on Vercel |
 | Grace and Codex Cloud | Native delegation is documented, but account/environment access is not verified here | Publish or select one environment containing both repositories and demonstrate one delegated task with a returned result |
 | Alpaca paper | Equities/ETF adapter exists; paper connection preflight is implemented and offline-tested; credentials absent here | Supply paper-only keys privately, then run the read-only paper preflight |
@@ -87,6 +87,11 @@ A preflight found zero application Auth users. The owner must create a private
 application sign-in account before agents can verify/enroll its UUID and
 complete real owner-session testing. This does not require reconnecting the
 Supabase management plugin or sharing a password.
+
+The additive migration and hosted rollback-only permission checks are now
+complete. All five trading tables are empty and the allowlist has no enabled
+principals. See the implementation record for source/hosted-version mapping
+and the [mobile/Grace checklist](mobile-grace-setup.md) for the next owner actions.
 
 ## Database and terminal prerequisite
 

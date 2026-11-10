@@ -72,16 +72,60 @@ Local verification completed before publication:
   checked invoker functions, object/column grants, RLS, forced provenance,
   immutability and preservation of existing NFL objects.
 
-Hosted application Auth remains unverified: the preflight found zero Auth
-users and no principals have been enrolled. The hosted migration, rollback-only
-permission test, catalog comparison and exact-commit CI results are recorded
-below when completed. Local fixtures are not evidence of hosted sign-in or
-an unattended worker.
+The backend implementation is published at
+`27b2ed9cb3891c9f1263812946929d9d8a01a308`, with source tree
+`3fb85539fda45852b36b7f275cb59552bc2d7463` matching the reviewed local tree.
+All six GitHub CI jobs passed, including the shared database job:
+https://github.com/liddar12/SelfLearning/actions/runs/42924813163.
+
+### Hosted migration receipt
+
+The approved additive migration was applied to `omavgimpnvrpuxqhfxpf` through
+the connected Supabase migration tool on November 10, 2026. The tool returned
+success and migration history records:
+
+- Hosted version: `20261110233747`.
+- Name: `shared_trading_isolation`.
+- Reviewed source: `tools/automation/supabase-shared/supabase/migrations/20261110232506_shared_trading_isolation.sql`.
+- Source SHA-256: `ac6e87012246a46f62c0b97c527686cd6e4180b3116dd9942592b85dc1d39444`.
+
+The hosted tool assigned its own version; it differs from the CLI-generated
+source filename. This is the same reviewed SQL, not an unapplied second
+migration. Do not blindly run `db push` against this folder or remove its
+existing-object guard. Reconcile the recorded version mapping first.
+
+### Hosted verification
+
+- The complete DML-only `verify-rollback.sql` request passed its assertions
+  using the actual hosted `anon`, `authenticated` and `service_role` roles.
+  It exercised owner/worker operations, denied escalation, forced provenance,
+  immutable evidence, NFL denial, task scope, receipt cutoffs and disablement.
+- The response after `ROLLBACK` confirms all five new tables are empty.
+  No synthetic principals, Auth users or evidence remain.
+- Catalog inspection confirms five RLS-enabled tables and seven invoker RPCs.
+  All seven allow authenticated execution and deny anonymous/service-role
+  execution; enabled owner/worker counts are both zero.
+- Original NFL relation, column, function and global-default-grant fingerprints
+  exactly match their pre-migration values. Public table counts also match:
+  one prediction and zero outcomes, registry rows or registry-score rows.
+- Supabase security advisors returned the same 19 INFO findings for existing
+  NFL tables with RLS enabled and no browser policies, and no warning/error
+  findings. The new trading tables were not flagged. These existing denials
+  were preserved, not loosened to silence the
+  [informational advisor](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+- NFL production `/api/health` returned HTTP 200 with `status=ok`,
+  `release=hosted-foundation-v1`, `mode=L0` after the migration. This is a
+  routing/health check, not a complete NFL ingestion audit.
+
+Hosted application Auth remains unverified: there are still zero application
+Auth users and no enrolled principals. Database role tests and the mocked
+browser flow do not establish a real owner session or unattended worker.
 
 ## Remaining private identity step
 
 The preflight found zero Supabase application Auth users. Create the owner's
-application login through the project's normal Auth administration flow,
+application login through the project's
+[Auth user administration](https://supabase.com/dashboard/project/omavgimpnvrpuxqhfxpf/auth/users),
 choosing the password privately. Agents can then verify the Auth UUID, enroll
 the owner, configure public/server Auth settings on the terminal preview, and
 verify the real session. Do not paste a password or token into chat.
@@ -96,3 +140,4 @@ successful migration nor mocked sign-in tests prove those identities exist.
 - [Vercel repair](vercel-production-repair-2026-11-10.md)
 - [Current next steps](codex-grace-next-steps.md)
 - [Service readiness](automation-service-readiness.md)
+- [Mobile and Grace setup](mobile-grace-setup.md)

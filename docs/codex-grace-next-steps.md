@@ -34,7 +34,7 @@ runtime must not use a broad project service key.
 
 | Step | Owner intervention | Work delegated to the agents |
 |---|---|---|
-| Trading storage | Existing SelfLearningAI project selected | Implement and verify additive trading isolation; preserve existing NFL objects |
+| Trading storage | Existing SelfLearningAI project selected | Shared migration applied; hosted permissions and rollback cleanup verified; existing NFL catalog/grants/counts preserved |
 | Supabase access | Completed and verified; no repeat reconnection needed | Existing learning/NFL catalog inspected read-only; preserve that database and the separate AYSO project |
 | Vercel team consent | Completed and verified | Use the existing authorized connection for scoped verification |
 | SelfLearning production repair | Branch Tracking save confirmed by Jimmy; no repeat dashboard action needed now | Rollback, both production aliases, deployment provenance and hosted health verified; preserve the automatic-assignment pause |
@@ -191,6 +191,9 @@ Do not merge merely to expose a manual workflow-dispatch button.
 ## 5. Shared-project trading storage
 
 The selected target is existing SelfLearningAI `omavgimpnvrpuxqhfxpf`.
+The additive migration and hosted rollback-only verification are complete;
+real owner/worker Auth integration remains open. Use the
+[mobile/Grace checklist](mobile-grace-setup.md) for the owner's next steps.
 Read [the implementation and verification record](shared-supabase-implementation-2026-11-10.md)
 for current status. The old fresh-project candidate under
 `tools/automation/supabase` remains guarded and unapplied; it is not the
