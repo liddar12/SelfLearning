@@ -25,3 +25,25 @@ jobs:
         run: python -m pytest -q
       - name: Walk-forward demo smoke (synthetic, must run clean)
         run: python -m examples.walkforward_demo
+
+  test-packages:
+    # execution-core holds the risk gate and broker adapters; signals holds the
+    # indicators. Both have suites that previously never ran in CI.
+    name: ${{ matrix.pkg }} (pytest)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: [packages/execution-core, packages/signals]
+    defaults:
+      run:
+        working-directory: ${{ matrix.pkg }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package + dev deps
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        run: python -m pytest -q

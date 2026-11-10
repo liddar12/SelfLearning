@@ -4,9 +4,9 @@ Monorepo for three workstreams that share one self-learning spine.
 
 | Workstream | Package / app | What it is | Status |
 |---|---|---|---|
-| **B (spine)** | `packages/selflearn-core` | Log predictions, resolve outcomes, score, feed back. The honesty layer every other flow depends on. | Gate 1 scaffolded |
-| **A (research)** | `apps/power2026-backtest` | Backtests of the Power 2026 electricity-market claims (H1..H4). | Stub |
-| **C (execution)** | `apps/liddar-execution` | Web-based trading app that connects to Schwab and (eventually) executes proven signals with tax-loss harvesting. | Stub |
+| **B (spine)** | `packages/selflearn-core` | Log predictions, resolve outcomes, score, feed back. The honesty layer every other flow depends on. | Built on main: store, scorer + CIs, isotonic/Platt calibration, registry, L0/L1 updater, walk-forward, feature packs (price action, macro, commodities, breadth + VIX regime). No hosted store yet. |
+| **A (research)** | `apps/power2026-backtest` | Backtests of the Power 2026 electricity-market claims (H1..H4). | H1 logic built; its `data/` clients were never committed (see `.gitignore` fix) |
+| **C (execution)** | `apps/liddar-execution` + `packages/execution-core` | Trading bot: signals → LLM analyst/skeptic → code risk gate → broker, every decision scored. Paper on Alpaca first, live on Schwab. | execution-core built (broker port, SimBroker, OMS, risk gate incl. trade cap / drawdown / collar / earnings / options max-loss, staged autonomy SHADOW→SIM→APPROVE→AUTO, approval queue, Alpaca adapter). App and runner not built. |
 
 The React **Liddar Terminal** (deployed at liddar-terminal.vercel.app) is the web front end. It reads scored results over a small JSON/HTTP boundary and does not import Python.
 

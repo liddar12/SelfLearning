@@ -13,7 +13,7 @@ are `VERIFY` against each provider's current docs before wiring.
 | **Alpaca** | Yes | Yes | Yes | Yes (real paper) | **Second** — proves the port; great for testing |
 | Interactive Brokers | Yes | Yes (deep) | Yes | Yes | Later — powerful but heavy (gateway/TWS) |
 | Tradier | Yes | Yes | Yes | Yes | Later — simple REST, options-friendly |
-| **Robinhood** | **No** | Yes | No | No | **Not recommended** — unofficial only |
+| **Robinhood** | **Agent connector only** (Agentic Trading MCP, May 27 2026, beta) | Stocks at launch | No | No | Optional ring-fenced live sleeve; not needed for v1 |
 
 ## Why Schwab first, then Alpaca
 
@@ -25,15 +25,26 @@ are `VERIFY` against each provider's current docs before wiring.
   options support, and a genuine paper endpoint. Implementing it second, with no
   changes to the core, is the test that the port is real.
 
-## Why not Robinhood (for real money)
+## Robinhood (updated 2026-11-10)
 
-Robinhood publishes **no official stock/options trading API**. Any integration
-is a reverse-engineered client that (1) violates Robinhood's Terms of Service,
-(2) breaks without notice when they rotate auth/endpoints, and (3) risks account
-lockout. The port *can* host a `RobinhoodBroker` (the stub exists, flagged
-`official_api=False`) to prove the abstraction — but do not route real capital
-through it. If you want Robinhood specifically, the honest options are: accept
-those risks explicitly, or pick a broker with an official API (Alpaca/Tradier/IBKR).
+This section previously said Robinhood has no official trading API. That changed on
+**May 27, 2026**, when Robinhood launched **Agentic Trading** (beta): an official MCP
+server (`agent.robinhood.com/mcp/trading`) that lets an AI agent trade a **separate,
+ring-fenced agentic account** funded from your primary account, with an optional
+per-trade approval toggle. It is still not a general REST trading API for this engine,
+and reverse-engineered clients remain off-limits (ToS, stability, lockout risk).
+
+Fit for this project: optional, as a capped live sleeve driven through MCP, after the
+Alpaca paper record (S1) and Schwab approve-each (S2) are proven. `VERIFY` current
+scope (instruments, approval defaults) before wiring. Sources: Finder review of
+Robinhood Agentic Trading; StockBrokers.com agentic broker guide (Nov 2026).
+
+## Proposed order of work (2026-11-10, pending your Gate 1 call; supersedes "Schwab first" above if accepted)
+
+- **Alpaca paper first (S0/S1).** Real paper endpoint, so the port is tested end to
+  end without money. `AlpacaBroker` is implemented (equities/ETFs) against fixtures.
+- **Schwab live second (S2+).** Your account; no sandbox, so it starts at
+  approve-each-order.
 
 ## Adding a broker (the whole job)
 
