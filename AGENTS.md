@@ -10,9 +10,10 @@ The terminal is a separate repository: `liddar12/liddar-terminal`.
 3. `docs/codex-handoff-2026-11-10.md` for the source handoff.
 4. `docs/vercel-production-repair-2026-11-10.md` for the dated production repair
    evidence and the automatic-assignment pause that must be preserved.
-5. `docs/supabase-access-and-isolation-2026-11-10.md` for verified account access
-   and the proposed separate trading project.
-6. `docs/automation-setup.md` for reproducible tooling and current restrictions.
+5. `docs/supabase-access-and-isolation-2026-11-10.md` for the historical access inspection.
+6. `docs/shared-supabase-implementation-2026-11-10.md` for the selected shared-project
+   design and current verification.
+7. `docs/automation-setup.md` for reproducible tooling and current restrictions.
 
 The current user request takes precedence over older proposed decisions.
 The account context is $2,000. The historical $1,500 trade-loss figure is not

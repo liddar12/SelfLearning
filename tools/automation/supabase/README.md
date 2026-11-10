@@ -6,7 +6,12 @@ This folder prepares a dedicated trading prediction store. **Nothing here has be
 
 Access is now verified to **SelfLearningAI** (`omavgimpnvrpuxqhfxpf`, ACTIVE_HEALTHY), in the SelfLearningAI organization (`oukmfzwhkgiabisneuyr`), region `us-east-2`. Read-only catalogs show an existing shared learning/NFL database with four public learning tables and 15 private journal tables. See the [dated access and isolation record](../../../docs/supabase-access-and-isolation-2026-11-10.md). It supersedes earlier permission-denial observations. No prediction/journal contents, Auth users or secrets were read. No hosted project, schema or setting was changed. The separate AYSO project remains untouched.
 
-Recommend a new **liddar-trading** project in the same organization and region, initially for SHADOW/paper work. The owner must choose the organization before the Supabase cost/creation tools can be invoked. After that choice, obtain the current quote and free-project eligibility; no $0 guarantee or specific-organization creation authorization is recorded. This candidate remains unapplied and must not be used as an upgrade for the existing shared database.
+Jimmy subsequently selected the existing shared project. Use the additive
+implementation in `../supabase-shared` and the
+[shared-project record](../../../docs/shared-supabase-implementation-2026-11-10.md).
+This older candidate remains an unapplied fresh-project alternative, with its
+existing-schema refusal intact. No separate project or cost quote is required
+for the selected shared setup.
 
 ## What is prepared
 
@@ -49,7 +54,7 @@ The checker verifies zero-row field projections, the PostgREST foreign-key join,
 
 ## Enablement order
 
-1. Access and existing-project catalog inspection are complete. Obtain the owner's organization choice for the proposed separate `liddar-trading`, then verify its current tier, eligibility and cost before creation.
+1. This is the unselected fresh-project alternative. Follow the separate shared-project implementation for the approved existing-project setup.
 2. Review/apply an appropriate migration in a disposable project and verify PostgREST joins plus least-privilege behavior. This candidate is only for a fresh dedicated database.
 3. Deploy the accompanying terminal owner-auth patch to the intended terminal project using Node 22, with a correctly provisioned owner account and matching public/server Auth configuration.
 4. Verify anonymous and wrong-owner calls cannot reach storage or paid research APIs.

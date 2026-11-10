@@ -12,8 +12,9 @@ production branch setting; that setting is owner-reported, not API-read
 verified. See the [dated repair record](vercel-production-repair-2026-11-10.md).
 Preserve the rollback's pause in automatic production-domain assignment.
 Supabase access is now verified. The [access and isolation record](supabase-access-and-isolation-2026-11-10.md)
-supersedes earlier inaccessible-project observations. The next owner step is
-to choose the organization for the proposed separate trading project.
+supersedes earlier inaccessible-project observations. Jimmy subsequently approved sharing this existing project. The
+[implementation record](shared-supabase-implementation-2026-11-10.md) supersedes
+the separate-project proposal.
 
 ## Working arrangement
 
@@ -35,7 +36,7 @@ configuration does not install plugins into Grace's account.
 | Python development tools | Isolated setup and all three library suites run in this cloud checkout | Recreate using the committed setup command on the actual execution host |
 | Infrastructure CLIs | Netlify `27.17.0`, Vercel `65.14.0`, Supabase `3.1.0` installed and version-verified | OAuth/account authorization is separate from installation |
 | Vercel | Team consent verified for `liddar-terminal` (`team_iQtnIckXS2Om0FEzZzYUtn9l`); SelfLearning's release deployment, both aliases and hosted health verified; Branch Tracking save owner-confirmed | Preserve the rollback's automatic-assignment pause; database, ingestion and full runtime observability are separate checks |
-| Supabase | Intended SelfLearningAI project `omavgimpnvrpuxqhfxpf` is ACTIVE_HEALTHY; identity, schema catalog, migrations and bounded advisors inspected read-only | Owner selects SelfLearningAI for proposed separate `liddar-trading`; then obtain current cost/eligibility and prepare isolated Auth/storage |
+| Supabase | Intended SelfLearningAI project `omavgimpnvrpuxqhfxpf` is ACTIVE_HEALTHY; identity, schema catalog, migrations and bounded advisors inspected read-only | Implement additive trading isolation in this existing project, then verify owner/worker Auth and hosted behavior |
 | Netlify | Official CLI and local Codex MCP configuration prepared; no callable installed ChatGPT plugin found in this session | Owner Netlify OAuth and an explicit target site if used; current terminal remains on Vercel |
 | Grace and Codex Cloud | Native delegation is documented, but account/environment access is not verified here | Publish or select one environment containing both repositories and demonstrate one delegated task with a returned result |
 | Alpaca paper | Equities/ETF adapter exists; paper connection preflight is implemented and offline-tested; credentials absent here | Supply paper-only keys privately, then run the read-only paper preflight |
@@ -69,44 +70,40 @@ Database, ingestion and operational recovery remain unverified by these checks.
 Do not operate on the old March `liddar-terminal` project/domain. The terminal
 target in this handoff is `liddar-terminal-2tpb`.
 
-## Next owner action: choose the trading project organization
+## Shared-project decision and remaining identity setup
 
-The connection now reaches the intended SelfLearningAI organization
-(`oukmfzwhkgiabisneuyr`) and existing project (`omavgimpnvrpuxqhfxpf`). Its
-active shared learning/NFL database contains four public learning tables and
-15 private journal tables. The [inspection record](supabase-access-and-isolation-2026-11-10.md)
-separates observed schema compatibility from remaining isolation and runtime work.
+Jimmy approved using existing SelfLearningAI `omavgimpnvrpuxqhfxpf` for both
+applications. No separate project, billing change or organization selection is
+needed. Follow the [implementation record](shared-supabase-implementation-2026-11-10.md)
+for exact migration, code and hosted verification status.
 
-Recommend a new `liddar-trading` project in that organization, region
-`us-east-2`, initially for SHADOW/paper use. Ask Jimmy to confirm: **"Use the
-SelfLearningAI organization for the separate trading project."** Supabase
-cost/creation tools explicitly require the user to choose the organization
-before invocation. Current cost and free-project eligibility remain unquoted;
-no specific-organization project creation has been authorized or performed.
+The trading area uses separate schemas and application grants, a closed
+principal allowlist, and security-invoker RPCs. Terminal data calls use the
+verified owner's bearer token; a separate worker identity handles backend
+writes and outcomes. No broad service-key fallback is allowed. Existing NFL
+objects and project-wide Auth settings remain outside this additive change.
 
-After selection, obtain the quote, respect the shared automation budget and
-complete the reviewed isolated setup. No hosted schema, Auth settings, keys,
-project, broker connection or trading schedules were changed. AYSO remains
-a separate connection/project and was not inspected beyond identity metadata.
+A preflight found zero application Auth users. The owner must create a private
+application sign-in account before agents can verify/enroll its UUID and
+complete real owner-session testing. This does not require reconnecting the
+Supabase management plugin or sharing a password.
 
 ## Database and terminal prerequisite
 
 The reviewed terminal baseline has no caller authentication on its database
 and paid model routes. Do not enable service credentials on that public
 baseline. The companion terminal change must provide an owner sign-in flow,
-server-side owner authorization and modern Supabase secret-key compatibility
-before hosted data is enabled. Configure the owner identity in server settings;
-only a publishable/legacy anon key can reach the browser.
+server-side owner authorization before hosted data is enabled. Configure the
+owner identity in server settings; trading storage uses its verified bearer
+and a publishable/legacy anon key, without a project service/secret key.
 
-The prepared terminal uses one Supabase project for Auth and storage, with an
-optional task filter on service-key reads. It does not isolate trading records
-from the shared learning/NFL store. Do not apply the owner-auth runbook's
-project-wide signup setting to the shared project without reviewing its consumers.
+The shared-project terminal uses the same project URL for Auth and fixed
+trading RPCs, with authenticated RLS and a principal allowlist. Do not change
+project-wide signup settings as a side effect of terminal setup.
 
-The fresh-project candidate is for an empty, explicitly selected database; it
-refuses the existing learning/NFL schema. Preserve that project and the unrelated
-AYSO project. A separate trading project keeps this candidate and the current
-terminal contract aligned, but hosted verification remains necessary.
+The original fresh-project candidate remains guarded and unapplied. The
+shared-project migration is separate and additive. The unrelated AYSO project
+remains outside this setup.
 
 ## Scope of automation
 
