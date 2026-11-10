@@ -27,7 +27,8 @@ OPERATION = "bounded_observation"
 
 def statement(action, values):
     names = {"register": "selflearn_jobs_register_v1", "read": "selflearn_jobs_read_v1",
-             "append": "selflearn_jobs_append_v1", "discover": "selflearn_jobs_discover_v1"}
+             "append": "selflearn_jobs_append_v1", "discover": "selflearn_jobs_discover_v1",
+             "find": "selflearn_jobs_find_v1"}
     return "SELECT public." + names[action] + "(" + ",".join(native.literal(v) for v in values) + ");"
 
 
@@ -197,6 +198,42 @@ class NativeJobDiscoveryTests(unittest.TestCase):
         self.assertIs(metadata["anon"], False); self.assertIs(metadata["authenticated"], False)
         self.assertIs(metadata["service"], True)
         self.assertTrue(any(value in ('search_path=""', 'search_path=') for value in metadata["config"]))
+
+    def test_50_find_distinguishes_absence_from_errors_and_waits_for_registration(self):
+        scope = self.scope()
+        template = self.seed(scope)
+        existing = template["definition"]["job_id"]
+        found = self.rpc("find", [AUTHORITY, existing])
+        self.assertEqual(found["definition"], template["definition"])
+        self.assertIsNone(self.rpc("find", [AUTHORITY, native.digest("absent native job")]))
+        self.assertIsNone(self.rpc("find", [native.digest("other-authority"), existing]))
+        self.rpc("find", [AUTHORITY, "invalid"], expected="PT422")
+        for role in ("anon", "authenticated"):
+            self.pg.run("SET ROLE " + role + ";" + statement("find", [AUTHORITY, existing]), expected="42501")
+
+        # Prepare a distinct definition referencing the same immutable inputs.
+        # A simultaneous find must wait for registration's writer lock rather
+        # than reporting false absence from an earlier MVCC snapshot.
+        spec = jobs.seal_spec({**{key: value for key, value in template["definition"].items()
+            if key not in ("job_id", "definition_id")}, "namespace": self.scope()}, authority_id=AUTHORITY)
+        first, second = self.pg.session(), self.pg.session()
+        try:
+            first.send("BEGIN; SET LOCAL ROLE service_role;" + statement("register", [AUTHORITY,
+                native.canonical(spec)]))
+            blocker = first.barrier("native_find_registration_uncommitted")
+            second.send("SET ROLE service_role;")
+            waiter = second.barrier("native_find_reader_connected")
+            second.send(statement("find", [AUTHORITY, spec["job_id"]]))
+            self.wait_blocked(waiter, blocker)
+            first.send("COMMIT;")
+            registered, readback = first.finish(), second.finish()
+            self.assertEqual(registered.returncode, 0)
+            self.assertEqual(readback.returncode, 0)
+            snapshots = [value for value in readback.values if isinstance(value, dict) and "definition" in value]
+            self.assertEqual(len(snapshots), 1)
+            self.assertEqual(snapshots[0]["definition"], spec)
+        finally:
+            second.abort(); first.abort()
 
 
 if __name__ == "__main__":

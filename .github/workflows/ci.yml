@@ -53,10 +53,10 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/selflearn-pglite" --no-save --package-lock=false @electric-sql/pglite@0.3.16
           printf 'SELFLEARN_PGLITE_MODULE=%s\n' "$RUNNER_TEMP/selflearn-pglite/node_modules/@electric-sql/pglite/dist/index.js" >> "$GITHUB_ENV"
-      - name: Run actual SQL discovery states, filters, fairness and grants sequentially
-        run: node --test --test-concurrency=1 tests/postgres/learning_job_discovery.test.mjs
-      - name: Run Python discovery adapter through actual PostgreSQL-WASM
-        run: python -m pytest tests/postgres/test_learning_job_discovery_adapter.py -q -rs
+      - name: Run actual SQL discovery and exact job lookup sequentially
+        run: node --test --test-concurrency=1 tests/postgres/learning_job_discovery.test.mjs tests/postgres/learning_job_find.test.mjs
+      - name: Run Python discovery and lookup adapters through actual PostgreSQL-WASM
+        run: python -m pytest tests/postgres/test_learning_job_discovery_adapter.py tests/postgres/test_learning_job_find_adapter.py -q -rs
       - name: Test hosted authorization, persistence contracts and test tooling
         run: python -m pytest tests packages/selflearn-core/tests/test_supabase_store.py --ignore=tests/postgres -q -rs
       - name: Declare independent release evidence still required
@@ -192,7 +192,7 @@ jobs:
           clocks; this is not a hosted Supabase/PostgREST or public HTTP proof.'
 
   native-job-discovery-postgres:
-    name: native job discovery and competing claims (fresh PostgreSQL 17; no cloud writes)
+    name: native job discovery, lookup and competing claims (fresh PostgreSQL 17; no cloud writes)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:

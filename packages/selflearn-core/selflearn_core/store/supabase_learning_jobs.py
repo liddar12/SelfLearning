@@ -49,6 +49,12 @@ class SupabaseLearningJobJournal(SupabaseReceiptJournal):
         return self._checked(self._job_rpc("read", {"p_authority_id": self.authority_id,
             "p_job_id": dto.digest(job_id)}), job_id)
 
+    def find_job(self, job_id):
+        """Explicit absence is JSON null; transport and validation errors remain errors."""
+        job_id = dto.digest(job_id)
+        value = self._job_rpc("find", {"p_authority_id": self.authority_id, "p_job_id": job_id})
+        return None if value is None else self._checked(value, job_id)
+
     def list_claimable_jobs(self, namespace, operation, *, code_id=None, policy_object_id=None, limit=16):
         _, namespace, operation, code_id, policy_object_id, limit = discovery.scope(
             self.authority_id, namespace, operation, code_id, policy_object_id, limit)

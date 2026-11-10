@@ -81,6 +81,15 @@ class LearningJobJournal(ReceiptJournal):
             self._db.execute("BEGIN IMMEDIATE")
             return self._snapshot(job_id)
 
+    def find_job(self, job_id):
+        """Return the validated scoped snapshot, or None only for absence."""
+        job_id = dto.digest(job_id)
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            row = self._db.execute("SELECT 1 FROM learning_jobs_v1 WHERE authority_id=? AND job_id=?",
+                (self.authority_id, job_id)).fetchone()
+            return None if row is None else self._snapshot(job_id)
+
     def list_claimable_jobs(self, namespace, operation, *, code_id=None, policy_object_id=None, limit=16):
         """Return due IDs at one DB clock; each still needs an atomic claim.
 

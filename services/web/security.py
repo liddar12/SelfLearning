@@ -10,7 +10,8 @@ MAX_LEARNING_JSON = 3 * 1024 * 1024
 NFL_INGEST_PATHS = frozenset(("/api/v1/nfl/objects", "/api/v1/nfl/generations"))
 NFL_CAPTURE_PATHS = frozenset(("/api/v1/nfl/capture-chunks", "/api/v1/nfl/capture-deliveries"))
 NFL_CORRECTIONS_PATHS = frozenset(("/api/v1/nfl/corrections",))
-NFL_PUBLICATION_PATHS = frozenset(("/api/v1/nfl/publication-attestations", "/api/v1/nfl/publication-jobs"))
+NFL_PUBLICATION_PATHS = frozenset(("/api/v1/nfl/publication-attestations", "/api/v1/nfl/publication-jobs",
+    "/api/v2/nfl/publication-jobs", "/api/v2/nfl/publication-job-policy"))
 NFL_PUBLICATION_WORKER_PATH = "/api/v1/nfl/publication-worker"
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
@@ -62,7 +63,7 @@ class OwnerBoundary:
             nfl_capture = (path in NFL_CAPTURE_PATHS or path.startswith("/api/v1/nfl/capture-deliveries/")
                            or path == "/api/v2/nfl/capture-applications" or path.startswith("/api/v2/nfl/capture-applications/"))
             nfl_corrections = path in NFL_CORRECTIONS_PATHS
-            nfl_publication = path in NFL_PUBLICATION_PATHS or path.startswith("/api/v1/nfl/publication-jobs/")
+            nfl_publication = path in NFL_PUBLICATION_PATHS or path.startswith(("/api/v1/nfl/publication-jobs/", "/api/v2/nfl/publication-jobs/"))
             if path == NFL_PUBLICATION_WORKER_PATH:
                 credential = self.publication_worker_token
             elif nfl_publication:

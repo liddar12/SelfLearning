@@ -6,7 +6,6 @@ Deadlines are cooperative checks, not hard process/network execution ceilings.
 """
 from __future__ import annotations
 
-from datetime import timedelta
 import hashlib
 import os
 from pathlib import Path
@@ -18,14 +17,14 @@ from selflearn_core import learning_jobs as dto
 from selflearn_core.probability_receipts import fingerprint, instant
 from selflearn_core.adapters.nfl import validate_nfl_receipt
 from selflearn_core.adapters.nfl_generation import validate_generation
-from selflearn_core.adapters.nfl_publication import validate_policy, validate_publication_attestation
+from selflearn_core.adapters.nfl_publication import validate_policy
+from selflearn_core.adapters import nfl_publication_delivery as delivery
 
-NAMESPACE = {"domain":"nfl", "task":"publication.recording", "producer_id":"nfl2026"}
-OPERATION = "nfl.publication.record"
-LEASE_SECONDS, MAX_RUNTIME_SECONDS, MAX_ATTEMPTS, MAX_STEPS = 60, 3600, 8, 1
-RECOVERY_SECONDS, INVOCATION_SECONDS = 3600, 35
-FALSE_FLAGS = {"learning_enabled":False, "model_adoption":False, "fitting_run":False,
-               "browser_display_verified":False, "hard_execution_limit":False}
+NAMESPACE, OPERATION = dict(delivery.NAMESPACE), delivery.OPERATION
+LEASE_SECONDS, MAX_RUNTIME_SECONDS = delivery.LEASE_SECONDS, delivery.MAX_RUNTIME_SECONDS
+MAX_ATTEMPTS, MAX_STEPS = delivery.MAX_ATTEMPTS, delivery.MAX_STEPS
+RECOVERY_SECONDS, INVOCATION_SECONDS = delivery.RECOVERY_SECONDS, 35
+FALSE_FLAGS = dict(delivery.FALSE_FLAGS)
 
 
 class InvocationExpired(RuntimeError):
@@ -124,25 +123,12 @@ def _generation(jobs, journal, object_id):
     return gen, expected
 
 
-def _settings(policy):
-    validate_policy(policy)
-    return {"version":1, "kind":"nfl.publication_job_policy.v1", "publication_policy":dict(policy),
-        "lease_seconds":LEASE_SECONDS, "max_runtime_seconds":MAX_RUNTIME_SECONDS,
-        "max_attempts":MAX_ATTEMPTS, "max_steps":MAX_STEPS, "recovery_seconds":RECOVERY_SECONDS}
+_settings = delivery.settings
 
 
 def _definition(jobs, generation, expected, object_id, policy, code_id):
-    settings = _settings(policy)
-    inputs = {"version":1, "kind":"nfl.publication_job_input.v1", "object_id":object_id,
-              "generation_id":generation["generation_id"], "policy_id":fingerprint(policy)}
-    spec = dto.seal_spec({"version":1, "kind":"selflearn.job_definition.v1",
-        "namespace":dict(NAMESPACE), "operation":OPERATION,
-        "input_object_id":fingerprint(inputs), "policy_object_id":fingerprint(settings), "code_id":code_id,
-        "not_before_utc":generation["recorded_utc"],
-        "not_after_utc":dto.stamp(max(instant(r["event_start_utc"]) for r in expected.values()) + timedelta(seconds=RECOVERY_SECONDS)),
-        "lease_seconds":LEASE_SECONDS, "max_runtime_seconds":MAX_RUNTIME_SECONDS,
-        "max_attempts":MAX_ATTEMPTS, "max_steps":MAX_STEPS}, authority_id=jobs.authority_id)
-    return spec, inputs, settings
+    return delivery.definition(object_id, generation["generation_id"], generation["recorded_utc"],
+        [r["event_start_utc"] for r in expected.values()], policy, code_id, jobs.authority_id)
 
 
 def enqueue(jobs, journal, object_id, policy, code_id):
@@ -155,6 +141,58 @@ def enqueue(jobs, journal, object_id, policy, code_id):
         dto.need(fingerprint(_source(journal,fingerprint(value))) == fingerprint(value),
                  "publication_job_input_not_shared")
     return jobs.register_job(spec)
+
+
+def declaration(jobs, policy):
+    """Authenticated server declaration; source identity is not remote attestation."""
+    value = {"version":2,"authority_id":jobs.authority_id,"code_id":code_identity(),
+             "policy":dict(policy),"settings":_settings(policy)}
+    return delivery.validate_declaration(value, policy, jobs.authority_id)
+
+
+def delivery_view(jobs, journal, current):
+    """Read original referenced records; no HTTP observation or job transition."""
+    spec = current["definition"]
+    dto.need(spec["namespace"] == NAMESPACE and spec["operation"] == OPERATION,
+             "publication_job_scope_changed")
+    current = delivery.validate_snapshot(current, spec, jobs.authority_id)
+    policy_settings = _source(jobs, spec["policy_object_id"])
+    policy = policy_settings["publication_policy"]
+    inputs, gen, expected = _context(jobs, journal, current, policy, spec["code_id"])
+    result_id = current["state"]["result_object_id"]
+    value = {"version":2,"snapshot":current,
+        "input":delivery.object_wrapper(spec["input_object_id"],inputs),
+        "policy":delivery.object_wrapper(spec["policy_object_id"],policy_settings),
+        "result":None if result_id is None else delivery.object_wrapper(result_id,_source(jobs,result_id)),
+        "attestation":journal.get_publication_attestation(inputs["object_id"])}
+    return delivery.validate_delivery(value, spec, inputs, policy_settings, expected, gen, jobs.authority_id)
+
+
+def enqueue_pinned(jobs, journal, object_id, expected_job_id, expected_definition_id, policy):
+    """Recover the pinned original before inspecting current policy/code.
+
+    A missing identity is registered only when the current server definition
+    matches both client-pinned IDs. Refusals write no input/policy/job objects.
+    """
+    for value in (object_id, expected_job_id, expected_definition_id): dto.digest(value)
+    current = jobs.find_job(expected_job_id)
+    if current is not None:
+        if current["definition"]["definition_id"] != expected_definition_id:
+            raise dto.JobConflict("publication_job_definition_changed")
+        view = delivery_view(jobs,journal,current)
+        if view["input"]["payload"]["object_id"] != object_id:
+            raise dto.JobConflict("publication_job_generation_changed")
+        return view
+    code_id = code_identity()
+    gen, expected = _generation(jobs,journal,object_id)
+    spec, inputs, policy_settings = _definition(jobs,gen,expected,object_id,policy,code_id)
+    if spec["job_id"] != expected_job_id or spec["definition_id"] != expected_definition_id:
+        raise dto.JobConflict("publication_job_pinned_identity_changed")
+    for value in (inputs,policy_settings):
+        jobs.append_object("source_snapshot",fingerprint(value),value)
+        dto.need(fingerprint(_source(journal,fingerprint(value))) == fingerprint(value),
+                 "publication_job_input_not_shared")
+    return delivery_view(jobs,journal,jobs.register_job(spec))
 
 
 def _command(current, action, worker_id, authority_id, *, object_id=None, reason=None):
@@ -198,32 +236,8 @@ def _context(jobs,journal,current,policy,code_id):
     return inputs,gen,expected
 
 
-def _proof(value,inputs,gen,expected,policy):
-    validate_publication_attestation(value)
-    dto.need(value["object_id"] == inputs["object_id"] and value["generation_id"] == gen["generation_id"]
-        and value["source_pool_id"] == gen["source_snapshots"]["leg_pool"]
-        and value["policy_id"] == fingerprint(policy) and value["policy"] == policy,
-        "publication_job_proof_changed")
-    actual = {r["source_receipt_id"]:r["receipt_id"] for r in value["receipts"]+value["rejections"]}
-    dto.need(actual == {sid:r["receipt_id"] for sid,r in expected.items()}, "publication_job_proof_membership")
-    completed,recorded = instant(value["observation"]["observed_completed_utc"]),instant(value["recorded_utc"])
-    dto.need(instant(gen["recorded_utc"])<=instant(value["observation"]["observed_started_utc"]),
-             "publication_job_proof_before_generation")
-    for row in value["receipts"]:
-        dto.need(dto.canonical(row) == dto.canonical(expected[row["source_receipt_id"]]), "publication_job_proof_member")
-    for row in value["rejections"]:
-        kickoff = instant(expected[row["source_receipt_id"]]["event_start_utc"])
-        dto.need(completed >= kickoff or recorded >= kickoff, "publication_job_false_late_rejection")
-    return value
-
-
-def _result(spec,inputs,proof):
-    return {"version":1,"kind":"nfl.publication_job_result.v1",
-        **{k:spec[k] for k in ("job_id","definition_id","input_object_id","policy_object_id","code_id")},
-        "object_id":inputs["object_id"],"generation_id":inputs["generation_id"],
-        "attestation_id":proof["attestation_id"],"publication_status":proof["status"],
-        "accepted_receipts":len(proof["receipts"]),"rejected_receipts":len(proof["rejections"]),
-        "recording_complete":True, **FALSE_FLAGS}
+_proof = delivery.validate_proof
+_result = delivery.result
 
 
 def _status(status, **values):

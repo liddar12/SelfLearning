@@ -111,6 +111,43 @@ def register_worker_routes(app, pair_factory, body_reader, verifier):
             return value
         return run(read)
 
+    @app.get("/api/v2/nfl/publication-job-policy")
+    async def read_policy(request: Request):
+        if request.query_params or await request.body():
+            raise HTTPException(422, "Policy controls are server-owned")
+        return await run_in_threadpool(run, lambda jobs, journal: worker.declaration(jobs, verifier.policy))
+
+    @app.post("/api/v2/nfl/publication-jobs")
+    async def enqueue_v2(request: Request):
+        try:
+            value = await body_reader(request)
+            if (type(value) is not dict or set(value) != {"version","object_id","expected_job_id","expected_definition_id"}
+                    or type(value["version"]) is not int or value["version"] != 2 or request.query_params):
+                raise ValueError("invalid_pinned_job")
+            for key in ("object_id","expected_job_id","expected_definition_id"): protocol.digest(value[key])
+        except (ValueError, TypeError):
+            raise HTTPException(422, "Use the pinned original generation and job identities") from None
+        return await run_in_threadpool(run, lambda jobs, journal: worker.enqueue_pinned(
+            jobs, journal, value["object_id"], value["expected_job_id"], value["expected_definition_id"], verifier.policy))
+
+    @app.get("/api/v2/nfl/publication-jobs/{job_id}")
+    async def read_job_v2(job_id: str, request: Request):
+        try:
+            protocol.digest(job_id)
+            if request.query_params or await request.body():
+                raise ValueError("unsupported_job_parameters")
+        except (ValueError, TypeError):
+            raise HTTPException(422, "Use the immutable job ID only") from None
+        def read(jobs,journal):
+            current = jobs.find_job(job_id)
+            if current is None:
+                raise HTTPException(404, "Publication job not found")
+            spec = current["definition"]
+            if spec["namespace"] != worker.NAMESPACE or spec["operation"] != worker.OPERATION:
+                raise HTTPException(404, "Publication job not found")
+            return worker.delivery_view(jobs,journal,current)
+        return await run_in_threadpool(run, read)
+
     @app.api_route("/api/v1/nfl/publication-worker", methods=["GET", "POST"])
     async def invoke(request: Request):
         if request.query_params:
