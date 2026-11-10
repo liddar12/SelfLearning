@@ -1,6 +1,6 @@
 # NFL public-pool evidence — local checkpoint
 
-Revision 2, November 9, 2026, 7:44 p.m. CST (America/Chicago).
+Revision 3, November 9, 2026, 11:27 p.m. CST (America/Chicago).
 
 Owner: Codex in the current session. No assignments or handoffs to Claude or
 Cursor. Henry/Grok may monitor deployment and intake evidence after its service
@@ -43,7 +43,9 @@ browser, a source file, a task message or an evidence report.
 The handler first recovers any original durable result. Otherwise, it fetches
 `/data/leg_pool.json` from the configured origin without authentication, cookies,
 proxy inheritance or redirects. It requires HTTP 200, JSON content, UTF-8 and
-at most 3 MiB. Invalid, duplicated, deeply nested or non-finite JSON is refused.
+at most 4 MiB of public response bytes. The actual inspected public file is
+3,216,964 bytes; the separate canonical forecast intake limit remains 3 MiB.
+Invalid, duplicated, deeply nested or non-finite JSON is refused.
 The socket timeout is 12 seconds and the cooperative observation budget is 20
 seconds; the hosting platform must enforce a hard request deadline as well.
 
@@ -51,6 +53,8 @@ The body must match the frozen source pool's canonical digest. Its exact raw
 bytes receive a separate digest and are retained privately with the observation.
 The finalized generation ACK determines which source receipts were accepted.
 Each accepted generic receipt must still match the original source and kickoff.
+The publication port reads only that generation's accepted receipt membership,
+through a bounded join/paginated view, rather than scanning unrelated history.
 
 The database stamps its own time after obtaining the writer lock. HTTP
 completion and the database recording timestamp must both precede kickoff.
@@ -125,18 +129,22 @@ Before a recording-only release:
    the pre-kickoff cutoff. Later join authoritative outcomes and evaluate a
    frozen candidate on unseen graded periods before separate adoption.
 
-The producer publication outbox, cloud schedule and actual hosted round trip
-remain unfinished. Existing forecast/outcome exporters are reusable, but they
-do not already perform this new request.
+The producer publication outbox and default-off persistent worker are now
+implemented locally. See [the worker/operator plan](nfl-publication-worker.txt)
+for the separate enqueue/read/invoke API, job authority, bounds and release steps.
+Automatic producer enqueue, cloud scheduling and an actual hosted round trip
+remain unfinished. No schedule or production recording has been enabled.
 
 ## Verification limits and rollback
 
-See the [local evidence report](reviews/NFL_PUBLICATION_EVIDENCE_20261109.json)
-for exact commands, checkout identities and counts. Source `c59c14d1` passes
-1,600 core/hosted tests with no skips. The sequential SQL proof passed for 100
-and 1,000 synthetic rungs; the latter publication RPC took 6.35 seconds in
-PGlite, with 16.04 seconds for the full SQL sequence. These are local measurements,
-not a hosted latency guarantee. Tests use explicit synthetic clocks and injected HTTP bodies; they
+The [original evidence report](reviews/NFL_PUBLICATION_EVIDENCE_20261109.json)
+records source `c59c14d1`. The [worker follow-up evidence](reviews/NFL_PUBLICATION_WORKER_EVIDENCE_20261109.json)
+records source `9bea1c5`: 1,626 core/hosted tests passed with no skips. Actual NFL
+producer tests exposed and fixed omitted v1 leg defaults in the worker and fitter;
+explicit conflicts remain refused and frozen bytes stay unchanged. The current
+sequential SQL proof accepted 1,000 synthetic rungs and an exact 4 MiB body,
+with a 6.13-second publication RPC and 15.15-second full sequence in PGlite.
+These are local measurements, not a hosted latency guarantee. Tests use explicit synthetic clocks and injected HTTP bodies; they
 are not historical publication evidence. Native PostgreSQL concurrency and live
 Supabase/Vercel behavior must not be marked passed from these local tests.
 

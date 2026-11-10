@@ -1,0 +1,195 @@
+{
+  "revision": 1,
+  "verified_at": "2026-11-09T23:26:41-06:00",
+  "timezone": "America/Chicago",
+  "owner": "Codex current session",
+  "external_agent_assignments": [],
+  "local_only": true,
+  "pushed": false,
+  "deployed": false,
+  "hosted_migrations_applied": false,
+  "learning_enabled": false,
+  "automatic_model_promotion": false,
+  "engine_source_sha": "9bea1c5514167b4a9df60ff2c837a8b77bee3d7f",
+  "worker_initial_source_sha": "051cc6c198982d14df13f00ac351542e197b3b94",
+  "base_sha": "38da73b13b323c72bee1ca96fc57703cc7bce0b3",
+  "nfl_source_sha": "93a5c05126f40076dbe4fdd84dd70b0706150c7b",
+  "source_manifest_sha256": {
+    ".github/workflows/ci.yml": "f46496386445f93621d95e9d0818abc0293030539605e07ed0bf59133e60bd61",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_corrections_fit.py": "988537144e5f2fd9399e5af574bd3a6a4cf3740a43ecfd48f2e982db33552aee",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_publication.py": "7694b95b2d777e97215699c0b40be28d9546db0a2d7015d3f5c22aa8d78fc3fb",
+    "packages/selflearn-core/selflearn_core/adapters/nfl_publication_journal.py": "3f116edda824226587a9c2a9bb35d6b3a6e482a4f801962518d02e9ff61ae670",
+    "packages/selflearn-core/selflearn_core/learning_job_discovery.py": "e8487ffb5e437e9efac155f50265eeb5026ee2101879dcfc3cee5f43f66118fd",
+    "packages/selflearn-core/selflearn_core/store/learning_job_journal.py": "8b5368ca3db7d2569ecba9fb5cb7438bc704bbf4efb7c4725fd8abd2fdc5f9f2",
+    "packages/selflearn-core/selflearn_core/store/supabase_learning_jobs.py": "b52fc35c19780b6e9ad52ea29730dec447af737f892fddf87a3fa74d1cc5017e",
+    "packages/selflearn-core/tests/test_learning_job_discovery.py": "b847bb52c2aa6aa615569f27b82f35f6e34d4f5d3b6c94de47e19c9b74482747",
+    "packages/selflearn-core/tests/test_nfl_corrections_publication_binder.py": "27014bdeb1de6385ab779abe9e4e6643cba14fdf8ee186922a105690cc3f99cf",
+    "packages/selflearn-core/tests/test_nfl_publication.py": "a343671246a7f65f2c551fd06dc6528b54d7e40d36fcf60ac757152251bcecb5",
+    "packages/selflearn-core/tests/test_supabase_publication_journal.py": "68a4b3d74b6947195e023c607df306c0cb3f8f3eb1ac17a0b478ad14d62d0b70",
+    "services/web/application.py": "900668e1f19d8e23e4d81a62e2c381e535459ddf31bc4a3291398c13e39d740c",
+    "services/web/nfl_publication_jobs.py": "10dd3ea950eb08d4660649d16abc29c3e13c7e5021a35db52377c072fb0438d0",
+    "services/web/nfl_publication_verifier.py": "ecedf1823296b275d41d72d5d0385e8c1299ab52d04d0edb525148d3e95f959f",
+    "services/web/publication_worker_routes.py": "cba4e847439e6702c9fb0312ae0bc682a89ecc48d1cf4e220f1c7b1559b6b18e",
+    "services/web/security.py": "11c6801d6073af37a3538502161cb28ace24b107cbe488a25990a919af5b8343",
+    "supabase/migrations/20261110011758_publication_attestations_v1.sql": "c03ba31a360b233c078ecdd2c93f56372f5ad402979d516eead8d06f9e72c81c",
+    "supabase/migrations/20261110045653_learning_job_discovery_v1.sql": "bc21257a88b4150a61d1e4e57a6d3364d421e58f44dd19ac628dfa91f116bdde",
+    "tests/hosted/test_nfl_publication_jobs.py": "b2389d6d1762b0d7c63072f277278887c0c74786e299e56536424948f34af202",
+    "tests/hosted/test_publication_body_limits.py": "03a051fb41d54185c6d7544f5612bb2793dc25ffe28836c19b5baa6c0bef9dbd",
+    "tests/hosted/test_publication_worker_routes.py": "c0ff5bd1c1ba06ed02280e59cf668edb9afe2a21c756ee76296fc66acb3599d0",
+    "tests/postgres/learning_job_discovery.test.mjs": "9133328fb1eff07299c45873f3cdefd5999b9870286809c5f27f1bc0d2842cbd",
+    "tests/postgres/learning_jobs.test.mjs": "9186792e7e347e6ac8dd064158466c9c46096bd9bde423419b910bb7fcc5df3c",
+    "tests/postgres/learning_jobs_harness.mjs": "8d7d1cab93eefbd3c1ba381ba44e7220ebaec7614709491a76838f2baf6375e0",
+    "tests/postgres/publication_sql_smoke.mjs": "ee5e65b1989c07d92c9e43768148ad4e08a31e0fef18bafed996e7601caec5d2",
+    "tests/postgres/publication_sql_smoke.py": "abe1cbd3117f7b3a6b19eca6fce32d3a48918c54aab83b9321148bb7dde16670",
+    "tests/postgres/test_learning_job_discovery_adapter.py": "cd0a66517c526d97f0400d1c6fd4b44c41f0104a9035f4f97d172ae36139b19d",
+    "tests/postgres/test_native_job_discovery.py": "91b75415189e204f9de0a179e2a2b9ea57cc850d6aa8964adb8fbacf1d5f8354",
+    "tests/postgres/test_native_publication.py": "98afbd9ff20afbd23811ec96c122c159c4b8a441a22bfc6cf8687d3842f9d92c"
+  },
+  "checks": [
+    {
+      "name": "core_and_hosted_full",
+      "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=.:packages/selflearn-core NFL2026_CHECKOUT=/Users/jliddar/code/NFL2026-learning-runtime /Users/jliddar/code/SelfLearning/.venv/bin/python -m pytest -q packages/selflearn-core/tests tests/hosted",
+      "exit_code": 0,
+      "log_path": "/private/tmp/selflearn-publication-worker-final-full-20261109.log",
+      "log_sha256": "0d8ff7e1f07bf425b28be9a221a0d9b3b0b3990a533eb3f5cf2b70f005824547",
+      "passed": 1626,
+      "skipped": 0,
+      "warning": "Existing Starlette anyio alias deprecation",
+      "seconds": 99.59
+    },
+    {
+      "name": "actual_nfl_delivery",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /Users/jliddar/code/SelfLearning/.venv/bin/python -B tests/pilot_hosted_delivery.py --nfl-checkout /Users/jliddar/code/NFL2026-publication-worker-client-20261109 --engine-checkout /Users/jliddar/code/SelfLearning-publication-worker-20261109",
+      "exit_code": 0,
+      "log_path": "/private/tmp/nfl-worker-final-delivery-api-20261109.log",
+      "log_sha256": "ac2e4bb24a80de9426b055e5edda3dc94f07630960bb4b3bc3acca2e2bb70a2e",
+      "passed": 4,
+      "skipped": 0,
+      "cwd": "/Users/jliddar/code/NFL2026-publication-worker-client-20261109",
+      "engine_sha": "9bea1c5514167b4a9df60ff2c837a8b77bee3d7f",
+      "nfl_source_sha": "93a5c05126f40076dbe4fdd84dd70b0706150c7b"
+    },
+    {
+      "name": "actual_nfl_outcomes",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /Users/jliddar/code/SelfLearning/.venv/bin/python -B tests/pilot_hosted_outcomes.py --nfl-checkout /Users/jliddar/code/NFL2026-publication-worker-client-20261109 --engine-checkout /Users/jliddar/code/SelfLearning-publication-worker-20261109",
+      "exit_code": 0,
+      "log_path": "/private/tmp/nfl-worker-final-outcomes-api-20261109.log",
+      "log_sha256": "dd6cb789e8b87edbdabefc462e3cd4ac6d45d8332fc9d86f17dc77604a445db2",
+      "passed": 4,
+      "skipped": 0,
+      "cwd": "/Users/jliddar/code/NFL2026-publication-worker-client-20261109",
+      "engine_sha": "9bea1c5514167b4a9df60ff2c837a8b77bee3d7f",
+      "nfl_source_sha": "93a5c05126f40076dbe4fdd84dd70b0706150c7b"
+    },
+    {
+      "name": "actual_nfl_publication",
+      "command": "PYTHONDONTWRITEBYTECODE=1 /Users/jliddar/code/SelfLearning/.venv/bin/python -B tests/pilot_hosted_publication.py --nfl-checkout /Users/jliddar/code/NFL2026-publication-worker-client-20261109 --engine-checkout /Users/jliddar/code/SelfLearning-publication-worker-20261109",
+      "exit_code": 0,
+      "log_path": "/private/tmp/nfl-worker-final-publication-api-20261109.log",
+      "log_sha256": "b9022db56b86c9de8d7c05aee1fb85414d8236207bb8c1d6cb3a3a8b274c69d6",
+      "passed": 13,
+      "skipped": 0,
+      "cwd": "/Users/jliddar/code/NFL2026-publication-worker-client-20261109",
+      "engine_sha": "9bea1c5514167b4a9df60ff2c837a8b77bee3d7f",
+      "nfl_source_sha": "93a5c05126f40076dbe4fdd84dd70b0706150c7b"
+    },
+    {
+      "name": "job_discovery_and_existing_contracts",
+      "command": "PYTHONPATH=packages/selflearn-core /Users/jliddar/code/SelfLearning/.venv/bin/python -B -m pytest -q packages/selflearn-core/tests/test_learning_job_discovery.py packages/selflearn-core/tests/test_learning_jobs.py packages/selflearn-core/tests/test_supabase_learning_jobs.py packages/selflearn-core/tests/test_domain_boundaries.py",
+      "exit_code": 0,
+      "passed": 49,
+      "log_path": null,
+      "evidence": "agent execution transcript; included in final core suite"
+    },
+    {
+      "name": "discovery_and_job_sql_wasm",
+      "command": "SELFLEARN_PGLITE_MODULE=/Users/jliddar/.npm/_npx/ba4f1959e38407b5/node_modules/@electric-sql/pglite/dist/index.js node --test --test-concurrency=1 tests/postgres/learning_job_discovery.test.mjs tests/postgres/learning_jobs.test.mjs",
+      "exit_code": 0,
+      "passed": 11,
+      "log_path": null,
+      "evidence": "agent execution transcript; final SQL source unchanged"
+    },
+    {
+      "name": "actual_python_discovery_sql_wasm_adapter",
+      "command": "SELFLEARN_PGLITE_MODULE=/Users/jliddar/.npm/_npx/ba4f1959e38407b5/node_modules/@electric-sql/pglite/dist/index.js PYTHONPATH=packages/selflearn-core:packages/selflearn-core/tests /Users/jliddar/code/SelfLearning/.venv/bin/python -B -m pytest -q tests/postgres/test_learning_job_discovery_adapter.py",
+      "exit_code": 0,
+      "passed": 2,
+      "log_path": null,
+      "evidence": "agent execution transcript"
+    },
+    {
+      "name": "native_required_prerequisite_guard_only",
+      "command": "PYTHONPATH=tests/postgres:packages/selflearn-core /Users/jliddar/code/SelfLearning/.venv/bin/python -B -m unittest test_native_job_discovery.NativeJobDiscoveryGuardTests -v",
+      "exit_code": 0,
+      "passed": 1,
+      "log_path": null,
+      "evidence": "agent execution transcript; NOT native database execution"
+    }
+  ],
+  "negative_regression": {
+    "name": "regression_on_pre_normalization_engine",
+    "command": "PYTHONDONTWRITEBYTECODE=1 /Users/jliddar/code/SelfLearning/.venv/bin/python -B tests/pilot_hosted_publication.py --nfl-checkout /Users/jliddar/code/NFL2026-publication-worker-client-20261109 --engine-checkout /private/tmp/selflearn-worker-before-normalization-20261109",
+    "exit_code": 1,
+    "log_path": "/private/tmp/nfl-worker-before-normalization-api-20261109.log",
+    "log_sha256": "86d6a21059db86997ef446bc484caa2fd06ca5bcca0e07794ba522dde539c6dd",
+    "engine_sha": "051cc6c198982d14df13f00ac351542e197b3b94",
+    "total": 13,
+    "passed": 10,
+    "failed": 3,
+    "expected_failure": true,
+    "failures": [
+      "raw frozen legs cannot enqueue (2 cases)",
+      "publication fitter n_graded=0 instead of 2"
+    ]
+  },
+  "sequential_publication_sql": {
+    "evidence": "sequential SQL only; synthetic future fixture",
+    "pglite_version": "0.3.16",
+    "postgres_version": "PostgreSQL 17.5 on aarch64-unknown-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+    "rungs": 1000,
+    "body_bytes": 4194304,
+    "result_equals_pure_join": true,
+    "accepted": 1000,
+    "canonical_float_metadata": [
+      "-0.0",
+      "1.0",
+      "1e20",
+      "1e-20"
+    ],
+    "checks": [
+      "exact_body",
+      "original_replay",
+      "pinned_fence",
+      "private_rpc_grant",
+      "duplicate_outer_key_refused",
+      "invalid_policy_refused",
+      "duplicate_body_key_refused",
+      "body_above_four_mib_refused",
+      "bounded_original_ack_membership_excludes_unrelated_history"
+    ],
+    "timings": {
+      "migrations_ms": 430.63675,
+      "objects_ms": 2735.239166,
+      "generation_commit_ms": 5645.986042,
+      "publication_commit_ms": 6128.9243750000005,
+      "total_ms": 15148.404167
+    },
+    "native_concurrency": "not executed by this harness"
+  },
+  "limits": [
+    "Native PostgreSQL concurrency gates implemented but not run locally",
+    "No hosted Supabase/PostgREST round trip",
+    "No Vercel runtime deadline/performance proof",
+    "No active scheduler or automatic producer enqueue",
+    "ASGI tests use real SQLite but synthetic HTTP and explicit test clocks",
+    "Outcome API tests use an explicit memory outcome port",
+    "Cross-repository fit test uses detached synthetic outcomes and clocks",
+    "No browser display or model accuracy/adoption proof"
+  ],
+  "review": {
+    "independent_integration_review": "No blocking finding before producer-shape integration; later real-producer tests found and verified normalization fix",
+    "native_discovery_test_cases": 4,
+    "native_discovery_execution": "not run"
+  },
+  "deployment_ready": false
+}

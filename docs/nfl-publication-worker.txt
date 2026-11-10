@@ -1,0 +1,166 @@
+NFL publication worker — local implementation and operator plan
+Revision 1 — 2026-11-09, America/Chicago (CST; exact verification time in evidence JSON)
+
+Owner and release state
+-----------------------
+Codex owns implementation and integration in this session. Henry/Grok is the
+optional monitoring collaborator after its connections and schedule are verified.
+GitHub holds reviewed source/CI; Supabase is the intended durable journal; Vercel
+hosts the API. No work is assigned to Claude or Cursor.
+
+Engine source: 9bea1c5514167b4a9df60ff2c837a8b77bee3d7f, built on worker source
+051cc6c198982d14df13f00ac351542e197b3b94. These commits are local and unpushed.
+No hosted migration, production deployment, active schedule, model fit on real
+outcomes or model adoption occurred. Learning remains disabled. The implementation
+is a recording boundary, not proof that betting accuracy has improved.
+
+Implemented flow and authority
+------------------------------
+1. NFL's existing exporter freezes the source graph before kickoff and sends it
+   to intake. The engine finalizes an exhaustive accepted/rejected receipt ACK.
+2. POST /api/v1/nfl/publication-jobs accepts only version 1 and the original
+   finalized generation object_id. It validates that graph, writes immutable
+   source-snapshot input/policy wrappers and registers an idempotent job.
+   Client-supplied URLs, clocks, code IDs, retries or worker controls are refused.
+3. GET or POST /api/v1/nfl/publication-worker discovers due jobs under the exact
+   NFL namespace, operation, current code identity and publication policy. A
+   discovery result is only a hint; the worker obtains an atomic head-CAS claim
+   and rechecks current ownership before evidence/result/completion operations.
+4. It recovers the original durable publication evidence before any HTTP fetch.
+   Otherwise the independent verifier observes the exact public pool at the
+   approved origin and records only members that still precede kickoff. Public
+   pool availability does not establish browser display, selected cards or bets.
+5. Evidence storage and job completion are separate transactions. A crash or lost
+   completion response is recovered from the same generation/proof/result IDs.
+   A partial or withheld proof completes RECORDING, with explicit counts; it
+   does not mean every forecast was verified or a model was adopted.
+6. GET /api/v1/nfl/publication-jobs/{job_id} returns the immutable job's current
+   state. Idle means no claimable job for the current code/policy only, not that
+   all historical queues are empty. Other namespaces are not exposed here.
+
+The generic discovery module, SQLite journal and Supabase RPC are domain-neutral.
+NFL policy lives in the adapter and web worker. Production job/publication ports
+share the validated Supabase origin, credentials and exact HTTP transport. There
+is no automatic local-storage fallback. The explicit SQLite test seam requires
+the same persistent database file; other injected ports are trusted test seams.
+
+Discovery orders by last activity, then registration and ID, so repeatedly
+released work does not permanently displace untouched jobs. Code and policy
+filters apply before the 16-result limit. Claim conflicts do not confer ownership.
+Expired, exhausted, future, failed and succeeded jobs are excluded as appropriate.
+
+Frozen contract correction
+--------------------------
+The real NFL producer omits redundant direction/comparison fields from v1 legs.
+Intake already validates a nonmutating view with over/gte defaults. The initial
+worker and publication fitter validated the raw leg instead, rejecting valid
+jobs and omitting qualifying forecasts. Both now use intake's established view.
+Explicit conflicting or null fields still fail; original legs, hashes, receipts
+and probability equations are unchanged. Three cross-repository regression cases
+fail on 051cc6c and pass on 9bea1c5, including an actual-producer fit join with
+explicit detached synthetic outcomes. No historical outcomes were invented.
+
+Bounds, scale and failure behavior
+----------------------------------
+The original generation ACK defines the receipt membership. First-time proof
+construction now reads only that generation's accepted receipts, using a bounded
+join and paginated Supabase view. It does not scan all receipt history or issue
+one lookup per receipt. Missing, duplicated or mismatched members fail closed.
+
+The inspected public pool is 3,216,964 raw bytes, larger than the previous 3 MiB
+public download limit. Public bytes are now capped at 4,194,304 (4 MiB); canonical
+forecast intake remains separately capped at 3 MiB. The private JSON observation
+envelope allows up to 6 times 4 MiB plus 64 KiB for escaping and metadata, while
+independently enforcing the 4 MiB raw-body limit. Oversized data is refused.
+
+Each job allows at most eight attempts, one result step and a 60-second lease.
+Its deadline is the latest accepted member kickoff plus one hour; total runtime
+is also capped at one hour after its first claim. The earlier bound wins. A new
+code/policy identity does not silently take over old jobs. Monitoring of stranded
+old identities and an explicit re-enqueue policy remain operator integration work.
+
+An invocation checks a 35-second cooperative budget around port calls. It starts
+no further cleanup I/O once that budget expires. Individual blocking calls and
+factory readiness checks are not forcibly interrupted by this mechanism. The
+repository currently declares a 60-second Vercel maxDuration; actual platform
+termination and hosted latency remain unverified. A killed invocation may leave a
+lease/proof that a later invocation must recover. Neither limit is a throughput
+or end-to-end latency guarantee.
+
+Configuration, automation and manual steps
+------------------------------------------
+Default-off behavior is retained. Configuration alone does not open ports or
+verify migrations/runtime. Required future server configuration is:
+  SELFLEARN_JOURNAL_BACKEND=supabase, with the existing validated connection;
+  SELFLEARN_PUBLICATION_MODE=record;
+  SELFLEARN_NFL_PUBLICATION_ORIGIN=https://<verified actual NFL origin>;
+  SELFLEARN_NFL_PUBLICATION_TOKEN (distinct enqueue/read/publication credential);
+  SELFLEARN_PUBLICATION_WORKER_MODE=record;
+  SELFLEARN_PUBLICATION_WORKER_AUTHORITY_ID=sha256:<stable 64-hex authority ID>;
+  SELFLEARN_NFL_PUBLICATION_WORKER_TOKEN (distinct invoke-only credential).
+Keep SELFLEARN_CORRECTIONS_MODE off. Tokens are server-only and must be distinct
+from the owner, forecast, outcome and corrections credentials. Do not put token
+values in logs, repository files, browser code or bot task messages.
+
+Automated locally now: graph and original-ACK validation, idempotent registration,
+scoped discovery, claims, bounded retry state, independent observation, exact proof
+joins, restart/replay recovery and regression tests. No production schedule was
+added, and the existing offline GitHub canary still has workflow_dispatch only.
+
+Codex next, without owner input: finish the producer's queued-job delivery/status
+integration; prepare its retry/schedule wiring and exact release evidence; resolve
+NFL's existing generated-grade mismatch through the authoritative producer; retain
+baseline predictions until a frozen candidate passes prospective evaluation.
+
+Owner/manual at the cloud boundary: restore the normal Supabase/Vercel connection
+consents; confirm the real NFL production origin; select/approve the reviewed
+recording-only release; provide server secrets through normal secret settings;
+verify Henry's intended monitoring scope. Do not paste credentials into chat.
+The current goal authorizes local building/testing, not a production deployment.
+
+After release authorization, Codex should:
+  1. Reconcile actual migration history before applying any candidate migrations.
+     The publication migration 20261110011758_publication_attestations_v1.sql was
+     previously local/unreleased and was updated here for bounds/read membership.
+     The new CLI-generated discovery migration is
+     20261110045653_learning_job_discovery_v1.sql. Never rewrite a migration that
+     has actually been applied; use an additive follow-up in that situation.
+  2. Run the required fresh PostgreSQL 17 publication and discovery CI jobs.
+     Both are fail-closed when prerequisites are missing. They are distinct from
+     hosted Supabase/PostgREST acceptance and each requires its own fresh DB.
+  3. Deploy the tested engine, then verify scoped authorization, persistence,
+     DB-owned timestamps and exact generation/proof readback through hosted APIs.
+  4. Enqueue only original genuine pre-kickoff captures. Check their matching public
+     deployment, simulate duplicate triggers/lost responses, and prove restart.
+     Never republish an old pool merely to manufacture historical evidence.
+  5. Configure one scheduler with the invoke-only token, verify observed execution,
+     failure alerts and recovery; do not equate a scheduled configuration with a
+     running worker. Henry can monitor evidence and failures, not override gates.
+  6. Join authoritative outcomes, freeze a candidate and train cutoff, compare
+     against baseline on unseen graded periods with clustered uncertainty, and
+     separately approve adoption only if the agreed evidence gate passes.
+
+Platform references: Supabase recommends explicit function privileges and safe
+search paths (https://supabase.com/docs/guides/database/functions). Native locking
+semantics need actual transactional checks
+(https://www.postgresql.org/docs/current/explicit-locking.html). Scheduled delivery
+must tolerate missed/duplicate/concurrent invocations; persistent jobs carry the
+retry/ownership authority here, not the trigger
+(https://vercel.com/docs/schedules/cron-jobs/manage-cron-jobs).
+
+Verification and stop/recovery
+------------------------------
+The companion docs/reviews/NFL_PUBLICATION_WORKER_EVIDENCE_20261109.json records
+source hashes, exact commands, exit codes and local test limits. PGlite executed
+1,000-member SQL proof construction with an exact 4 MiB body; it is sequential
+WASM SQL evidence, not native concurrency or hosted performance. Native jobs are
+wired into CI but have not run in this environment. No browser or hosted success
+is inferred from ASGI tests. Cross-repository outcome tests use an explicit memory
+outcome port; the new fit join uses explicit synthetic detached outcome clocks.
+
+To stop future recording, remove the worker record flag and disable its trigger;
+remove the publication record flag as well to disable direct observations. These
+are deploy-based stops, not immediate kill switches. Preserve immutable jobs and
+proofs. A code rollback or config change must preserve original IDs and disclose
+which jobs no longer match current code/policy. Learning adoption has its own
+separate control and is not enabled by this worker.
