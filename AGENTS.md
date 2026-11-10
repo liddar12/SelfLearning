@@ -8,7 +8,9 @@ The terminal is a separate repository: `liddar12/liddar-terminal`.
 1. The current user request.
 2. `CLAUDE.md` for the established architecture and hard constraints.
 3. `docs/codex-handoff-2026-11-10.md` for the source handoff.
-4. `docs/automation-setup.md` for reproducible tooling and current restrictions.
+4. `docs/vercel-production-repair-2026-11-10.md` for the dated production repair
+   evidence and the automatic-assignment pause that must be preserved.
+5. `docs/automation-setup.md` for reproducible tooling and current restrictions.
 
 The current user request takes precedence over older proposed decisions.
 The account context is $2,000. The historical $1,500 trade-loss figure is not

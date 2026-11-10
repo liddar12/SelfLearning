@@ -10,11 +10,17 @@ to trade.
 
 ## Current restrictions
 
-The supplied handoff records a production collision: the `self-learning`
-Vercel project publishes main and PR #14 replaced the NFL runtime. Keep main
-merges and production deployments blocked until that project's rollback and
-production-branch configuration have been verified. Leave the March
-`liddar-terminal` project and domain alone.
+The supplied handoff records a production collision that was subsequently
+repaired. Read the [November 10 repair record](vercel-production-repair-2026-11-10.md):
+the NFL deployment, both production aliases and hosted health were verified;
+Jimmy confirmed saving the intended production branch, which the connector
+does not independently expose. Preserve the rollback's pause in automatic
+production-domain assignment. Both setup PRs remain draft; this repair does
+not authorize merging, promotion or deployment, or replace review and
+regression gates. Leave the March `liddar-terminal` project and domain alone.
+The offline inventory's static collision prerequisite refers to the historical
+handoff; the dated repair record supplies its resolution for routing and
+health. It does not establish database, ingestion or live-trading readiness.
 
 The profile in `config/automation-readiness.json` is an inventory contract,
 not a runner configuration. It fixes SHADOW, disables live trading and
@@ -118,7 +124,8 @@ Existing CI continues to run all three package suites. The added tooling job
 uses the same pinned setup and checks the offline tooling on pull requests.
 Manual dispatch is declared without any schedule; GitHub may not expose a new
 dispatch entry until its workflow definition is on the default branch. Do not
-merge merely to activate the button while the production collision is unresolved.
+merge merely to activate the button; normal review and regression gates still
+apply after the dated production repair.
 
 Codex should use feature branches and reviewable PRs. Grace can interpret the
 JSON, PR status and CI results when she has access to them. This repository does

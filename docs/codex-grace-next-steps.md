@@ -1,36 +1,43 @@
 # Next steps for Codex, Grace, and this chat
 
-Prepared November 10, 2026. This guide uses the reviewed handoff and the setup
-branches below. It does not authorize live trades or change account permissions.
+Updated November 10, 2026 after the verified Vercel production repair. This
+guide uses the reviewed handoff and the setup branches below. It does not
+authorize live trades or change account permissions.
 
 - Backend: `liddar12/SelfLearning`, branch `codex/automation-tooling-shadow`.
 - Terminal: `liddar12/liddar-terminal`, branch `codex/terminal-owner-auth`.
 - Account context: $2,000. The older $1,500 trade-loss figure is not an approved
   policy for this account.
 
-## Updated owner checklist after Vercel consent
+## Updated owner checklist after the production repair
 
-The Vercel team grant now works. Authenticated reads confirm the intended
-`self-learning` and `liddar-terminal-2tpb` projects. The current SelfLearning
-production aliases point at the newer main build; the prior NFL production
-deployment from the handoff is READY and belongs to the expected release branch.
-No production rollback or branch-setting change has been performed.
+SelfLearning's intended NFL deployment has been restored. Both production
+aliases now resolve to the verified release deployment, and the hosted health
+endpoint returned HTTP 200. Jimmy confirmed saving Production Branch Tracking
+to `release/optimized-nfl-runtime-20261018`; that setting is owner-reported,
+not independently read through the API. See the
+[dated repair record](vercel-production-repair-2026-11-10.md) for exact evidence
+and its limits. Preserve the rollback's pause in automatic production-domain
+assignment. Both setup PRs remain draft; neither has been merged.
+
+**The next owner action is Supabase access.** Reconnect the Supabase plugin
+using the account/organization that owns `omavgimpnvrpuxqhfxpf`. Current access
+exposes only the unrelated AYSO project. Complete consent privately and report
+that reconnection is done; agents can then verify access without receiving
+passwords, tokens or database keys in chat.
 
 | Step | Owner intervention | Work delegated to the agents |
 |---|---|---|
-| Vercel team consent | Completed and verified | Inspect deployments and logs through the connected tool |
-| SelfLearning production branch | In the existing Vercel project, open Settings → Environments → Production → Branch Tracking; set `release/optimized-nfl-runtime-20261018` if different, save, and confirm the saved value | Verify restoration of the intended runtime and production aliases; branch tracking and rollback are separate changes |
-| Supabase access | Connect the personal account/organization owning the intended project; current access still exposes only AYSO | Inspect schema, isolation and grants; prepare and validate the appropriate database setup |
+| Supabase access | **Next:** reconnect the account/organization owning `omavgimpnvrpuxqhfxpf`; current access still exposes only AYSO | Verify the project, then inspect schema, isolation and grants before choosing database setup |
+| Vercel team consent | Completed and verified | Use the existing authorized connection for scoped verification |
+| SelfLearning production repair | Branch Tracking save confirmed by Jimmy; no repeat dashboard action needed now | Rollback, both production aliases, deployment provenance and hosted health verified; preserve the automatic-assignment pause |
 | Codex environment | Select both repositories in Grace's actual ChatGPT account/workspace and publish the tested environment | Install tools and reproduce the checks using the committed setup |
 | Grace handoff | Give Grace the coordination prompt once and identify the published environment | Prove a delegated Codex task returns, then manage routine engineering and exceptions |
 | Private credentials and owner login | Complete provider OAuth, secret entry, and owner password/email verification when required | Configure references and run secret-safe connectivity/integration checks |
 | Live operating policy | Later: select the funded broker/account and approve instruments, position/loss limits and the live stage | Prepare a concrete policy and evidence from shadow/paper operation; enforce it deterministically |
 
-The connected Vercel update-project tool does not expose production branch
-tracking, and the cloud dashboard browser is signed out. The documented UI
-location above is the smallest current owner action; no raw credential is
-needed in chat. The terminal's preview build compatibility fix belongs to
-the coding task and requires no owner key change.
+No hosted database changes have been performed. The terminal's preview build
+compatibility work belongs to the coding task and requires no owner key change.
 
 Use free services where suitable and keep new automation spending within
 the owner's existing $50/month additional budget across automation projects.
@@ -42,7 +49,7 @@ Do not treat that operations budget as authority to fund or trade an account.
 |---|---|
 | Codex | Run setup, test both branches, implement scoped engineering tasks, and produce reviewable PRs with evidence. |
 | Grace | Coordinate the backlog, delegate to Codex once her environment access works, follow up on tasks, and present decisions or exceptions. |
-| This chat | Help connect the correct accounts, verify the reported deployment problem, review the architecture and results, and prepare concrete owner decisions. |
+| This chat | Help connect the correct Supabase account, preserve the production repair evidence, review the architecture and results, and prepare concrete owner decisions. |
 | External worker, once built | Run the actual trading application and its deterministic controls. A chat conversation is not the worker. |
 | Jimmy | Complete private account consent, select the correct database/hosting account and any paid tier, and eventually authorize the live operating policy. |
 
@@ -124,7 +131,7 @@ See [Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp).
 | Connection | Exact owner action still needed |
 |---|---|
 | GitHub and Cloud | Grant access to both repositories and make the selected environment available to Grace/Codex. |
-| Vercel | Team access is now verified. Complete the production Branch Tracking dashboard step above; the runtime restoration still needs verification. |
+| Vercel | Team access and runtime routing/health are verified; Jimmy confirmed the branch-setting save. No repeat repair step is needed. Preserve the rollback's automatic-assignment pause. |
 | Supabase | Connect the account/organization owning the intended learning project, reported as `omavgimpnvrpuxqhfxpf`, then verify the actual project. Do not substitute AYSO. |
 | Terminal owner sign-in | Provision the owner's verified Supabase Auth account privately, disable public signup, and set its immutable UUID as `TERMINAL_OWNER_USER_ID` on the server. Follow the terminal's `docs/owner-auth-setup.md`. |
 | Alpaca paper | Supply paper-only `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` through the approved secret mechanism, if Alpaca is the selected paper broker. |
@@ -146,20 +153,26 @@ It performs one GET against the fixed paper account endpoint, submits no
 orders, and does not print account or financial values. Its result does not
 establish paper-strategy performance or options readiness.
 
-## 4. Resolve the production problem before merging
+## 4. Preserve the completed production repair
 
-**Do not merge either setup branch to main until the reported Vercel
-production collision has been verified and repaired.**
+The [repair record](vercel-production-repair-2026-11-10.md) resolves the
+historical production-collision prerequisite for the observed routing and
+health scope. Production now serves `dpl_GxxQXJhijdURfsXUZyCAPBvy4cd3`, built
+from `release/optimized-nfl-runtime-20261018` at
+`aacb19c73122f257449e977df40f2a2733991b2f`. The production hostname lookup
+confirmed that exact deployment, branch and commit with READY/production state.
+This does not establish database, ingestion or full application readiness.
 
-Authenticated Vercel reads confirm that SelfLearning's production aliases now
-point to the main build `dpl_8gTsvAs91dar9ss9jJX9Ay7y9J8q`. The prior deployment
-`dpl_GxxQXJhijdURfsXUZyCAPBvy4cd3` is READY, belongs to the same project, and was
-built from `release/optimized-nfl-runtime-20261018` at `aacb19c`.
-The dashboard Branch Tracking setting is not exposed by the connected tool;
-use the owner step above. Inspect runtime behavior before restoring the verified
-intended deployment, correct the routing, then observe the actual result.
-An Instant Rollback disables automatic production-domain assignment; a later
-promotion reenables it. Do not silently add that promotion as cleanup.
+**Preserve the rollback's pause in automatic production-domain assignment.**
+A later promotion reenables automatic assignment; do not promote as cleanup.
+Both setup PRs remain draft. Repair completion does not merge either PR,
+approve a deployment, or replace the normal review and regression gates.
+
+The offline readiness script still emits
+`HANDOFF_VERCEL_PRODUCTION_COLLISION_REQUIRES_VERIFIED_RESOLUTION`. It is a
+static prerequisite copied from the historical handoff, not a live Vercel
+probe. Read it alongside the dated repair record; do not repeat the repair or
+change automation permissions to make the offline output appear green.
 
 Primary references: [production branch configuration](https://vercel.com/docs/git#customizing-the-production-branch)
 and [Instant Rollback](https://vercel.com/docs/instant-rollback).
@@ -168,7 +181,13 @@ Use the terminal target `liddar-terminal-2tpb`. Leave the original March
 `liddar-terminal` project and `liddar-terminal.vercel.app` domain alone.
 Do not merge merely to expose a manual workflow-dispatch button.
 
-## 5. Database candidate: prepared, unapplied, fresh-project only
+## 5. Next: Supabase access, then inspect the unapplied candidate
+
+The connected Supabase account currently exposes only the unrelated AYSO
+project, and the intended SelfLearning project `omavgimpnvrpuxqhfxpf` remains
+inaccessible. Reconnect the correct account/organization first. Once access
+works, agents should verify the exact project and perform read-only inspection.
+No hosted schema, grants, Auth settings or migrations have been changed.
 
 `tools/automation/supabase` contains a **candidate for an empty dedicated
 database**, read-only diagnostics, and local disposable PostgreSQL tests.
@@ -230,13 +249,15 @@ $1,500 value from an older conversation.
 > liddar-terminal repositories. Start from codex/automation-tooling-shadow and
 > codex/terminal-owner-auth, preserving any current work. Read AGENTS.md,
 > CLAUDE.md, the November 10 handoff, docs/automation-setup.md,
-> docs/automation-service-readiness.md and this next-steps guide.
+> docs/automation-service-readiness.md, docs/vercel-production-repair-2026-11-10.md
+> and this next-steps guide.
 >
 > Run the reproducible setup and both repositories' tests. Report installed
 > dependencies, authenticated services, tested application behavior and
 > production eligibility separately. Do not claim connections from env-variable
 > presence or file existence. Verify the prepared changes and leave reviewable
-> PRs; do not merge or deploy while the Vercel collision is unresolved.
+> PRs. The Vercel repair is recorded; preserve its automatic-assignment pause.
+> Both setup PRs remain draft. Do not merge, promote or deploy in this task.
 >
 > Then implement the first unblocked handoff engineering task in a separate
 > branch with meaningful tests. Continue routine fixes and verification without
@@ -259,16 +280,19 @@ $1,500 value from an older conversation.
 > Delegate routine engineering and follow up on failures. Give me concise
 > progress and material exceptions instead of asking me to relay logs. Keep
 > tool installation, service authentication, application verification and
-> production eligibility separate. Do not create trading schedules, merge main
-> before the Vercel issue is resolved, enable live trading, or reinterpret the
-> old $1,500 trade-loss figure as approval for my $2,000 account.
+> production eligibility separate. Use the dated Vercel repair record rather
+> than repeating a completed repair. Keep both setup PRs draft pending review
+> and preserve the rollback's automatic-assignment pause. Do not create trading
+> schedules, merge main, promote deployments, enable live trading, or reinterpret
+> the old $1,500 trade-loss figure as approval for my $2,000 account.
 
 ### For this chat
 
-> Help finish the account and deployment prerequisites for this handoff.
-> Verify the correct Vercel team/project before repairing the reported
-> production collision. Verify the intended Supabase project before choosing
-> reuse or a fresh-project migration. Prepare any cost or owner-access decision
+> Help finish the account prerequisites for this handoff. The Vercel repair is
+> recorded; preserve its automatic-assignment pause. First verify Supabase
+> access to omavgimpnvrpuxqhfxpf after I reconnect the correct account/organization.
+> Inspect that project before choosing reuse or a fresh-project migration.
+> Prepare any cost or owner-access decision
 > with the exact target and effect. Review Codex's evidence and keep Grace's
 > environment/delegation status honest. Continue independent setup work while
 > account access is pending; keep trading and schedules disabled.
@@ -277,8 +301,9 @@ $1,500 value from an older conversation.
 
 The immediate success condition is: both prepared branches are available,
 the actual Codex/Grace environment reproduces the tests, one delegated task
-returns successfully, and the correct account access allows the production
-and database questions to be resolved.
+returns successfully, and correct Supabase account access allows the database
+choice to be resolved. Production routing and health are already verified in
+the dated repair record; database and ingestion readiness remain separate.
 
 The next engineering milestone is a manually started shadow run that writes a
 real stamped prediction to the isolated store, later resolves it, scores it,

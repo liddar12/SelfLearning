@@ -4,12 +4,14 @@ Checked November 10, 2026 against the final Claude handoff and the connected
 accounts available to this ChatGPT task. This is a dated observation, not a
 live status feed. Recheck access before acting.
 
-Update after owner consent: Vercel access is now verified for the intended
-team and both projects. The SelfLearning production aliases are confirmed on
-the newer main build; the named prior NFL deployment is verified READY on the
-expected release branch. Production branch tracking still needs the owner's
-dashboard action because the connected update-project tool omits that field
-and the cloud browser is signed out. No rollback or branch change has occurred.
+Update after the production repair: Vercel access is verified for the intended
+team and both projects. SelfLearning's intended NFL deployment is restored;
+both production aliases and a hostname-based deployment read confirm it, and
+the hosted health endpoint returned HTTP 200. Jimmy confirmed saving the
+production branch setting; that setting is owner-reported, not API-read
+verified. See the [dated repair record](vercel-production-repair-2026-11-10.md).
+Preserve the rollback's pause in automatic production-domain assignment.
+Supabase account access is now the first owner prerequisite.
 
 ## Working arrangement
 
@@ -27,10 +29,10 @@ configuration does not install plugins into Grace's account.
 
 | Component | Verified observation | Remaining action |
 | --- | --- | --- |
-| GitHub | Both repositories are readable; setup work is published as SelfLearning PR #15 and terminal PR #13 | Review current CI/preview evidence and respect the main-merge restrictions |
+| GitHub | Both repositories are readable; setup work is published as draft SelfLearning PR #15 and draft terminal PR #13; neither is merged | Review current CI/preview evidence; production repair does not authorize merging or deployment |
 | Python development tools | Isolated setup and all three library suites run in this cloud checkout | Recreate using the committed setup command on the actual execution host |
 | Infrastructure CLIs | Netlify `27.17.0`, Vercel `65.14.0`, Supabase `3.1.0` installed and version-verified | OAuth/account authorization is separate from installation |
-| Vercel | Plugin and CLI installed; owner team consent verified for `liddar-terminal` (`team_iQtnIckXS2Om0FEzZzYUtn9l`) | Owner production Branch Tracking dashboard action; verify runtime restoration and terminal preview |
+| Vercel | Team consent verified for `liddar-terminal` (`team_iQtnIckXS2Om0FEzZzYUtn9l`); SelfLearning's release deployment, both aliases and hosted health verified; Branch Tracking save owner-confirmed | Preserve the rollback's automatic-assignment pause; database, ingestion and full runtime observability are separate checks |
 | Supabase | Connected account exposes only an unrelated AYSO organization/project; intended learning project access is denied | Connect the account/organization owning `omavgimpnvrpuxqhfxpf`; inspect schema before choosing a fresh project or migration |
 | Netlify | Official CLI and local Codex MCP configuration prepared; no callable installed ChatGPT plugin found in this session | Owner Netlify OAuth and an explicit target site if used; current terminal remains on Vercel |
 | Grace and Codex Cloud | Native delegation is documented, but account/environment access is not verified here | Publish or select one environment containing both repositories and demonstrate one delegated task with a returned result |
@@ -40,26 +42,39 @@ configuration does not install plugins into Grace's account.
 | Fidelity | No authorized retail execution API/connector was established by this investigation | Do not use credential scraping or browser trading as a substitute |
 | Model providers | Judgment adapters are a handoff backlog item; no runtime keys verified here | Implement/validate the provider interface and verify actual model IDs/entitlements before enabling calls |
 
-## Priority: repair deployment routing before main merges
+## Production repair: completed for routing and health
 
-The handoff reports that SelfLearning PR #14 caused Vercel `self-learning` to
-publish main in place of the NFL runtime. With team access restored, this
-session confirmed that the production aliases point to `dpl_8gTsvAs91dar9ss9jJX9Ay7y9J8q`
-from main `46be142`, while the named prior deployment is READY on the release branch.
+The [November 10 repair record](vercel-production-repair-2026-11-10.md)
+documents the restored deployment, displaced main build, both alias mappings,
+owner-confirmed branch-setting save and hosted health response. It resolves
+the historical collision prerequisite for this observed scope. Both setup PRs
+remain draft; no PR merge or terminal production change was performed.
 
-Remaining repair sequence:
+The offline inventory's
+`HANDOFF_VERCEL_PRODUCTION_COLLISION_REQUIRES_VERIFIED_RESOLUTION` entry is a
+static historical prerequisite, not a fresh observation. The dated repair
+record supplies its resolution; the inventory still does not establish overall
+production or live-trading eligibility. The original Claude handoff remains
+unchanged as historical source material.
 
-1. Inspect project `self-learning`, its current production deployment and its
-   production Git branch. Verify the project's repository and root directory.
-2. Inspect reported prior deployment `dpl_GxxQXJhijdURfsXUZyCAPBvy4cd3` and
-   verify that it belongs to this project and is the intended working NFL build.
-3. Restore that confirmed deployment and configure the intended production
-   branch, reported as `release/optimized-nfl-runtime-20261018`, using the
-   provider's supported controls. Verify the resulting alias and Git settings.
-4. Re-evaluate the merge restriction only after observing the actual result.
+An Instant Rollback pauses automatic production-domain assignment. Preserve
+that pause; do not promote a deployment as cleanup. A follow-up error/fatal
+aggregate log query for the restored production deployment returned no matching
+rows in the sampled five-minute window, and the project drain list was empty.
+This does not establish that the runtime is error-free outside that sample.
+Database, ingestion and operational recovery remain unverified by these checks.
 
 Do not operate on the old March `liddar-terminal` project/domain. The terminal
 target in this handoff is `liddar-terminal-2tpb`.
+
+## Next owner action: connect the correct Supabase account
+
+Reconnect the Supabase plugin with the account/organization owning the intended
+SelfLearning project `omavgimpnvrpuxqhfxpf`. The currently connected account
+exposes only unrelated AYSO resources; the intended project is inaccessible.
+Complete consent privately, then let agents verify the project and inspect
+schema, grants, migrations and isolation read-only. Never paste secrets into
+chat. No hosted database changes have been performed.
 
 ## Database and terminal prerequisite
 
