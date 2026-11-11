@@ -36,7 +36,8 @@ configuration does not install plugins into Grace's account.
 | Python development tools | Isolated setup and all three library suites run in this cloud checkout | Recreate using the committed setup command on the actual execution host |
 | Infrastructure CLIs | Netlify `27.17.0`, Vercel `65.14.0`, Supabase `3.1.0` installed and version-verified | OAuth/account authorization is separate from installation |
 | Vercel | Team consent verified for `liddar-terminal` (`team_iQtnIckXS2Om0FEzZzYUtn9l`); SelfLearning's release deployment, both aliases and hosted health verified; Branch Tracking save owner-confirmed | Preserve the rollback's automatic-assignment pause; database, ingestion and full runtime observability are separate checks |
-| Supabase | Shared trading migration `20261110233747` applied to SelfLearningAI `omavgimpnvrpuxqhfxpf`; hosted role/rollback checks passed and original NFL catalog/grants/counts preserved | Create and verify owner/worker Auth identities and complete real hosted application integration |
+| Supabase | Shared trading migration `20261110233747` applied to SelfLearningAI `omavgimpnvrpuxqhfxpf`; hosted role/rollback checks passed and original NFL catalog/grants/counts preserved; one confirmed owner enrolled, zero workers; real owner Scores read passed | Establish the separate worker identity/session lifecycle and integrate the runnable application |
+| Terminal Preview | Six Auth/storage settings read back only for `codex/terminal-owner-auth` in `liddar-terminal-2tpb`; preview READY at `344921dd0da7a3b31737b40dbfd00cfab2bfa581`; real owner sign-in, Scores/reload/sign-out and signed-out response passed | Keep PR draft for broader review; owner preview acceptance does not authorize production promotion or prove a running bot |
 | Netlify | Official CLI and local Codex MCP configuration prepared; no callable installed ChatGPT plugin found in this session | Owner Netlify OAuth and an explicit target site if used; current terminal remains on Vercel |
 | Grace and Codex Cloud | Native delegation is documented, but account/environment access is not verified here | Publish or select one environment containing both repositories and demonstrate one delegated task with a returned result |
 | Alpaca paper | Equities/ETF adapter exists; paper connection preflight is implemented and offline-tested; credentials absent here | Supply paper-only keys privately, then run the read-only paper preflight |
@@ -70,7 +71,7 @@ Database, ingestion and operational recovery remain unverified by these checks.
 Do not operate on the old March `liddar-terminal` project/domain. The terminal
 target in this handoff is `liddar-terminal-2tpb`.
 
-## Shared-project decision and remaining identity setup
+## Shared-project decision and owner setup status
 
 Jimmy approved using existing SelfLearningAI `omavgimpnvrpuxqhfxpf` for both
 applications. No separate project, billing change or organization selection is
@@ -83,24 +84,35 @@ verified owner's bearer token; a separate worker identity handles backend
 writes and outcomes. No broad service-key fallback is allowed. Existing NFL
 objects and project-wide Auth settings remain outside this additive change.
 
-A preflight found zero application Auth users. The owner must create a private
-application sign-in account before agents can verify/enroll its UUID and
-complete real owner-session testing. This does not require reconnecting the
-Supabase management plugin or sharing a password.
+Jimmy created the private application login. Agents verified the confirmed
+Auth identity and enrolled it as an enabled trading owner. Supabase recorded
+successful private sign-in. An initial terminal verification failure was
+traced to omission of the protected preview cookie; the scoped fix passed CI
+and real hosted acceptance. The owner opened private panels and Scores,
+retained access after reload, then signed out and remained signed out after
+another reload. Direct `/api/session` navigation returned the application's
+`Sign in to continue.` response. This records the response body, not a
+browser-read HTTP status. Wrong-owner denial was verified in mocked CI only;
+no second real account was created. No duplicate account, management-plugin
+reconnection or password change is required.
 
 The additive migration and hosted rollback-only permission checks are now
-complete. All five trading tables are empty and the allowlist has no enabled
-principals. See the implementation record for source/hosted-version mapping
-and the [mobile/Grace checklist](mobile-grace-setup.md) for the next owner actions.
+complete. The allowlist now has one enabled owner and zero workers; trading
+evidence tables remain empty. Six Auth/storage settings are saved only for
+the terminal's Preview branch. See the implementation record for the exact
+scope, source/hosted-version mapping and separation between database checks,
+mocked tests and live browser acceptance. The
+[mobile/Grace checklist](mobile-grace-setup.md) gives the remaining environment
+and delegation actions.
 
 ## Database and terminal prerequisite
 
-The reviewed terminal baseline has no caller authentication on its database
-and paid model routes. Do not enable service credentials on that public
-baseline. The companion terminal change must provide an owner sign-in flow,
-server-side owner authorization before hosted data is enabled. Configure the
-owner identity in server settings; trading storage uses its verified bearer
-and a publishable/legacy anon key, without a project service/secret key.
+The original terminal baseline lacked caller authentication on its database
+and paid model routes. The companion PR now supplies owner sign-in and
+server-side authorization, verified on its protected Preview deployment.
+Keep service credentials off the old public baseline. The configured preview's
+trading storage uses the verified owner's bearer and a publishable key,
+without a project service/secret key.
 
 The shared-project terminal uses the same project URL for Auth and fixed
 trading RPCs, with authenticated RLS and a principal allowlist. Do not change

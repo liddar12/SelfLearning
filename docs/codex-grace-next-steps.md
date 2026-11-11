@@ -1,7 +1,8 @@
 # Next steps for Codex, Grace, and this chat
 
-Updated November 10, 2026 after the Vercel repair and verified Supabase
-reconnection. This guide uses the reviewed handoff and setup branches below.
+Updated November 10, 2026 after the Vercel repair, shared Supabase migration,
+and hosted owner acceptance. This guide uses the reviewed handoff and setup
+branches below.
 It does not authorize live trades or change account permissions.
 
 - Backend: `liddar12/SelfLearning`, branch `codex/automation-tooling-shadow`.
@@ -9,7 +10,7 @@ It does not authorize live trades or change account permissions.
 - Account context: $2,000. The older $1,500 trade-loss figure is not an approved
   policy for this account.
 
-## Updated owner checklist after Supabase reconnection
+## Updated owner checklist after hosted owner acceptance
 
 SelfLearning's intended NFL deployment has been restored. Both production
 aliases now resolve to the verified release deployment, and the hosted health
@@ -40,11 +41,18 @@ runtime must not use a broad project service key.
 | SelfLearning production repair | Branch Tracking save confirmed by Jimmy; no repeat dashboard action needed now | Rollback, both production aliases, deployment provenance and hosted health verified; preserve the automatic-assignment pause |
 | Codex environment | Select both repositories in Grace's actual ChatGPT account/workspace and publish the tested environment | Install tools and reproduce the checks using the committed setup |
 | Grace handoff | Give Grace the coordination prompt once and identify the published environment | Prove a delegated Codex task returns, then manage routine engineering and exceptions |
-| Private credentials and owner login | Complete provider OAuth, secret entry, and owner password/email verification when required | Configure references and run secret-safe connectivity/integration checks |
+| Terminal owner login | Complete; use normal private sign-in when opening the protected preview in another browser | Confirmed owner enrolled; six branch-scoped Preview settings saved; real owner Scores/reload/sign-out acceptance passed |
+| Remaining private credentials | Complete provider OAuth and secret entry when required | Configure references and run secret-safe connectivity/integration checks |
 | Live operating policy | Later: select the funded broker/account and approve instruments, position/loss limits and the live stage | Prepare a concrete policy and evidence from shadow/paper operation; enforce it deterministically |
 
-No hosted database changes have been performed. The terminal's preview build
-compatibility work belongs to the coding task and requires no owner key change.
+The shared trading migration is applied and one real owner is enrolled;
+no workers are enrolled and trading evidence tables remain empty. The terminal
+preview passed real owner sign-in, read-only Scores, reload and sign-out on
+commit `344921dd0da7a3b31737b40dbfd00cfab2bfa581`. See the
+[implementation record](shared-supabase-implementation-2026-11-10.md) for exact
+deployment and test evidence. The next manual steps are publishing the shared
+Codex environment and giving Grace the bounded delegation task. Creating
+another owner account or changing the password is not required.
 
 Use free services where suitable and keep new automation spending within
 the owner's existing $50/month additional budget across automation projects.
@@ -56,7 +64,7 @@ Do not treat that operations budget as authority to fund or trade an account.
 |---|---|
 | Codex | Run setup, test both branches, implement scoped engineering tasks, and produce reviewable PRs with evidence. |
 | Grace | Coordinate the backlog, delegate to Codex once her environment access works, follow up on tasks, and present decisions or exceptions. |
-| This chat | Implement and verify trading isolation inside the selected existing project, preserve NFL services, and configure the scoped Auth integration. |
+| This chat | Maintain the verified setup record, inspect Codex/Grace evidence, and handle scoped connected-service work while preserving NFL services. |
 | External worker, once built | Run the actual trading application and its deterministic controls. A chat conversation is not the worker. |
 | Jimmy | Complete private account consent, select the correct database/hosting account and any paid tier, and eventually authorize the live operating policy. |
 
@@ -140,7 +148,7 @@ See [Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp).
 | GitHub and Cloud | Grant access to both repositories and make the selected environment available to Grace/Codex. |
 | Vercel | Team access and runtime routing/health are verified; Jimmy confirmed the branch-setting save. No repeat repair step is needed. Preserve the rollback's automatic-assignment pause. |
 | Supabase | Access and use of the existing project are authorized. No new project is needed. |
-| Terminal owner sign-in | Create the owner Auth user privately in the existing project. Agents verify its UUID, enroll it in the trading allowlist, and configure the terminal. Preserve shared project Auth settings. |
+| Terminal owner sign-in | Creation, enrollment, preview settings and real hosted owner acceptance are complete. Use normal private sign-in in a new browser; preserve shared project Auth settings. |
 | Alpaca paper | Supply paper-only `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` through the approved secret mechanism, if Alpaca is the selected paper broker. |
 | Model providers | Choose the provider/account and provide runtime credentials privately. Actual model IDs and entitlements must be verified before calls. |
 | Netlify | Complete OAuth and identify a site only if Netlify is used. No duplicate deployment or site migration is required now. |
@@ -191,8 +199,9 @@ Do not merge merely to expose a manual workflow-dispatch button.
 ## 5. Shared-project trading storage
 
 The selected target is existing SelfLearningAI `omavgimpnvrpuxqhfxpf`.
-The additive migration and hosted rollback-only verification are complete;
-real owner/worker Auth integration remains open. Use the
+The additive migration, hosted rollback-only verification, owner enrollment
+and scoped real owner acceptance are complete. Worker Auth integration remains
+open. Use the
 [mobile/Grace checklist](mobile-grace-setup.md) for the owner's next steps.
 Read [the implementation and verification record](shared-supabase-implementation-2026-11-10.md)
 for current status. The old fresh-project candidate under
@@ -200,12 +209,12 @@ for current status. The old fresh-project candidate under
 shared-project migration. The new additive implementation is under
 `tools/automation/supabase-shared`.
 
-The terminal uses a live-verified owner JWT and publishable key with fixed
+The terminal verifies the owner's JWT and uses a publishable key with fixed
 `trade_bot_*` RPCs. A separate allowlisted worker identity is required by the
 Python adapter. Database RLS and object grants constrain both identities;
 project-wide service keys are not accepted for trading access. The new
-principal allowlist starts empty. Existing NFL tables, journals, function
-grants and project-wide Auth settings are preserved.
+principal allowlist currently has one enabled owner and zero workers. Existing
+NFL tables, journals, function grants and project-wide Auth settings are preserved.
 
 Owner imports are labeled unverified. Workers can append outcomes, but
 `worker_submitted` does not itself establish verified forward evidence.
@@ -213,10 +222,13 @@ Shared evaluation keeps task scores and fitting datasets separate, excludes
 unverified imports from learning proposals, and never promotes changes or
 alters trading risk limits.
 
-Create the owner login privately when requested. Agents can then confirm the
-Auth identity and enroll/configure it without receiving the password. A real
-owner-session test, separate worker credential lifecycle and complete runner
-integration remain distinct from migration or unit-test success.
+The owner login is created, configured and tested; do not repeat that setup.
+Real hosted read-only Scores, reload and sign-out passed. Signed-out direct
+navigation reached the application's denial response. Wrong-owner denial was
+verified with mocked CI, not a second real account. Keep any renewed sign-in
+in the private form. Owner imports are retained append-only evidence and
+should not be used as disposable tests. The separate worker credential
+lifecycle and complete runner integration remain unfinished.
 
 ## 6. Codex implementation queue
 
@@ -293,19 +305,21 @@ $1,500 value from an older conversation.
 > selected target is the existing SelfLearningAI project. Use the new additive
 > shared-project implementation and scoped owner/worker identities. Do not
 > create a second project or reuse broad service keys for trading.
-> Finish owner Auth and database integration with exact targets.
+> Use the completed hosted owner acceptance record and exact tested targets.
+> Prepare the next bounded worker/runner milestone without provisioning a
+> worker identity or enabling schedules as a side effect.
 > Review Codex's evidence and keep Grace's environment/delegation status honest.
 > Continue independent engineering while setup is pending; keep live trading
 > and schedules disabled.
 
 ## 8. What "ready for the next stage" means
 
-The immediate success condition is: both prepared branches are available,
-the actual Codex/Grace environment reproduces the tests, one delegated task
-returns successfully, and the trading area in the selected shared project passes hosted
-Auth/storage integration. Supabase management/catalog access and production
-routing/health are now verified in the dated records; trading application
-readiness and existing NFL ingestion remain separate.
+The prepared branches and scoped hosted owner Auth/storage acceptance are
+verified. The next success condition is that the actual Codex/Grace environment
+reproduces the tests and one delegated task returns successfully. Supabase
+management/catalog access and production routing/health are also verified in
+the dated records. Trading runtime readiness and existing NFL ingestion remain
+separate.
 
 The next engineering milestone is a manually started shadow run that writes a
 real stamped prediction to the isolated store, later resolves it, scores it,

@@ -8,7 +8,8 @@ and [engineering handoff](codex-grace-next-steps.md).
 
 The shared-project migration `20261110233747_shared_trading_isolation` is
 applied to SelfLearningAI (`omavgimpnvrpuxqhfxpf`). Hosted permission checks
-passed and rolled back their fixtures: all five new tables remain empty.
+passed and rolled back their fixtures. One real owner is now enrolled;
+worker count is zero and trading evidence tables remain empty.
 Existing NFL catalog/default-grant fingerprints and record counts are unchanged;
 the NFL health endpoint returned HTTP 200, `ok`, mode `L0`.
 
@@ -17,17 +18,21 @@ the NFL health endpoint returned HTTP 200, `ok`, mode `L0`.
   `27b2ed9cb3891c9f1263812946929d9d8a01a308`
   ([run](https://github.com/liddar12/SelfLearning/actions/runs/42924813163)).
 - Terminal: [PR 13](https://github.com/liddar12/liddar-terminal/pull/13), branch
-  `codex/terminal-owner-auth`. CI passed 37 tests, build and browser flow at
-  `e060b69c1e94886a6df94f94d5eb20a380b247a9`
-  ([run](https://github.com/liddar12/liddar-terminal/actions/runs/42924298479)).
-- The terminal preview is ready, but `/api/session` returns HTTP 503:
-  `Owner authentication is not configured.`
+  `codex/terminal-owner-auth`. CI passed 37 tests, build and a cookie-gated
+  mocked browser flow at `344921dd0da7a3b31737b40dbfd00cfab2bfa581`
+  ([run](https://github.com/liddar12/liddar-terminal/actions/runs/42929541393)).
+- Six Auth/storage configuration entries are saved only for the terminal's
+  Preview branch `codex/terminal-owner-auth` in `liddar-terminal-2tpb`.
+- The repaired [terminal preview](https://liddar-terminal-2tpb-8p99j7x3w-liddar-terminal.vercel.app)
+  is READY at that exact commit. Real owner sign-in, read-only Scores, reload,
+  sign-out and the signed-out application response passed. Wrong-owner denial
+  was tested in mocked CI, not with a second real account.
 
-**Remaining:** no application Auth users or enrolled principals exist. Grace's
-environment access and first delegated task are unverified. No unattended
+**Remaining:** publish the shared Codex environment and prove Grace's first
+delegated task. Her environment access remains unverified. No unattended
 trading worker, trading schedule or live orders have been enabled. Both PRs
-remain draft. These implementation checks do not prove hosted owner sign-in
-or trading readiness.
+remain draft. The owner flow establishes this scoped app access, not trading
+readiness.
 
 ## Who does what
 
@@ -100,20 +105,23 @@ no special Grace “Tools” picker is assumed. Official
 requires an existing configured environment and explains that tasks receive
 their own supplied context.
 
-## 4. YOU — create the private application login
+## 4. COMPLETED — private owner login and preview acceptance
 
-Open [SelfLearningAI Authentication users](https://supabase.com/dashboard/project/omavgimpnvrpuxqhfxpf/auth/users).
-Use the project's normal user-creation flow with your chosen email and a
-password entered privately. This application login is separate from Supabase
-dashboard access. Do not paste a password or token into chat.
+**Completed:** Jimmy created the private application login. Agents verified
+the confirmed Auth identity, enrolled one owner, and configured the terminal
+preview. The preview-cookie transport repair passed CI and real hosted
+acceptance: private panels appeared, Scores read the shared trading store,
+reload preserved access, and sign-out followed by reload returned to login.
+Direct signed-out `/api/session` navigation returned the application's
+`Sign in to continue.` response. Wrong-owner rejection is separately covered
+by mocked CI; it was not tested with another real Auth account.
 
-Tell this chat **“Owner login created.”** Agents then verify the actual Auth
-UUID, enroll the owner, configure the terminal preview, and check real login,
-storage readback and unauthorized-access denial.
-
-**Complete when:** the authenticated owner can use the hosted trading area and
-anonymous/wrong-owner requests are denied. Keep project-wide Auth settings and
-NFL production unchanged.
+There is no need to create another account or reconnect the Supabase management
+plugin. Open the [stable preview address](https://liddar-terminal-2tpb-git-codex-terminal-cf1c5b-liddar-terminal.vercel.app/)
+when you want to use it. It retains Vercel Preview protection and may require
+authorized preview access plus your normal private sign-in in a new browser.
+Do not paste credentials into chat. No prediction rows were added by this
+read-only check, and NFL production was not changed.
 
 ## 5. AGENTS — finish the operational milestones
 

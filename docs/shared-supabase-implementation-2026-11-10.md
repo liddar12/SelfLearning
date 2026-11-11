@@ -23,8 +23,9 @@ setting or privileged definer function is needed.
 Trading calls use authenticated Supabase user tokens, a publishable key and
 an operator-managed principal allowlist. Broad project service/secret keys
 are not accepted by the trading clients and have no new trading object grants.
-The allowlist starts empty. Real Auth identity verification must precede
-enrollment; a Supabase dashboard or connector login is not an application user.
+The migration creates an empty allowlist; one verified owner is now enrolled.
+Real Auth identity verification must precede enrollment; a Supabase dashboard
+or connector login is not an application user.
 
 | Identity | Allowed application actions |
 | --- | --- |
@@ -60,14 +61,15 @@ Local verification completed before publication:
 - Shared database migration: 17 disposable PostgreSQL/PGlite security tests
   passed against an NFL-shaped existing database. The rollback-only verification
   script also passed after its final adjustment to remove temporary DDL.
-- Terminal: 37 unit/build regression tests, the production build and one full
+- Initial terminal implementation: 37 unit/build regression tests, the production build and one full
   mocked browser flow passed in GitHub CI on Node 22.23.4 at
   `e060b69c1e94886a6df94f94d5eb20a380b247a9`:
   https://github.com/liddar12/liddar-terminal/actions/runs/42924298479.
-- The terminal implementation preview `dpl_BjjCbsRwiQ1uAr9X469vFA4kgZCe`
-  is READY at that exact commit. Its hosted `/api/session` returns HTTP 503
-  with `Owner authentication is not configured.`, the expected closed state
-  before owner identity configuration.
+- Before owner configuration, terminal preview
+  `dpl_BjjCbsRwiQ1uAr9X469vFA4kgZCe` was READY at that exact commit and its
+  hosted `/api/session` returned HTTP 503 with
+  `Owner authentication is not configured.` The later owner setup below
+  supersedes that configuration status.
 - Independent database permission review found no blocking defect. It
   checked invoker functions, object/column grants, RLS, forced provenance,
   immutability and preservation of existing NFL objects.
@@ -100,11 +102,13 @@ existing-object guard. Reconcile the recorded version mapping first.
   using the actual hosted `anon`, `authenticated` and `service_role` roles.
   It exercised owner/worker operations, denied escalation, forced provenance,
   immutable evidence, NFL denial, task scope, receipt cutoffs and disablement.
-- The response after `ROLLBACK` confirms all five new tables are empty.
-  No synthetic principals, Auth users or evidence remain.
+- The response after `ROLLBACK` confirmed all five new tables were empty
+  before real owner enrollment. No synthetic principals, Auth users or
+  evidence remained from the test.
 - Catalog inspection confirms five RLS-enabled tables and seven invoker RPCs.
   All seven allow authenticated execution and deny anonymous/service-role
-  execution; enabled owner/worker counts are both zero.
+  execution. The allowlist was empty at this migration-verification stage;
+  later real owner enrollment is recorded below.
 - Original NFL relation, column, function and global-default-grant fingerprints
   exactly match their pre-migration values. Public table counts also match:
   one prediction and zero outcomes, registry rows or registry-score rows.
@@ -117,22 +121,94 @@ existing-object guard. Reconcile the recorded version mapping first.
   `release=hosted-foundation-v1`, `mode=L0` after the migration. This is a
   routing/health check, not a complete NFL ingestion audit.
 
-Hosted application Auth remains unverified: there are still zero application
-Auth users and no enrolled principals. Database role tests and the mocked
-browser flow do not establish a real owner session or unattended worker.
+### Owner enrollment and preview configuration
 
-## Remaining private identity step
+Jimmy created the private application login. A fresh Auth read found one
+confirmed, non-anonymous application user. Agents verified that identity and
+enrolled it as an enabled trading owner with a guarded write. Current enabled
+principal counts are **one owner and zero workers**. Trading prediction,
+outcome, registry and registry-score tables remain empty.
 
-The preflight found zero Supabase application Auth users. Create the owner's
-application login through the project's
-[Auth user administration](https://supabase.com/dashboard/project/omavgimpnvrpuxqhfxpf/auth/users),
-choosing the password privately. Agents can then verify the Auth UUID, enroll
-the owner, configure public/server Auth settings on the terminal preview, and
-verify the real session. Do not paste a password or token into chat.
+Six public/server configuration entries were created and read back on Vercel
+project `liddar-terminal-2tpb`, scoped only to Preview and branch
+`codex/terminal-owner-auth`: `VITE_SUPABASE_URL`,
+`VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY`, `TERMINAL_OWNER_USER_ID`, and
+`TERMINAL_STORAGE_BACKEND=shared-trading-v1`. Browser and server point to the
+same selected project and publishable key. No project service/secret key is
+used, and production configuration was not changed.
+
+A fresh Git preview, `dpl_2WztU8hPjRpzV3g57XkutZkJBhnd`, reached READY at
+`e060b69c1e94886a6df94f94d5eb20a380b247a9`. The owner entered credentials
+privately in the preview's sign-in form, and Supabase recorded a successful
+sign-in. The terminal then displayed `Verification unavailable`. Its request
+transport omitted the cookie required by Vercel Preview protection. The fix
+preserves that same-origin cookie while retaining bearer authorization,
+local-path validation, no-store caching and redirect rejection. The repaired
+preview passed the real owner acceptance below.
+
+An authenticated-role database check using the verified owner's identity
+returned the shared-trading status and empty evidence lists; direct NFL-table
+read and principal-insert privileges remained denied. This is a database
+authorization check, separate from the hosted browser acceptance. The
+protected-deployment fetch tool's HTTP 401 also did not establish application
+denial, because it stopped at Vercel protection. Direct browser navigation
+with preview access reached the application's `Sign in to continue.` response.
+
+### Hosted owner acceptance: passed
+
+| Evidence | Verified target/result |
+| --- | --- |
+| Terminal commit | `344921dd0da7a3b31737b40dbfd00cfab2bfa581` |
+| Source tree | `0b1fc83b7a0627d7bd5d72bb81c398480095c317` |
+| GitHub CI | [Run 42929541393](https://github.com/liddar12/liddar-terminal/actions/runs/42929541393): 37 tests passed, zero failed; production build and one cookie-gated mocked browser flow passed on Node 22.23.4 |
+| Vercel preview | `dpl_G1Axg1jq3WnBSmuwjYgGnPvdrYas`, READY at the same commit |
+| Immutable preview URL | https://liddar-terminal-2tpb-8p99j7x3w-liddar-terminal.vercel.app |
+| Observed branch alias | https://liddar-terminal-2tpb-git-codex-terminal-cf1c5b-liddar-terminal.vercel.app/ |
+
+With authorized Vercel preview access, the owner entered credentials through
+the private browser sign-in mechanism; credential values were not exposed.
+The following real hosted path passed:
+
+1. Sign-in displayed the private terminal panels and **Sign out** control.
+2. **Scores** reached the real shared trading RPC and displayed the empty
+   resolved-predictions state.
+3. Reload preserved the owner session; opening Scores again returned the same
+   valid empty state.
+4. Sign-out returned the login screen, and another reload remained signed out.
+5. Direct browser navigation to `/api/session` with preview access but no
+   application bearer returned `{"error":"Sign in to continue."}`.
+
+The last observation records the application response body, not a browser-read
+HTTP status. Wrong-owner denial passed the cookie-gated mocked CI flow; no
+second real Auth user was created for a hosted wrong-owner test. The real
+acceptance was read-only and created no prediction/outcome records. Imports
+remain retained append-only evidence, not disposable test rows.
+
+Final read-only checks confirmed the expected owner remains enabled, with one
+owner, zero workers and zero rows in each of the four trading evidence tables.
+NFL production health again returned HTTP 200 with `status=ok`,
+`release=hosted-foundation-v1` and `mode=L0`.
+
+Both URLs retain Vercel Preview protection. The branch alias can move with
+future commits; the immutable URL identifies this tested deployment. Temporary
+share-link tokens are deliberately excluded from this record. Normal private
+sign-in may be needed when opening the preview in another browser.
+
+## Remaining environment delegation and worker identity
+
+Owner creation, enrollment, preview configuration and the scoped hosted owner
+flow are complete. Do not recreate the owner account or paste passwords or
+tokens into chat, logs or the repository. The next owner steps are publishing
+the shared Codex environment and proving Grace's first delegated task using
+the [mobile/Grace checklist](mobile-grace-setup.md).
 
 A separate worker Auth identity and approved token refresh/secret mechanism
 remain required before hosted Python ingestion can run unattended. Neither a
-successful migration nor mocked sign-in tests prove those identities exist.
+successful migration nor owner sign-in proves that worker identity exists.
+Grace's environment access and delegated Codex task remain unverified. No
+worker, trading schedule, live order or production promotion was enabled by
+owner setup.
 
 ## Related records
 
