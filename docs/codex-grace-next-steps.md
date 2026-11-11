@@ -1,8 +1,12 @@
 # Next steps for Codex, Grace, and this chat
 
-Updated November 10, 2026 after the Vercel repair, shared Supabase migration,
-and hosted owner acceptance. This guide uses the reviewed handoff and setup
-branches below.
+Updated November 10, 2026 after fresh tests and a production/source audit.
+Start with [the current readiness audit](readiness-audit-2026-11-10.md).
+The owner-protected terminal is verified in Preview, while Production serves
+older code with an unauthenticated paid-model proxy. Its controlled release is
+the next deployment decision. Grace publication/delegation remains unknown;
+look for an existing environment before creating one. This guide uses the
+reviewed handoff and setup branches below.
 It does not authorize live trades or change account permissions.
 
 - Backend: `liddar12/SelfLearning`, branch `codex/automation-tooling-shadow`.
@@ -39,7 +43,8 @@ runtime must not use a broad project service key.
 | Supabase access | Completed and verified; no repeat reconnection needed | Existing learning/NFL catalog inspected read-only; preserve that database and the separate AYSO project |
 | Vercel team consent | Completed and verified | Use the existing authorized connection for scoped verification |
 | SelfLearning production repair | Branch Tracking save confirmed by Jimmy; no repeat dashboard action needed now | Rollback, both production aliases, deployment provenance and hosted health verified; preserve the automatic-assignment pause |
-| Codex environment | Select both repositories in Grace's actual ChatGPT account/workspace and publish the tested environment | Install tools and reproduce the checks using the committed setup |
+| Terminal Production release | Review the concrete terminal-only deployment plan in the current audit | Configure matching Production Auth, complete required checks, merge tested terminal PR 13 to main, and verify the exact Production release after approval; leave backend PR 15 unmerged |
+| Codex environment | Check for and reuse an existing published environment in Grace's actual account/workspace; finish a draft or create only if needed | Verify both repositories and reproduce the checks in that actual environment |
 | Grace handoff | Give Grace the coordination prompt once and identify the published environment | Prove a delegated Codex task returns, then manage routine engineering and exceptions |
 | Terminal owner login | Complete; use normal private sign-in when opening the protected preview in another browser | Confirmed owner enrolled; six branch-scoped Preview settings saved; real owner Scores/reload/sign-out acceptance passed |
 | Remaining private credentials | Complete provider OAuth and secret entry when required | Configure references and run secret-safe connectivity/integration checks |
@@ -50,9 +55,11 @@ no workers are enrolled and trading evidence tables remain empty. The terminal
 preview passed real owner sign-in, read-only Scores, reload and sign-out on
 commit `344921dd0da7a3b31737b40dbfd00cfab2bfa581`. See the
 [implementation record](shared-supabase-implementation-2026-11-10.md) for exact
-deployment and test evidence. The next manual steps are publishing the shared
-Codex environment and giving Grace the bounded delegation task. Creating
-another owner account or changing the password is not required.
+deployment and test evidence. The next release decision is the scoped terminal
+Production plan. Separately, verify Grace's existing environment and return one
+bounded delegated task result; no evidence establishes that the environment is
+absent. Creating another owner account, reentering existing keys or reapplying
+the migration is not required.
 
 Use free services where suitable and keep new automation spending within
 the owner's existing $50/month additional budget across automation projects.
@@ -74,10 +81,14 @@ Grace's access to that environment has not been demonstrated in this session.
 First prove one delegated task and returned result; then use that connection
 for routine engineering. See [Cloud environment setup](https://learn.chatgpt.com/docs/environments/cloud-environments).
 
-## 2. Publish the reusable Codex environment once
+## 2. Verify or reuse the Codex environment before creating one
 
-In the signed-in account used by Grace, publish or select a Cloud environment
-with access to **both** GitHub repositories. It needs Python 3.11+, **Node
+In the signed-in account used by Grace, first inspect the existing environments.
+Select a suitable published environment with access to **both** GitHub
+repositories. If it is only a draft, complete review/publication; create a new
+environment only if none is suitable. The current audit could not inspect the
+account's publication state because its ChatGPT browser was signed out. This
+is unknown status, not a failed setup. The environment needs Python 3.11+, **Node
 22.13+ within Node 22.x**, npm, Git, and the package-download access needed by
 the lockfiles and Playwright. Node 22.x matches the terminal's deployment
 engine. Use the environment's supported setup controls; do not assume the
@@ -145,12 +156,12 @@ See [Codex MCP configuration](https://learn.chatgpt.com/docs/extend/mcp).
 
 | Connection | Exact owner action still needed |
 |---|---|
-| GitHub and Cloud | Grant access to both repositories and make the selected environment available to Grace/Codex. |
+| GitHub and Cloud | Reuse the existing environment and grants if present. Supply consent only for missing access to the two repositories; prove a delegated task result. |
 | Vercel | Team access and runtime routing/health are verified; Jimmy confirmed the branch-setting save. No repeat repair step is needed. Preserve the rollback's automatic-assignment pause. |
 | Supabase | Access and use of the existing project are authorized. No new project is needed. |
 | Terminal owner sign-in | Creation, enrollment, preview settings and real hosted owner acceptance are complete. Use normal private sign-in in a new browser; preserve shared project Auth settings. |
 | Alpaca paper | Supply paper-only `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` through the approved secret mechanism, if Alpaca is the selected paper broker. |
-| Model providers | Choose the provider/account and provide runtime credentials privately. Actual model IDs and entitlements must be verified before calls. |
+| Model providers | Terminal Anthropic key metadata already exists for Production and Preview; validity was not tested. Supply any missing worker/provider credentials privately only when needed. Verify model IDs, entitlements and scoped access before paid calls. |
 | Netlify | Complete OAuth and identify a site only if Netlify is used. No duplicate deployment or site migration is required now. |
 
 Schwab developer OAuth remains separate work. Robinhood's prepared MCP entry
@@ -282,7 +293,9 @@ $1,500 value from an older conversation.
 ### For Grace
 
 > Coordinate my Automated Trade Bot using the configured Cloud environment
-> with SelfLearning and liddar-terminal. Read the prepared branches and
+> with SelfLearning and liddar-terminal. First identify and reuse my existing
+> suitable published environment; do not create a duplicate. Read the prepared
+> branches, docs/readiness-audit-2026-11-10.md and
 > docs/codex-grace-next-steps.md. First delegate one bounded setup/test task to
 > Codex and verify that its result returns to you. If that capability or
 > environment access is missing, identify the one account/environment action
@@ -315,8 +328,9 @@ $1,500 value from an older conversation.
 ## 8. What "ready for the next stage" means
 
 The prepared branches and scoped hosted owner Auth/storage acceptance are
-verified. The next success condition is that the actual Codex/Grace environment
-reproduces the tests and one delegated task returns successfully. Supabase
+verified. The terminal Production release gap must be closed through the
+reviewed deployment plan. Separately, the actual Codex/Grace environment must
+reproduce the tests and return one successful delegated task. Supabase
 management/catalog access and production routing/health are also verified in
 the dated records. Trading runtime readiness and existing NFL ingestion remain
 separate.
