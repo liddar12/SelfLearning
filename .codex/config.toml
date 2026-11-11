@@ -1,0 +1,25 @@
+# Project-scoped MCP definitions for trusted local Codex clients.
+# Registration is not authentication. ChatGPT/Grace plugins and Codex Cloud
+# environment connections must be configured and verified on their own host.
+# No credentials, approval-policy overrides, or account changes belong here.
+
+[mcp_servers.netlify]
+url = "https://mcp.netlify.com/mcp"
+required = false
+
+[mcp_servers.vercel]
+url = "https://mcp.vercel.com"
+required = false
+
+[mcp_servers.supabase]
+# Expected existing learning project. Current connected account cannot access
+# it. Never substitute the unrelated AYSO project to make a check pass.
+url = "https://mcp.supabase.com/mcp?project_ref=omavgimpnvrpuxqhfxpf&read_only=true&features=database,docs,debugging,development"
+required = false
+
+[mcp_servers.robinhood]
+# Optional official route, pending owner OAuth/onboarding and broker choice.
+# Kept disabled: direct agent trading would bypass this project's risk engine.
+url = "https://agent.robinhood.com/mcp/trading"
+enabled = false
+required = false

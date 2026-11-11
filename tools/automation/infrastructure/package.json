@@ -1,0 +1,13 @@
+{
+  "name": "liddar-automation-infrastructure-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pinned deployment and database CLIs for project setup; installing does not authorize accounts or deploy anything.",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": { "verify": "node verify-tools.mjs" },
+  "devDependencies": {
+    "netlify-cli": "27.17.0",
+    "supabase": "3.1.0",
+    "vercel": "65.14.0"
+  }
+}

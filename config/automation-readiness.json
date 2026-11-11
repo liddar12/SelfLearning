@@ -1,0 +1,8 @@
+{
+  "profile": "development",
+  "mode": "SHADOW",
+  "capital_usd": 2000,
+  "live_trading_enabled": false,
+  "scheduled_execution_enabled": false,
+  "live_risk_policy_approved": false
+}

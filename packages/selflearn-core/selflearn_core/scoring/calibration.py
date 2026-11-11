@@ -117,14 +117,26 @@ def _fit_platt(pts: list[tuple[float, float]], iters: int = 50) -> PlattCalibrat
     return PlattCalibrator(a, b)
 
 
-def fit_calibrator(resolved: Iterable[ResolvedPrediction], method: str = "isotonic") -> Calibrator:
+def fit_calibrator(
+    resolved: Iterable[ResolvedPrediction], method: str = "isotonic", *, task: str | None = None,
+) -> Calibrator:
     """Fit Platt (logistic) or isotonic calibration on resolved predictions.
 
     Raises ``ValueError`` when fewer than ``MIN_SAMPLES`` usable points exist
     (small-sample honesty: refuse rather than fit noise) or on an unknown
-    method.
+    method. Mixed-task input requires an explicit ``task`` selection so NFL
+    and trading labels cannot silently enter the same fit. Single-task callers
+    retain their existing behavior. A numerical fit is not evidence verification
+    or permission to promote the result.
     """
-    pts = _pairs(resolved)
+    records = list(resolved)
+    if task is not None:
+        if not isinstance(task, str) or not task.strip():
+            raise ValueError("task must be a nonempty string")
+        records = [r for r in records if r.prediction.task == task]
+    elif len({r.prediction.task for r in records}) > 1:
+        raise ValueError("mixed-task calibration requires an explicit task")
+    pts = _pairs(records)
     if len(pts) < MIN_SAMPLES:
         raise ValueError(
             f"need >= {MIN_SAMPLES} resolved predictions with confidence + hit, got {len(pts)}"
