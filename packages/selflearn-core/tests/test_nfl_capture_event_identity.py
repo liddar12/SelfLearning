@@ -137,8 +137,12 @@ class CaptureEventIdentityTests(unittest.TestCase):
 
     def test_conflicting_rows_for_one_player_do_not_create_a_label(self):
         wrong = stats_rows(OTHER_GAME, "MIN", "250").splitlines()[1]
-        stats = stats_rows() + wrong + b"\n"
-        self.assert_withheld(stats=stats, stats_audit=csv_audit(4), snaps=snap_rows())
+        unidentified = stat_row("Fixture Receiver", "250", player_index=0).rstrip(b"\n").replace(
+            RECEIVER_GSIS_ID.encode(), b"")
+        for name, conflicting in (("other_fixture", wrong), ("missing_provider_id", unidentified)):
+            with self.subTest(name=name):
+                self.assert_withheld(stats=stats_rows() + conflicting + b"\n",
+                                     stats_audit=csv_audit(4), snaps=snap_rows())
 
     def test_same_name_with_different_raw_id_cannot_satisfy_receipt(self):
         stats = stats_rows(value="250").replace(RECEIVER_GSIS_ID.encode(), player_ids(1)[1].encode())

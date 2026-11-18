@@ -202,13 +202,18 @@ class CaptureLabelBindingTests(unittest.TestCase):
             self.assertEqual(leg["identity_crosswalk"], {
                 "source": "nflverse.rosters", "observation_id": roster_id,
                 "observed_utc": roster["observed_utc"], "raw_sha256": roster["raw_sha256"],
-                "gsis_id": RECEIVER_GSIS_ID, "pfr_id": RECEIVER_PFR_ID,
+                "player_id": RECEIVER_APP_ID, "gsis_id": RECEIVER_GSIS_ID, "pfr_id": RECEIVER_PFR_ID,
                 "scope": "postgame_identity_only",
             })
         resolved = resolve_observed(originals, result["source_receipts"], result["observed_legs"], result["game_observations"],
                                      observed_utc="2026-10-21T00:00:00Z")
         self.assertEqual(resolved["rejections"], [])
         self.assertEqual(len(resolved["proposals"]), 4)
+        for proposal in resolved["proposals"]:
+            outcome = proposal["resolution"]
+            self.assertEqual(outcome["producer_trace"]["identity_crosswalk"],
+                             result["observed_legs"][0]["identity_crosswalk"])
+            self.assertEqual(outcome["source_observations"]["nflverse.rosters"]["observation_id"], roster_id)
 
     def test_legacy_three_source_capture_is_valid_and_cannot_label(self):
         envelope, objects = E.fixture(stats=E.STATS.replace(b",,,NA", b",,,80"))
