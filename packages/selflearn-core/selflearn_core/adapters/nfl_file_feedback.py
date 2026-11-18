@@ -306,7 +306,8 @@ def evaluate(state,graph,*,as_of_utc,population="eligible_pool",bootstrap_replic
             if sid in sources:need(fingerprint(sources[sid])==fingerprint(source))
             sources[sid]=source
     report=calibration.walk_forward_report(state["receipts"],[sources[sid]for sid in sorted(sources)],state["revisions"],
-        as_of_utc=as_of_utc,population=population,bootstrap_replicates=bootstrap_replicates,generation_records=state["generation_records"])
+        as_of_utc=as_of_utc,population=population,bootstrap_replicates=bootstrap_replicates,
+        generation_records=state["generation_records"],outcome_admission=calibration.EVENT_BOUND_LABELS)
     # Kernel reports contain tuple cohort keys; persist ordinary strict JSON.
     report=json.loads(_encoded(report))
     imports={r["receipt_id"]:r["first_imported_utc"]for r in state["receipt_imports"]}

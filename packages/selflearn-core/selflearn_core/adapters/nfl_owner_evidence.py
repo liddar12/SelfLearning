@@ -263,9 +263,19 @@ class NFLOwnerEvidenceReader:
                   "owner_evidence_work_limit")
             _need(type(inputs["bootstrap_replicates"]) is int and 200 <= inputs["bootstrap_replicates"] <= 2000,
                   "owner_evidence_work_limit")
+            admission = calibration.LEGACY_LABELS
+            if report.get("version") == 2 and report.get("kind") == "nfl.my_props.walk_forward.v2":
+                _need(report.get("outcome_admission") == calibration.EVENT_BOUND_LABELS,
+                      "owner_evidence_report_mismatch")
+                admission = calibration.EVENT_BOUND_LABELS
+            else:
+                _need(type(report.get("version")) is int and report["version"] == 1
+                      and report.get("kind") == "nfl.my_props.walk_forward.v1"
+                      and "outcome_admission" not in report, "owner_evidence_report_mismatch")
             replayed = calibration.walk_forward_report(inputs["receipts"], inputs["source_receipts"], inputs["revisions"],
                 as_of_utc=inputs["as_of_utc"], population=inputs["population"],
-                bootstrap_replicates=inputs["bootstrap_replicates"], generation_records=inputs["generation_records"])
+                bootstrap_replicates=inputs["bootstrap_replicates"], generation_records=inputs["generation_records"],
+                outcome_admission=admission)
             _need(_canonical(replayed) == _canonical(report), "owner_evidence_evaluation_replay_mismatch")
             final_head, final_runtime = self._head(), _copy(self.runtime_reader())
             for key in ("authority_id", "namespace", "watermark", "head_event_id", "head_sequence", "events"):
@@ -280,12 +290,15 @@ class NFLOwnerEvidenceReader:
                        "atomic_NFL_adoption_consumer_missing", "owner_authority_write_capacity_unverified"]
             if head["head_sequence"] >= owner.MAX_EVENTS:
                 reasons.append("owner_authority_event_capacity_exhausted")
+            if admission != calibration.EVENT_BOUND_LABELS:
+                reasons.append("legacy_shadow_report_requires_qualified_replay")
             return _sealed({**result, "manifest_id": manifest_id, "head_event_id": head["head_event_id"],
                 "owner_head_content_verified": True, "domain_pins_bound": True, "evaluation_reexecuted": True,
                 "runtime_configuration_matched": True, "candidate_id": candidate["candidate_id"], "report_id": report["report_id"],
                 "evaluation_policy_id": policy["evaluation_policy_id"], "evaluation_input_id": manifest["roles"]["evaluation_inputs"],
                 "owner_watermark": head["watermark"], "checked_utc": finished.isoformat().replace("+00:00", "Z"), "reason_codes": reasons,
-                "numeric_gate_passed": report["proposed_shared_return_gate"]["passed"],
+                "outcome_admission": admission,
+                "numeric_gate_passed": admission == calibration.EVENT_BOUND_LABELS and report["proposed_shared_return_gate"]["passed"],
                 "authority_basis": "configured_single_owner_journal_content_not_atomic_serving_authority"}, "diagnostic_id")
         except OwnerEvidenceError as error:
             reason = error.args[0] if type(error) is OwnerEvidenceError and len(error.args) == 1 else None

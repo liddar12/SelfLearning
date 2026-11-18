@@ -23,6 +23,8 @@ from ..probability_receipts import fingerprint, finite_number, instant, validate
 KIND = "nfl.my_props.base_logit.v1"
 TASK = "nfl.parlay_leg"
 RECEIPT_POLICY = "base_receipt_v1"
+EVENT_BOUND_LABELS = "event_bound_labels_v2"
+LEGACY_LABELS = "retrospective_binary_v1"
 MIN_LEGS = 100
 MIN_HELD_OUT = 2
 PROPOSED_MARGIN = .0015  # additional proposed return policy; NOT an existing MY rule
@@ -87,6 +89,8 @@ def validate_candidate(candidate, *, expected_base_version=None):
             or type(manifest.get("n")) is not int or manifest["n"] != len(manifest["rows"])
             or manifest.get("dataset_id") != fingerprint(manifest["rows"])):
         raise ValueError("invalid_training_manifest")
+    if "outcome_admission" in manifest and manifest["outcome_admission"] != EVENT_BOUND_LABELS:
+        raise ValueError("invalid_training_label_policy")
     cutoff = instant(manifest.get("cutoff_utc"))
     if instant(candidate.get("fit_as_of_utc")) != cutoff:
         raise ValueError("candidate_fit_asof_mismatch")
@@ -196,7 +200,7 @@ def _latest_as_of(receipt, revisions, cutoff):
     raise ValueError("revision_chain_cycle")
 
 
-def _offering_memberships(generation_records, receipts, cutoff, reasons):
+def _offering_memberships(generation_records, receipts, cutoff, reasons, capture_memberships=None):
     """Read committed-generation observations; never mutate the first envelope.
 
     The caller must use durable store commit records, not arbitrary upload ACKs.
@@ -262,7 +266,7 @@ def _offering_memberships(generation_records, receipts, cutoff, reasons):
                 raise ValueError("generation_ack_partition_mismatch")
             batch = adapt_prospective(journal_docs=[doc], existing_receipts=receipts)
             accepted = {r["source_receipt_id"] for r in batch["receipts"]} & set(accepted_ids)
-            staged = defaultdict(list)
+            staged, staged_captures = defaultdict(list), defaultdict(list)
             for entry in doc["receipts"]:
                 if not isinstance(entry, dict) or entry.get("receipt_id") not in accepted:
                     continue
@@ -276,11 +280,16 @@ def _offering_memberships(generation_records, receipts, cutoff, reasons):
                 if captured > recorded:
                     raise ValueError("offering_after_database_observation")
                 cards = sorted({c["card_id"] for c in gen["offered_cards"] if sid in c["receipt_ids"]})
+                membership = {"object_id":oid, "generation_id":gen["generation_id"],
+                    "captured_utc":gen["recorded_utc"], "recorded_utc":row["recorded_utc"], "card_ids":cards}
+                staged_captures[sid].append(membership)
                 if cards:
-                    staged[sid].append({"object_id":oid, "generation_id":gen["generation_id"],
-                        "captured_utc":gen["recorded_utc"], "recorded_utc":row["recorded_utc"], "card_ids":cards})
+                    staged[sid].append(membership)
             for sid, rows in staged.items():
                 memberships[sid].extend(rows)
+            if capture_memberships is not None:
+                for sid, rows in staged_captures.items():
+                    capture_memberships[sid].extend(rows)
         except (ValueError, TypeError, KeyError, OverflowError) as exc:
             reasons[str(exc)] += 1
     for rows in memberships.values():
@@ -288,21 +297,30 @@ def _offering_memberships(generation_records, receipts, cutoff, reasons):
     return memberships
 
 
-def build_cohort(receipts, source_receipts, revisions, *, as_of_utc, population, generation_records=None):
+def build_cohort(receipts, source_receipts, revisions, *, as_of_utc, population, generation_records=None,
+                 outcome_admission=LEGACY_LABELS):
     """Freeze first-eligible forecast BEFORE joining outcomes, one per contract.
 
     `revisions` are complete flattened ReceiptJournal.resolution_history() rows.
     Database observation time, not a backdated source result, controls as-of use.
     Later available outcomes never cause a later forecast to replace an unresolved
-    initial one. All stages are analysis-only and explicitly internally captured.
+    initial one. The legacy default is retained for historical research callers;
+    operational feedback and CLI callers explicitly require EVENT_BOUND_LABELS.
+    All stages are analysis-only and explicitly internally captured.
     """
     if population not in ("offered_my", "eligible_pool"):
         raise ValueError("explicit_supported_population_required")
+    if outcome_admission not in (LEGACY_LABELS, EVENT_BOUND_LABELS):
+        raise ValueError("unsupported_outcome_admission")
+    strict = outcome_admission == EVENT_BOUND_LABELS
+    from .nfl_label_qualification import label_exclusion_reason
     receipts = list(receipts)
     cutoff = instant(as_of_utc)
     reasons = Counter()
     policy = "first_envelope_capture_v1" if generation_records is None else "committed_generations_v1"
-    offerings = None if generation_records is None else _offering_memberships(generation_records, receipts, cutoff, reasons)
+    captured_memberships = defaultdict(list)
+    offerings = None if generation_records is None else _offering_memberships(
+        generation_records, receipts, cutoff, reasons, captured_memberships if strict else None)
     sources, bad_sources = {}, set()
     for src in source_receipts:
         if not isinstance(src, dict) or not isinstance(src.get("receipt_id"), str):
@@ -370,7 +388,7 @@ def build_cohort(receipts, source_receipts, revisions, *, as_of_utc, population,
             reasons[str(exc)] += 1
             if lineage_identity is not None:
                 unverified_lineage[lineage_identity[0]].append(lineage_identity[1])
-    rows, forecasts = [], []
+    rows, forecasts, label_exclusions = [], [], Counter()
     for contract_id, versions in sorted(candidates.items()):
         versions.sort(key=lambda x: (instant(x[0]["forecast_created_utc"]), instant(x[0]["first_seen_utc"]), x[0]["receipt_id"]))
         first = instant(versions[0][0]["forecast_created_utc"])
@@ -390,16 +408,23 @@ def build_cohort(receipts, source_receipts, revisions, *, as_of_utc, population,
             "first_seen_utc": receipt["first_seen_utc"], "event_start_utc": receipt["event_start_utc"]})
         try:
             dispositions = set()
-            for vintage, _ in versions:
-                known = _latest_as_of(vintage, indexed.get(vintage["receipt_id"], []), cutoff)
+            for vintage, vintage_source in versions:
+                history = indexed.get(vintage["receipt_id"], [])
+                known = _latest_as_of(vintage, history, cutoff)
                 if known is not None:
+                    if strict and label_exclusion_reason(vintage, vintage_source, history, known, cutoff) not in (None, "void_outcome"):
+                        continue
                     result = known["resolution"]
                     dispositions.add((result["status"], result["hit"]))
             if len(dispositions) > 1:
                 raise ValueError("conflicting_contract_outcomes")
             revision = _latest_as_of(receipt, indexed.get(receipt["receipt_id"], []), cutoff)
             if revision is None:
-                raise ValueError("unresolved_at_cutoff")
+                raise ValueError("unresolved_outcome" if strict else "unresolved_at_cutoff")
+            if strict:
+                reason = label_exclusion_reason(receipt, src, indexed.get(receipt["receipt_id"], []), revision, cutoff)
+                if reason is not None:
+                    raise ValueError(reason)
             outcome = revision["resolution"]
             if outcome.get("status") != "FINAL" or type(outcome.get("hit")) is not bool:
                 raise ValueError("non_binary_latest_revision")
@@ -416,12 +441,24 @@ def build_cohort(receipts, source_receipts, revisions, *, as_of_utc, population,
                 rows[-1]["offering"] = copy.deepcopy(offerings[src["receipt_id"]][0])
         except (ValueError, TypeError, KeyError, OverflowError) as exc:
             reasons[str(exc)] += 1
-    return {"version": 1, "population": population, "as_of_utc": as_of_utc, "n": len(rows),
+            label_exclusions[str(exc)] += 1
+    result = {"version": 1, "population": population, "as_of_utc": as_of_utc, "n": len(rows),
             "dataset_id": fingerprint(rows), "rows": rows, "excluded": dict(sorted(reasons.items())),
             "forecasts": forecasts, "forecast_dataset_id": fingerprint(forecasts),
             "membership_policy":policy,
             "offering_membership_coverage":"committed_generation_records_supplied" if offerings is not None else "first_capture_only_later_membership_unknown",
             "publication": "internally captured; public serving not verified"}
+    if strict:
+        generation_count = sum(bool(captured_memberships.get(receipt_payloads[row["receipt_id"]]["source_receipt_id"]))
+                               for row in forecasts)
+        result.update(version=2, outcome_admission=EVENT_BOUND_LABELS,
+            generation_coverage={"version":1, "forecast_cohort_count":len(forecasts),
+                "verified_count":generation_count, "missing_count":len(forecasts)-generation_count},
+            label_coverage={"version":1, "label_policy":"stable_player_ids_exact_fixture_v2",
+                "forecast_cohort_count":len(forecasts), "graded_count":len(rows),
+                "excluded_count":sum(label_exclusions.values()),
+                "exclusion_reasons":dict(sorted(label_exclusions.items()))})
+    return result
 
 
 def _fit(rows):
@@ -457,7 +494,7 @@ def _fit(rows):
     return coefficients
 
 
-def _artifact(rows, population, cutoff_utc, membership_policy):
+def _artifact(rows, population, cutoff_utc, membership_policy, outcome_admission=LEGACY_LABELS):
     if len(rows) < MIN_LEGS:
         raise ValueError("insufficient_training_contracts")
     bases = {r["base_model_version"] for r in rows}
@@ -471,15 +508,18 @@ def _artifact(rows, population, cutoff_utc, membership_policy):
         "training":{"population":population,"membership_policy":membership_policy,"cutoff_utc":cutoff_utc,"n":len(rows),
                     "fit_rule":"ridge_newton_logit_base_v1","ridge":.001,
                     "dataset_id":fingerprint(frozen),"rows":frozen}}
+    if outcome_admission == EVENT_BOUND_LABELS:
+        artifact["training"]["outcome_admission"] = EVENT_BOUND_LABELS
     artifact["candidate_id"] = fingerprint(artifact)
     validate_candidate(artifact)
     return artifact
 
 
-def fit_shadow_candidate(receipts, source_receipts, revisions, *, cutoff_utc, population, generation_records=None):
+def fit_shadow_candidate(receipts, source_receipts, revisions, *, cutoff_utc, population, generation_records=None,
+                         outcome_admission=LEGACY_LABELS):
     cohort = build_cohort(receipts,source_receipts,revisions,as_of_utc=cutoff_utc,population=population,
-                          generation_records=generation_records)
-    return {"candidate":_artifact(cohort["rows"],population,cutoff_utc,cohort["membership_policy"]),"cohort":cohort}
+                          generation_records=generation_records, outcome_admission=outcome_admission)
+    return {"candidate":_artifact(cohort["rows"],population,cutoff_utc,cohort["membership_policy"],outcome_admission),"cohort":cohort}
 
 
 def _loss(p,y):
@@ -518,7 +558,8 @@ def _cluster_interval(rows, replicates):
             "minimum_cluster_policy":"not operationally approved; two games is mathematical computability, not sufficient evidence"}
 
 
-def walk_forward_report(receipts,source_receipts,revisions,*,as_of_utc,population,bootstrap_replicates=2000,generation_records=None):
+def walk_forward_report(receipts,source_receipts,revisions,*,as_of_utc,population,bootstrap_replicates=2000,generation_records=None,
+                        outcome_admission=LEGACY_LABELS):
     """Evaluate the refitting POLICY, not pretend its final coefficients were frozen.
 
     Each fold fits earlier outcomes known before its first held-out forecast.
@@ -527,7 +568,9 @@ def walk_forward_report(receipts,source_receipts,revisions,*,as_of_utc,populatio
     """
     receipts,source_receipts,revisions=list(receipts),list(source_receipts),list(revisions)
     if generation_records is not None: generation_records=list(generation_records)
-    cohort=build_cohort(receipts,source_receipts,revisions,as_of_utc=as_of_utc,population=population,generation_records=generation_records)
+    cohort=build_cohort(receipts,source_receipts,revisions,as_of_utc=as_of_utc,population=population,
+                        generation_records=generation_records,outcome_admission=outcome_admission)
+    strict=outcome_admission==EVENT_BOUND_LABELS
     rows=cohort["rows"]
     if len({r["base_model_version"] for r in rows})>1:
         raise ValueError("mixed_base_model_versions")
@@ -536,14 +579,18 @@ def walk_forward_report(receipts,source_receipts,revisions,*,as_of_utc,populatio
         held=[r for r in rows if (r["season"],r["week"])==period]
         captured = [r for r in cohort["forecasts"] if (r["season"],r["week"])==period]
         cutoff=min(captured,key=lambda r:instant(r["forecast_created_utc"]))["forecast_created_utc"]
-        before=build_cohort(receipts,source_receipts,revisions,as_of_utc=cutoff,population=population,generation_records=generation_records)
+        before=build_cohort(receipts,source_receipts,revisions,as_of_utc=cutoff,population=population,
+                            generation_records=generation_records,outcome_admission=outcome_admission)
         fit=[r for r in before["rows"] if (r["season"],r["week"])<period]
         overlap={r["correlation_group"] for r in fit}&{r["correlation_group"] for r in held}
         if overlap: raise ValueError("train_evaluation_game_overlap")
         fold={"season":period[0],"week":period[1],"training_cutoff_utc":cutoff,"fit_n":len(fit),"n":len(held)}
+        if strict:
+            fold["label_coverage"]=before["label_coverage"]
+            fold["generation_coverage"]=before["generation_coverage"]
         if len(fit)<MIN_LEGS:
             folds.append({**fold,"status":"skipped","reason":"insufficient_training_contracts"});continue
-        try: artifact=_artifact(fit,population,cutoff,before["membership_policy"])
+        try: artifact=_artifact(fit,population,cutoff,before["membership_policy"],outcome_admission)
         except ValueError as exc:
             folds.append({**fold,"status":"held","reason":str(exc)});continue
         fold_rows=[]
@@ -563,6 +610,7 @@ def walk_forward_report(receipts,source_receipts,revisions,*,as_of_utc,populatio
     interval=_cluster_interval(scored,bootstrap_replicates)
     scored_folds=[f for f in folds if f["status"]=="scored"]
     failures=[]
+    if strict and not rows:failures.append("no_qualified_outcomes")
     if len(rows)<MIN_LEGS:failures.append("fewer_than_100_canonical_contracts")
     if len(scored_folds)<MIN_HELD_OUT:failures.append("fewer_than_two_held_out_week_folds")
     if any(f["status"]=="held" for f in folds):failures.append("invalid_fold_fit")
@@ -572,10 +620,13 @@ def walk_forward_report(receipts,source_receipts,revisions,*,as_of_utc,populatio
         failures.append("held_out_week_regressed")
     proposed=list(failures)
     if generation_records is None:proposed.append("committed_offering_membership_unverified")
+    if strict and (not cohort["generation_coverage"]["verified_count"]
+                   or cohort["generation_coverage"]["missing_count"]):
+        proposed.append("committed_generation_evidence_unverified")
     if scored and metrics["delta_log_loss"]>=-PROPOSED_MARGIN:proposed.append("proposed_0.0015_margin_not_met")
     if interval["high"] is None or interval["high"]>=0:proposed.append("clustered_interval_not_below_zero")
     if any(v["n"]==0 or v["delta_log_loss"]>0 for v in per_position.values()):proposed.append("missing_or_worse_position")
-    try: final_candidate=_artifact(rows,population,as_of_utc,cohort["membership_policy"])
+    try: final_candidate=_artifact(rows,population,as_of_utc,cohort["membership_policy"],outcome_admission)
     except ValueError: final_candidate=None
     if final_candidate is None:
         failures.append("no_valid_final_fit");proposed.append("no_valid_final_fit")
@@ -597,6 +648,11 @@ def walk_forward_report(receipts,source_receipts,revisions,*,as_of_utc,populatio
                                        "status":"proposed_policy_not_production_authorization"},
         "candidate":final_candidate,"rows":scored,"automatic_promotion":False,
         "public_serving_verified":False,"publication":cohort["publication"]}
+    if strict:
+        report.update(version=2,kind="nfl.my_props.walk_forward.v2",outcome_admission=EVENT_BOUND_LABELS,
+                      label_coverage=cohort["label_coverage"],generation_coverage=cohort["generation_coverage"])
+        for gate in ("shared_shadow_numeric_gate", "proposed_shared_return_gate"):
+            report[gate]["outcome_admission"] = EVENT_BOUND_LABELS
     report["report_id"]=fingerprint(report)
     return report
 
@@ -631,7 +687,7 @@ def main(argv=None):
         bundle_id = fingerprint(bundle)  # also rejects any nonfinite JSON number
         report = walk_forward_report(bundle["receipts"], bundle["source_receipts"], bundle["revisions"],
             as_of_utc=args.as_of_utc, population=args.population, generation_records=bundle["generation_records"],
-            bootstrap_replicates=args.bootstrap_replicates)
+            bootstrap_replicates=args.bootstrap_replicates, outcome_admission=EVENT_BOUND_LABELS)
         print(json.dumps({"version":1,"input_bundle_id":bundle_id,"report":report},
                          sort_keys=True, allow_nan=False))
         return 0
