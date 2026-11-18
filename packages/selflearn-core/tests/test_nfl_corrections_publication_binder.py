@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from publication_fit_fixture import FIXTURES, PUBLICATION_TIME, seed_publication_journal
+from publication_fit_fixture import FIXTURES, PUBLICATION_TIME, observed_revision, seed_publication_journal
 from selflearn_core.adapters.nfl import adapt_prospective
 from selflearn_core.adapters.nfl_generation import MANIFEST_KEYS
 from selflearn_core.adapters.nfl_corrections_fit import (
@@ -59,6 +59,13 @@ def reseal(proof):
     proof["attestation_id"] = fingerprint({k:v for k,v in proof.items() if k != "attestation_id"})
 
 
+def revision_in(snapshot, receipt_id, *, recorded_utc="2026-09-02T05:00:00Z", **kwargs):
+    receipt = next(row for row in snapshot["receipts"] if row["receipt_id"] == receipt_id)
+    source = next(row["learning_receipt"] for record in snapshot["generation_records"]
+                  for row in record["payload"]["receipts"] if row["receipt_id"] == receipt["source_receipt_id"])
+    return {"version": 1, "recorded_utc": recorded_utc, **observed_revision(receipt, source, **kwargs)}
+
+
 def test_real_m1_shape_fits_only_after_independent_proof_without_receipt_upgrade(snapshot):
     originals = copy.deepcopy(snapshot["receipts"])
     assert all(r["publication_status"] == "generated_unverified" for r in originals)
@@ -72,6 +79,8 @@ def test_real_m1_shape_fits_only_after_independent_proof_without_receipt_upgrade
     assert binder.reads == 1
     assert artifact["source"] == TRUSTED_ARTIFACT_SOURCE
     assert artifact["n_graded"] == 3
+    assert artifact["fit_audit"] == {"version": 1, "label_policy": "stable_player_ids_exact_fixture_v2",
+        "forecast_cohort_count": 3, "graded_count": 3, "excluded_count": 0, "exclusion_reasons": {}}
     assert set(artifact["segments"]) == {m + "|over" for m in ("qb_pass_yds","rb_rush_yds","wr_rec_yds")}
     assert snapshot["receipts"] == originals
 
@@ -113,11 +122,9 @@ def seed_producer_shaped_generation(journal):
         "http_status":200, "body_utf8":json.dumps(pool)}
     with patch.object(journal, "_publication_recorded_utc", return_value=PUBLICATION_TIME):
         journal.commit_publication_attestation(doc["envelope_id"], observation)
+    sources = {row["receipt_id"]: row["learning_receipt"] for row in doc["receipts"]}
     for receipt in batch["receipts"]:
-        journal.append_resolution({"receipt_id":receipt["receipt_id"], "contract_id":receipt["contract_id"],
-            "event_id":receipt["event_id"], "status":"FINAL", "hit":False,
-            "resolved_utc":"2026-09-02T04:00:00Z", "source":"synthetic outcome fixture"},
-            revision_id="producer-shaped-revision-" + receipt["receipt_id"])
+        journal.append_resolution(**observed_revision(receipt, sources[receipt["source_receipt_id"]], hit=False))
 
 
 def test_real_producer_omitted_leg_fields_fit_after_actual_finalize_publication_and_outcome():
@@ -202,7 +209,9 @@ def test_late_or_unbound_evidence_cannot_authorize_a_forecast(snapshot, fault):
 def test_revision_asof_and_identity_provenance_change_hash_without_changing_measurements(snapshot):
     first = fit(snapshot)
     changed = copy.deepcopy(snapshot)
-    changed["revisions"][0]["revision_id"] += "-independent-identity"
+    original = changed["revisions"][0]["resolution"]
+    changed["revisions"][0] = revision_in(changed, original["receipt_id"], hit=original["hit"],
+                                          observed_utc="2026-09-02T04:01:00Z")
     second = fit(changed)
     assert first["segments"] == second["segments"]
     assert first["fit_inputs_hash"] != second["fit_inputs_hash"]
@@ -220,16 +229,87 @@ def test_revision_asof_and_identity_provenance_change_hash_without_changing_meas
 def test_future_correction_and_duplicate_publication_do_not_reweight_original_forecasts(snapshot):
     first = fit(snapshot)
     previous = snapshot["revisions"][0]
-    correction = copy.deepcopy(previous)
-    correction.update(revision_id="later-official-correction", supersedes=previous["revision_id"],
-        reason="official_stat_correction", recorded_utc="2026-09-10T05:00:00Z")
-    correction["resolution"].update(hit=False, resolved_utc="2026-09-10T04:00:00Z")
+    correction = revision_in(snapshot, previous["resolution"]["receipt_id"], hit=False,
+        observed_utc="2026-09-10T04:00:00Z", recorded_utc="2026-09-10T05:00:00Z", prior=previous)
     snapshot["revisions"].append(correction)
     snapshot["publication_attestations"].append(copy.deepcopy(snapshot["publication_attestations"][0]))
     assert fit(snapshot) == first
     later = fit(snapshot, cutoff="2026-09-11T00:00:00Z")
     assert later["n_graded"] == first["n_graded"]
     assert later["segments"] != first["segments"]
+
+
+def test_frozen_cohort_counts_legacy_unresolved_and_qualified_voids_without_training_on_them(snapshot):
+    legacy, void, _ = [row["resolution"]["receipt_id"] for row in snapshot["revisions"]]
+    snapshot["revisions"] = [revision_in(snapshot, legacy, hit=True, legacy=True),
+                             revision_in(snapshot, void, hit=None)]
+    artifact = fit(snapshot)
+    assert artifact["n_graded"] == 0
+    assert artifact["segments"] == {}
+    assert artifact["sufficient_total"] is False
+    assert artifact["fit_audit"]["forecast_cohort_count"] == 3
+    assert artifact["fit_audit"]["excluded_count"] == 3
+    assert artifact["fit_audit"]["exclusion_reasons"] == {
+        "legacy_outcome": 1, "unresolved_outcome": 1, "void_outcome": 1}
+
+
+@pytest.mark.parametrize("fault", ["label_string_only", "missing_crosswalk", "different_player",
+    "missing_component", "crosswalk_observation_id_mismatch", "crosswalk_clock_mismatch"])
+def test_unqualified_identity_evidence_stays_excluded_in_fixed_cohort(snapshot, fault):
+    resolution = snapshot["revisions"][0]["resolution"]
+    trace = resolution["producer_trace"]
+    if fault == "label_string_only":
+        resolution["producer_trace"] = {"identity_join_policy": trace["identity_join_policy"]}
+    elif fault == "missing_crosswalk":
+        del trace["identity_crosswalk"]
+    elif fault == "different_player":
+        trace["identity_crosswalk"]["player_id"] = "different player"
+    elif fault == "missing_component":
+        del resolution["source_observations"]["nflverse.rosters"]
+    elif fault == "crosswalk_observation_id_mismatch":
+        trace["identity_crosswalk"]["observation_id"] = fingerprint("unbound observation")
+    elif fault == "crosswalk_clock_mismatch":
+        trace["identity_crosswalk"]["observed_utc"] = "2026-09-02T03:59:00Z"
+    artifact = fit(snapshot)
+    assert artifact["n_graded"] == 2
+    assert artifact["fit_audit"]["forecast_cohort_count"] == 3
+    assert artifact["fit_audit"]["exclusion_reasons"] == {"unqualified_outcome": 1}
+
+
+def test_same_legacy_measurement_cannot_be_requalified_by_new_evidence(snapshot):
+    rid = snapshot["revisions"][0]["resolution"]["receipt_id"]
+    legacy = revision_in(snapshot, rid, hit=True, legacy=True)
+    snapshot["revisions"][0] = legacy
+    first = fit(snapshot)
+    assert first["n_graded"] == 2
+    assert first["fit_audit"]["exclusion_reasons"] == {"legacy_outcome": 1}
+    replay = revision_in(snapshot, rid, hit=True, prior=legacy,
+                         observed_utc="2026-09-02T06:00:00Z", recorded_utc="2026-09-02T06:01:00Z")
+    assert replay["revision_id"] == legacy["revision_id"]
+    assert replay["resolution"] == legacy["resolution"]
+
+    # A claimed new revision carrying the same numeric label must fail even
+    # if a malformed snapshot attempts to append it with a valid content ID.
+    appended = revision_in(snapshot, rid, hit=True,
+                            observed_utc="2026-09-02T06:00:00Z", recorded_utc="2026-09-02T06:01:00Z")
+    appended.update(supersedes=legacy["revision_id"], reason="same value")
+    appended["revision_id"] = "nfl.observed_resolution_v2:" + fingerprint({"receipt_id": rid,
+        "observation_id": appended["resolution"]["evidence_observation_id"], "supersedes": legacy["revision_id"]})
+    snapshot["revisions"].append(appended)
+    assert fit(snapshot)["fit_audit"]["exclusion_reasons"] == {"unchanged_outcome_revision": 1}
+
+    corrected = revision_in(snapshot, rid, hit=False, prior=legacy,
+                             observed_utc="2026-09-02T06:00:00Z", recorded_utc="2026-09-02T06:01:00Z")
+    snapshot["revisions"][-1] = corrected
+    assert fit(snapshot)["n_graded"] == 3
+
+
+def test_prequalification_authorization_artifacts_do_not_replay(snapshot):
+    artifact = fit(snapshot)
+    legacy = {k: v for k, v in artifact.items() if k not in ("fit_audit", "artifact_id")}
+    legacy["artifact_id"] = fingerprint(legacy)
+    with pytest.raises(CorrectionsError, match="trusted_artifact_journal_mismatch"):
+        authorize_corrections_artifact(Snapshot(snapshot), legacy)
 
 
 def test_fit_is_order_independent_and_legacy_enum_binder_source_is_not_authorized(snapshot):
@@ -313,10 +393,8 @@ def refresh_vintage(original, seconds):
     for receipt in receipts:
         prior = next(r for r in original["revisions"] if
             old[r["resolution"]["receipt_id"]]["contract_id"] == receipt["contract_id"])
-        revision = copy.deepcopy(prior)
-        revision["revision_id"] = "refresh-revision-" + receipt["receipt_id"]
-        revision["resolution"]["receipt_id"] = receipt["receipt_id"]
-        revisions.append(revision)
+        revisions.append({"version": 1, "recorded_utc": prior["recorded_utc"],
+            **observed_revision(receipt, sources[receipt["source_receipt_id"]], hit=prior["resolution"]["hit"])})
     return {"receipts":receipts, "generation_records":[record], "revisions":revisions,
             "publication_attestations":[proof]}
 

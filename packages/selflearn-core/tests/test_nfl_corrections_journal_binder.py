@@ -10,7 +10,7 @@ from selflearn_core.adapters.nfl_corrections import (
 from selflearn_core.adapters.nfl_corrections_policy import TRUSTED_ARTIFACT_SOURCE
 from selflearn_core.probability_receipts import fingerprint, seal_receipt
 from selflearn_core.adapters.nfl_publication_journal import NFLPublicationJournal as ReceiptJournal
-from publication_fit_fixture import seed_publication_journal
+from publication_fit_fixture import observed_revision, seed_publication_journal
 import copy
 
 
@@ -79,25 +79,12 @@ def test_binder_as_of_excludes_future_recorded_revisions():
     snapshot["receipts"] = [receipt]
     for generation in snapshot["generation_records"]:
         generation["recorded_utc"] = "2026-09-01T14:01:01Z"
-    rev1 = {
-        "version": 1, "revision_id": "rev-1", "supersedes": None, "reason": None,
-        "recorded_utc": "2026-09-02T05:00:00Z",
-        "resolution": {
-            "receipt_id": receipt["receipt_id"], "contract_id": receipt["contract_id"],
-            "event_id": receipt["event_id"], "status": "FINAL", "hit": False,
-            "resolved_utc": "2026-09-02T04:00:00Z", "source": "fixture",
-        },
-    }
-    rev2 = {
-        "version": 1, "revision_id": "rev-2", "supersedes": "rev-1",
-        "reason": "official_stat_correction",
-        "recorded_utc": "2026-09-10T05:00:00Z",
-        "resolution": {
-            "receipt_id": receipt["receipt_id"], "contract_id": receipt["contract_id"],
-            "event_id": receipt["event_id"], "status": "FINAL", "hit": True,
-            "resolved_utc": "2026-09-10T04:00:00Z", "source": "fixture-correction",
-        },
-    }
+    source = next(row["learning_receipt"] for row in seeded["doc"]["receipts"]
+                  if row["receipt_id"] == receipt["source_receipt_id"])
+    rev1 = {"version": 1, "recorded_utc": "2026-09-02T05:00:00Z",
+            **observed_revision(receipt, source, hit=False)}
+    rev2 = {"version": 1, "recorded_utc": "2026-09-10T05:00:00Z",
+            **observed_revision(receipt, source, hit=True, observed_utc="2026-09-10T04:00:00Z", prior=rev1)}
     snapshot["revisions"] = [rev1, rev2]
     journal = _FakeJournal(snapshot)
     early = fit_corrections_from_journal(

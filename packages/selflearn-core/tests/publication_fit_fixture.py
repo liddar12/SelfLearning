@@ -10,11 +10,47 @@ from unittest.mock import patch
 
 from selflearn_core.adapters.nfl import adapt_prospective, canonical_key
 from selflearn_core.adapters.nfl_generation import MANIFEST_KEYS
+from selflearn_core.adapters.nfl_observed_resolution import DNP_BASIS, observation_record, resolve_observed
 from selflearn_core.probability_receipts import fingerprint
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / "fixtures" / "nfl-ingest-m1"
 PUBLICATION_TIME = "2026-09-01T14:02:02Z"
+FIRST_OUTCOME = "2026-09-02T04:00:00Z"
+
+
+def observed_revision(receipt, source, *, hit, observed_utc=FIRST_OUTCOME, prior=None, legacy=False):
+    """Produce a real bridge proposal for synthetic retained-source identities."""
+    played = hit is not None
+    origin = "nflverse.stats_player" if played else "nflverse.snap_counts"
+    leg = {**source, "source_receipt_id": source["receipt_id"], "model_prob": source["served_prob"],
+           "status": "STATUS_FINAL", "played": played, "authoritative": True,
+           "result": "hit" if hit else "miss" if played else "void",
+           "reason": None if played else "did_not_play",
+           "actual": float(source["line"]) + (1 if hit else -1) if played else None,
+           "participation_basis": "stat_row" if played else DNP_BASIS,
+           "source": origin, "observed_utc": observed_utc,
+           "observation_id": fingerprint([origin, observed_utc]),
+           "source_row_sha256": fingerprint([source["player_id"], origin, observed_utc]),
+           "evidence_quality": "observed_source_snapshot",
+           "evidence_capture_id": fingerprint(["capture", observed_utc])}
+    if not legacy:
+        leg.update(identity_join_policy="stable_player_ids_exact_fixture_v2", identity_crosswalk={
+            "source": "nflverse.rosters", "scope": "postgame_identity_only",
+            "observation_id": fingerprint(["roster", observed_utc]), "observed_utc": observed_utc,
+            "raw_sha256": fingerprint("roster fixture"), "player_id": source["player_id"],
+            "gsis_id": "00-1234567", "pfr_id": "TestFi00"})
+    game = {"season": source["season"], "week": source["week"], "game_id": source["game_id"],
+            "status": "STATUS_FINAL", "kickoff_utc": receipt["event_start_utc"],
+            "home": "SEA", "away": "LAR", "home_score": 24, "away_score": 10,
+            "source": "espn.scoreboard", "observation_id": fingerprint(["scoreboard", observed_utc]),
+            "observed_utc": observed_utc}
+    result = resolve_observed([receipt], [source], [leg], {game["game_id"]: game},
+                             observed_utc=observed_utc, existing_revisions=[prior] if prior else [],
+                             existing_observations=[observation_record(prior["resolution"])] if prior else [])
+    assert not result["rejections"], result["rejections"]
+    assert len(result["proposals"]) == 1
+    return result["proposals"][0]
 
 
 def seed_publication_journal(journal, n_per=1, *, publish=True):
@@ -73,10 +109,8 @@ def seed_publication_journal(journal, n_per=1, *, publish=True):
         # caller-supplied clock on the production publication API.
         with patch.object(journal, "_publication_recorded_utc", return_value=PUBLICATION_TIME):
             attestation = journal.commit_publication_attestation(doc["envelope_id"], observation)
+    sources = {row["receipt_id"]: row["learning_receipt"] for row in rows}
     for receipt in batch["receipts"]:
-        journal.append_resolution({"receipt_id":receipt["receipt_id"],
-            "contract_id":receipt["contract_id"], "event_id":receipt["event_id"],
-            "status":"FINAL", "hit":outcomes[receipt["source_receipt_id"]],
-            "resolved_utc":"2026-09-02T04:00:00Z", "source":"synthetic official fixture"},
-            revision_id="revision-" + receipt["receipt_id"])
+        sid = receipt["source_receipt_id"]
+        journal.append_resolution(**observed_revision(receipt, sources[sid], hit=outcomes[sid]))
     return {"doc":doc, "pool":pool, "receipts":batch["receipts"], "attestation":attestation}

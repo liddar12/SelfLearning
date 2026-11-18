@@ -8,7 +8,8 @@ Original capture receipts are never rewritten to claim public availability.
 from __future__ import annotations
 
 import math
-from collections import defaultdict
+import re
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 from ..probability_receipts import fingerprint, finite_number, instant, validate_probability_receipt
@@ -33,6 +34,49 @@ from .nfl_corrections_policy import (
     is_void_status,
     segment_key,
 )
+
+_CONTENT_ID = re.compile(r"sha256:[0-9a-f]{64}\Z")
+
+
+def _journal_label_reason(receipt, source, history, head, cutoff):
+    """Qualify a stored revision, without upgrading it from later observations."""
+    from .nfl_observed_resolution import BRIDGE_VERSION, EVENT_BOUND_JOIN, _validate_observed_history
+
+    resolution = head["resolution"]
+    trace = resolution.get("producer_trace")
+    if not isinstance(trace, dict) or trace.get("identity_join_policy") != EVENT_BOUND_JOIN:
+        return "legacy_outcome"
+    if (resolution.get("evidence_basis") != BRIDGE_VERSION
+            or resolution.get("authoritative") is not True
+            or resolution.get("final_evidence_status") != "FINAL"
+            or trace.get("evidence_quality") != "observed_source_snapshot"
+            or any(not isinstance(trace.get(key), str) or not _CONTENT_ID.fullmatch(trace[key])
+                   for key in ("evidence_capture_id", "source_row_sha256"))):
+        return "unqualified_outcome"
+    known = {row["revision_id"]: row for row in history if instant(row["recorded_utc"]) < cutoff}
+    parent_id = head.get("supersedes")
+    if parent_id is not None:
+        prior = known[parent_id]["resolution"]
+        prior_trace = prior.get("producer_trace")
+        prior_qualified = isinstance(prior_trace, dict) and prior_trace.get("identity_join_policy") == EVENT_BOUND_JOIN
+        if not prior_qualified and all(resolution.get(k) == prior.get(k) for k in ("actual", "status", "hit")):
+            return "unchanged_outcome_revision"
+    try:
+        _validate_observed_history(known, receipt)
+        game = resolution["measurement"]["game"]
+        if (game["season"], game["week"], game["game_id"], game["state"]) != (
+                source["season"], source["week"], source["game_id"], "FINAL"):
+            return "unqualified_outcome"
+        if (instant(game["kickoff_utc"]) != instant(receipt["event_start_utc"])
+                or instant(resolution["source_observations"]["espn.scoreboard"]["observed_utc"])
+                < instant(receipt["event_start_utc"])):
+            return "unqualified_outcome"
+        if resolution["status"] == "FINAL" and (not finite_number(resolution.get("actual"))
+                or resolution["hit"] is not (resolution["actual"] >= source["line"])):
+            return "unqualified_outcome"
+    except (ValueError, TypeError, KeyError, IndexError, OverflowError):
+        return "unqualified_outcome"
+    return "void_outcome" if resolution["status"] == "VOID" else None
 
 
 def _eligible_record(row, *, trained_through):
@@ -175,6 +219,7 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
     A publication enum alone never establishes eligibility. Direction comes
     from the original frozen NFL source receipt, not invented feature fields.
     Generation, publication and revision knowledge must precede the cutoff.
+    The sealed local artifact's fit_audit accounts for the frozen cohort.
     """
     from .nfl_calibration import _latest_as_of
     from .nfl_publication import validate_publication_attestation
@@ -227,12 +272,6 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
                 continue
             generations[oid] = (gen, accepted, sources)
         except (ValueError, TypeError, KeyError, OverflowError):
-            continue
-    histories = defaultdict(list)
-    for revision in snapshot["revisions"]:
-        try:
-            histories[revision["resolution"]["receipt_id"]].append(revision)
-        except (TypeError, KeyError):
             continue
     candidates = defaultdict(list)
     for proof in snapshot["publication_attestations"]:
@@ -306,21 +345,31 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
         "generation_object_id":proof["object_id"], "generation_id":proof["generation_id"],
         "source_pool_id":proof["source_pool_id"], "attestation_id":proof["attestation_id"],
         "policy_id":proof["policy_id"]} for rid,proof,_,_ in selected]
+    histories = defaultdict(list)
+    for revision in snapshot["revisions"]:
+        try:
+            histories[revision["resolution"]["receipt_id"]].append(revision)
+        except (TypeError, KeyError):
+            continue
+    excluded = []
     graded, provenance = [], []
     for rid, proof, source, completed in sorted(selected, key=lambda v:v[0]):
         receipt = receipts[rid]
         try:
             head = _latest_as_of(receipt, histories[rid], cutoff)
-            if head is None:
-                continue
-            resolution = head["resolution"]
-            if resolution.get("status") == "VOID" or type(resolution.get("hit")) is not bool:
-                continue
-            baseline = receipt["served_prob"]
-            if not finite_number(baseline) or not 0 < baseline < 1:
-                continue
         except (ValueError, TypeError, KeyError, OverflowError):
+            excluded.append({"receipt_id": rid, "reason": "invalid_outcome_history"})
             continue
+        reason = (_journal_label_reason(receipt, source, histories[rid], head, cutoff)
+                  if head is not None else "unresolved_outcome")
+        baseline = receipt["served_prob"]
+        if reason is None and not 0 < baseline < 1:
+            reason = "baseline_probability_boundary"
+        if reason is not None:
+            excluded.append({"receipt_id": rid, "revision_id": head["revision_id"] if head else None,
+                             "reason": reason})
+            continue
+        resolution = head["resolution"]
         graded.append({"market": source["market"], "selection": source["direction"],
             "baseline_prob": float(baseline),
             "served_at": completed,
@@ -330,6 +379,7 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
         provenance.append({"receipt_id": rid, "source_receipt_id": receipt["source_receipt_id"],
             "generation_object_id": proof["object_id"], "generation_id": proof["generation_id"],
             "source_pool_id": proof["source_pool_id"], "revision_id": head["revision_id"],
+            "resolution_hash": fingerprint(resolution),
             "attestation_id": proof["attestation_id"], "policy_id": proof["policy_id"]})
     artifact = fit_corrections_artifact(
         graded,
@@ -343,10 +393,18 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
         leg_cap_pp=leg_cap_pp,
         allow_trusted_source=True,
     )
+    if artifact["n_graded"] != len(graded):
+        raise CorrectionsError("journal_fit_denominator_mismatch")
     body = {k:v for k,v in artifact.items() if k != "artifact_id"}
-    body["fit_inputs_hash"] = fingerprint({"version": 2, "source": TRUSTED_ARTIFACT_SOURCE,
+    audit = {"version": 1, "label_policy": "stable_player_ids_exact_fixture_v2",
+             "forecast_cohort_count": len(cohort), "graded_count": len(graded),
+             "excluded_count": len(excluded),
+             "exclusion_reasons": dict(sorted(Counter(row["reason"] for row in excluded).items()))}
+    body["fit_audit"] = audit
+    body["fit_inputs_hash"] = fingerprint({"version": 3, "source": TRUSTED_ARTIFACT_SOURCE,
         "cohort_policy":"first_independently_attested_contract_event_v1", "forecast_cohort":cohort,
-        "graded_inputs_hash": artifact["fit_inputs_hash"], "publication_provenance": provenance})
+        "graded_inputs_hash": artifact["fit_inputs_hash"], "publication_provenance": provenance,
+        "fit_audit": audit, "label_exclusions": excluded})
     return {**body, "artifact_id": fingerprint(body)}
 
 
@@ -371,6 +429,6 @@ def authorize_corrections_artifact(journal, artifact):
         min_graded_per_market=artifact["min_graded_per_market"],
         leg_cap_pp=artifact["leg_cap_pp"],
     )
-    if recomputed.get("artifact_id") != artifact.get("artifact_id"):
+    if recomputed != artifact:
         raise CorrectionsError("trusted_artifact_journal_mismatch")
     return artifact
