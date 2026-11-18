@@ -6,7 +6,8 @@ broker. No self-learning logic lives here; the engine wires this to the spine.
 """
 
 from .broker import Broker
-from .control import Autonomy, ControlState, RiskLevel, RunState
+from .approvals import ApprovalQueue, ApprovalRequest, ApprovalState
+from .control import Autonomy, AutoLockedError, ControlState, RiskLevel, RunState
 from .domain import (
     Balances,
     BrokerCapabilities,
@@ -21,7 +22,8 @@ from .domain import (
     TimeInForce,
 )
 from .oms import OMS
-from .risk import AccountState, GateResult, Limits, check
+from .risk import AccountState, GateResult, Limits, check, drawdown_breached
+from .sizing import daily_sigma_pct, unusual_move, vol_scaled_qty
 from .sim_broker import SimBroker
 
 __all__ = [
@@ -29,6 +31,8 @@ __all__ = [
     "OrderIntent", "Order", "OrderAck", "OrderState", "OrderType",
     "Side", "TimeInForce", "Quote", "Position", "Balances", "BrokerCapabilities",
     "check", "Limits", "AccountState", "GateResult",
-    "ControlState", "RunState", "Autonomy", "RiskLevel",
+    "ControlState", "RunState", "Autonomy", "RiskLevel", "AutoLockedError",
+    "ApprovalQueue", "ApprovalRequest", "ApprovalState", "drawdown_breached",
+    "daily_sigma_pct", "vol_scaled_qty", "unusual_move",
 ]
 __version__ = "0.0.1"

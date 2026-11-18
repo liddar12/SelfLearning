@@ -1,10 +1,11 @@
-"""Robinhood adapter — SUPPORTED BY THE PORT, NOT RECOMMENDED FOR REAL MONEY.
+"""Robinhood adapter — stub. Optional future ring-fenced live sleeve.
 
-Robinhood has no official stock/options trading API. Any adapter here is a
-reverse-engineered client that: violates Robinhood's ToS, has no stability
-guarantee (auth/endpoints change without notice), and risks account lockout.
-The port can host it, but do not route real capital through it. Kept as a stub
-to prove the abstraction is genuinely broker-agnostic, with a loud capability flag.
+Update 2026-11-10: Robinhood launched Agentic Trading (beta) on May 27, 2026, an
+official MCP server that trades a separate agentic account. That is the only
+supported route; reverse-engineered clients stay off-limits (ToS, stability,
+lockout risk). The flag below stays False because this engine has no official
+REST surface to call. An MCP-backed implementation would flip it after review.
+See docs/brokers.md.
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ class RobinhoodBroker(Broker):
         return BrokerCapabilities(
             name="robinhood", official_api=False, options=True, streaming=False,
             fractional=True,
-            notes="UNOFFICIAL reverse-engineered API. ToS risk, unstable, account-lock risk.",
+            notes="No REST API for this engine; official route is the Agentic Trading MCP (ring-fenced account). Not implemented.",
         )
 
     def get_positions(self) -> list[Position]:

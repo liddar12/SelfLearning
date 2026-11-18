@@ -232,3 +232,24 @@ jobs:
           Discovery is read-only and grants no ownership; atomic claims are verified
           on separate connections. Native evidence is not hosted Supabase verification
           or permission to enable learning, deploy or adopt a model.'
+  test-packages:
+    # execution-core holds the risk gate and broker adapters; signals holds the
+    # indicators. Both have suites that previously never ran in CI.
+    name: ${{ matrix.pkg }} (pytest)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: [packages/execution-core, packages/signals]
+    defaults:
+      run:
+        working-directory: ${{ matrix.pkg }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package + dev deps
+        run: pip install -e ".[dev]"
+      - name: Run tests
+        run: python -m pytest -q

@@ -22,6 +22,7 @@ def test_family_taxonomy_is_complete():
         "geopolitics",
         "commodities",
         "ai_infra",
+        "regime",
     }
 
 

@@ -9,7 +9,10 @@ venv/
 .ruff_cache/
 
 # Local data (never commit market data, prediction logs, or lot ledgers)
-data/
+# Anchored to the repo root: an unanchored `data/` also ignored source packages
+# named data (apps/power2026-backtest/power2026_backtest/data was never committed).
+/data/
+/apps/*/data/
 *.sqlite
 *.sqlite3
 *.db
