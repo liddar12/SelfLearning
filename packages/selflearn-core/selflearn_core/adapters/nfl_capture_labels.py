@@ -27,7 +27,7 @@ from .nfl import canonical_key, validate_nfl_receipt
 from ..probability_receipts import fingerprint, instant, validate_probability_receipt
 
 POLICY = "nfl.capture_labels_v1"
-JOIN_POLICY = "frozen_pool_exact_name_team_position_v1"
+JOIN_POLICY = "stable_player_ids_exact_fixture_v2"
 MAX_PROVENANCE_BYTES = 64 * 1024 * 1024
 _HASH = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _SEQ = re.compile(r"(?:0|[1-9][0-9]{0,18})\Z")
@@ -64,7 +64,7 @@ def _hash(value):
 
 
 def _name(value):
-    if not isinstance(value, str):
+    if not isinstance(value, str) or value.strip().lower() in ("", "na", "nan", "none", "null"):
         return ""
     value = " ".join(value.split())
     value = _PLAYER_NAMES.get(value.lower(), value)
@@ -333,15 +333,110 @@ def _read_rows(observation, raw_chunks):
 
 
 def _identity(entry):
-    identity, source = entry["identity"], entry["source"]
-    return (source["week"], _name(identity["player"]), identity["team"], identity["position"])
+    source = entry["source"]
+    return (source["season"], source["week"], source["game_id"], source["player_id"], entry["identity"]["position"])
+
+
+def _provider_id(value):
+    if not isinstance(value, str) or value.strip().lower() in ("", "na", "nan", "none", "null"):
+        return None
+    value = value.strip()
+    return value if len(value) <= 128 else None
+
+
+def _gsis_id(value):
+    value = _provider_id(value)
+    return value if value and re.fullmatch(r"00-[0-9]{7}", value) else None
+
+
+def _crosswalk(observation, raw_chunks):
+    """Postgame identity evidence only; roster team/availability are not authority."""
+    espn, native, pfr, inverse_pfr = defaultdict(set), defaultdict(set), defaultdict(set), defaultdict(set)
+    if observation is None:
+        return espn, native, pfr, inverse_pfr
+    for row in _read_rows(observation, raw_chunks):
+        if _integer(row.get("season")) != observation["season"]:
+            _fail("identity_crosswalk_season_mismatch")
+        eid, gid, pid = (_provider_id(row.get(key)) for key in ("espn_id", "gsis_id", "pfr_id"))
+        gid = _gsis_id(gid)
+        if eid and re.fullmatch(r"[0-9]+\.0", eid):
+            eid = eid[:-2]
+        if eid:
+            espn["espn-" + eid].add(gid)
+        if gid:
+            native[gid].add("espn-" + eid if eid else None)
+            pfr[gid].add(pid)
+        if pid:
+            inverse_pfr[pid].add(gid)
+    return espn, native, pfr, inverse_pfr
+
+
+def _mapped_player(player_id, crosswalk):
+    espn, native, pfr, inverse_pfr = crosswalk
+    if player_id.startswith("00-"):
+        ids = {player_id} if player_id in native else set()
+    else:
+        ids = espn.get(player_id, set())
+    if len(ids) != 1 or None in ids:
+        return None, None, "identity_crosswalk_missing_or_conflicting"
+    gid = next(iter(ids))
+    if not player_id.startswith("00-") and native.get(gid) != {player_id}:
+        return None, None, "identity_crosswalk_missing_or_conflicting"
+    pids = pfr.get(gid, set())
+    pid = next(iter(pids)) if len(pids) == 1 and None not in pids else None
+    if pid and inverse_pfr.get(pid) != {gid}:
+        pid = None
+    return gid, pid, None
+
+
+def _event_reason(row, entry, *, snaps=False):
+    """A provider fixture must identify the same ordered teams and period."""
+    game, source = entry["game"], entry["source"]
+    raw = _provider_id(row.get("game_id"))
+    match = re.fullmatch(r"(\d{4})_(\d{2})_([A-Za-z0-9]+)_([A-Za-z0-9]+)", raw or "")
+    team = capture._team(row.get("team") or row.get("recent_team"))
+    opponent = capture._team(row.get("opponent" if snaps else "opponent_team"))
+    if match is None or team is None or opponent is None:
+        return "source_fixture_unknown"
+    season, week = int(match[1]), int(match[2])
+    away, home = capture._team(match[3]), capture._team(match[4])
+    period = row.get("game_type" if snaps else "season_type")
+    if (home is None or away is None or home == away or {team, opponent} != {home, away}
+            or _integer(row.get("season")) != season or _integer(row.get("week")) != week or period != "REG"):
+        return "source_fixture_conflict"
+    if (season != source["season"] or week != source["week"]
+            or home != capture._team(game["home"]) or away != capture._team(game["away"])):
+        return "source_fixture_mismatch"
+    return None
+
+
+def _candidate_keys(row, contexts, by_week):
+    # Do not discard a corrupted row before checking the independent raw-event
+    # period. Either period can make it evidence about a recorded fixture.
+    weeks = {_integer(row.get("week"))}
+    token = re.match(r"^\d{4}_(\d{2})_", _provider_id(row.get("game_id")) or "")
+    if token:
+        weeks.add(int(token[1]))
+    known = weeks - {None}
+    if not known:
+        return contexts.keys()
+    return {key for week in known for key in by_week.get(week, ())}
 
 
 def _raw_facts(entries, observations, raw_chunks):
-    identities = {_identity(entry) for entry in entries.values() if entry["identity"] is not None}
+    contexts = {_identity(entry): entry for entry in entries.values() if entry["identity"] is not None}
     by_week = defaultdict(list)
-    for identity in identities: by_week[identity[0]].append(identity)
-    facts = {identity: {"matches": [], "problem": None, "snap_error": None, "snap_alias": False} for identity in identities}
+    for key in contexts:
+        by_week[key[1]].append(key)
+    roster = observations.get(capture.ROSTERS_PROFILE)
+    crosswalk = _crosswalk(roster, raw_chunks)
+    facts = {}
+    for key in contexts:
+        gid, pid, error = _mapped_player(key[3], crosswalk)
+        facts[key] = {"matches": [], "problem": error, "gsis_id": gid, "pfr_id": pid,
+                      "hard_error": error, "snap_error": None, "snap_matches": 0,
+                      "stat_teams": set(), "snap_teams": set(), "published_teams": set(),
+                      "name": _name(contexts[key]["identity"]["player"])}
     published, sheets, global_errors, provenance_bytes = set(), {}, {}, 0
 
     def provenance(row):
@@ -354,63 +449,95 @@ def _raw_facts(entries, observations, raw_chunks):
 
     for row in _read_rows(observations[capture.STATS_PROFILE], raw_chunks):
         season, week = _integer(row.get("season")), _integer(row.get("week"))
+        if season == observations[capture.STATS_PROFILE]["season"] and row.get("season_type") == "REG":
+            published.add(week)
+        rid = _gsis_id(row.get("player_id"))
         name = _name(row.get("player_display_name") or row.get("player_name"))
-        team = capture._team(row.get("team") or row.get("recent_team"))
         position = {"FB": "RB", "HB": "RB"}.get(str(row.get("position", "")).upper(), str(row.get("position", "")).upper())
-        regular = row.get("season_type") == "REG"
-        if season == observations[capture.STATS_PROFILE]["season"] and regular: published.add(week)
-        encoded = None
-        for identity in by_week.get(week, ()) if week is not None else identities:
-            expected_week, expected_name, expected_team, expected_position = identity
-            fact = facts[identity]
-            same_name, alias = name == expected_name, _alias(name, expected_name)
-            if (same_name and season == observations[capture.STATS_PROFILE]["season"] and week == expected_week
-                    and regular and team == expected_team and position == expected_position):
-                if len(fact["matches"]) < 2:
-                    encoded = provenance(row) if encoded is None else encoded
-                    market = next(m for m, (pos, _) in _MARKETS.items() if pos == expected_position)
-                    fact["matches"].append((_number(row.get(_MARKETS[market][1])), "sha256:" + hashlib.sha256(encoded).hexdigest()))
-            if fact["problem"] is None:
-                if same_name or alias:
-                    if season != observations[capture.STATS_PROFILE]["season"] or week != expected_week or not regular or team != expected_team or position != expected_position:
-                        fact["problem"] = "unjoined_stat_identity_requires_crosswalk"
-                    elif alias: fact["problem"] = "possible_stat_alias_requires_crosswalk"
-                if not name and team in (None, expected_team):
+        encoded, event_reasons = None, {}
+        for key in _candidate_keys(row, contexts, by_week):
+            entry, fact = contexts[key], facts[key]
+            fixture_key = (*key[:3], entry["game"]["home"], entry["game"]["away"])
+            if fixture_key not in event_reasons:
+                event_reasons[fixture_key] = _event_reason(row, entry)
+            event_reason = event_reasons[fixture_key]
+            stat_column = next((column for pos, column in _MARKETS.values() if pos == position), None)
+            if (event_reason is None and rid
+                    and stat_column and _number(row.get(stat_column)) is not None):
+                fact["published_teams"].add(capture._team(row.get("team") or row.get("recent_team")))
+            recognizable = name == fact["name"] or _alias(name, fact["name"])
+            if not rid:
+                if recognizable:
+                    fact["hard_error"] = "unidentified_stat_row_prevents_zero_inference"
+                elif not name:
                     fact["problem"] = "unidentified_stat_row_prevents_zero_inference"
-    for index, row in enumerate(_read_rows(observations[capture.SNAPS_PROFILE], raw_chunks)):
+                continue
+            if rid != fact["gsis_id"]:
+                continue  # A distinct provider ID is a namesake, not this player.
+            reason = event_reason
+            if reason or position != key[4]:
+                fact["hard_error"] = reason or "source_player_position_conflict"
+                continue
+            fact["stat_teams"].add(capture._team(row.get("team") or row.get("recent_team")))
+            encoded = provenance(row) if encoded is None else encoded
+            if len(fact["matches"]) < 2:
+                market = next(m for m, (pos, _) in _MARKETS.items() if pos == key[4])
+                fact["matches"].append((_number(row.get(_MARKETS[market][1])), "sha256:" + hashlib.sha256(encoded).hexdigest()))
+
+    # A coherent sheet is scoped to the receipt fixture and one of its two teams.
+    # Both teams must be present before absence/zero inference can settle a leg.
+    for row in _read_rows(observations[capture.SNAPS_PROFILE], raw_chunks):
         season, week = _integer(row.get("season")), _integer(row.get("week"))
-        if (row.get("game_type") == "POST" or (week is not None and week not in by_week)
-                or (season is not None and season != observations[capture.SNAPS_PROFILE]["season"])):
-            continue
-        team, name = capture._team(row.get("team")), _name(row.get("player"))
-        relevant = by_week[week] if week is not None else identities
-        for identity in relevant:
-            fact = facts[identity]
-            if not team and not name:
-                global_errors.setdefault(identity[0], (index, "unlocatable_participation_identity"))
-            valid_period = (season == observations[capture.SNAPS_PROFILE]["season"] and week == identity[0]
-                            and row.get("game_type") == "REG")
-            recognizable = name == identity[1] or _alias(name, identity[1])
-            if (team == identity[2] or recognizable) and fact["snap_error"] is None:
-                if not valid_period or not team or not name:
-                    fact["snap_error"] = (index, "missing_or_invalid_participation_sheet")
-                elif recognizable and team != identity[2]:
-                    fact["snap_error"] = (index, "unjoined_participation_identity_requires_crosswalk")
-            if team == identity[2] and _alias(name, identity[1]): fact["snap_alias"] = True
-        if week is None or team is None or not any(identity[2] == team for identity in by_week[week]):
-            continue
-        sheet = sheets.setdefault((week, team), {"count": 0, "names": set(), "duplicate": False, "invalid": False,
-            "hash": hashlib.sha256(b"["), "players": {}})
-        encoded = provenance(row)
-        if sheet["count"]: sheet["hash"].update(b",")
-        sheet["hash"].update(encoded)
-        sheet["count"] += 1
-        sheet["duplicate"] |= name in sheet["names"]
-        sheet["names"].add(name)
-        snaps = _number(row.get("offense_snaps"))
-        sheet["invalid"] |= not name or snaps is None or snaps < 0 or not snaps.is_integer()
-        if any(identity[1] == name and identity[2] == team for identity in by_week[week]):
-            sheet["players"][name] = (snaps, "sha256:" + hashlib.sha256(encoded).hexdigest())
+        team, pid = capture._team(row.get("team")), _provider_id(row.get("pfr_player_id"))
+        name = _name(row.get("player"))
+        encoded, seen_sheets = None, set()
+        for key in _candidate_keys(row, contexts, by_week):
+            entry, fact = contexts[key], facts[key]
+            sides = {capture._team(entry["game"][side]) for side in ("home", "away")}
+            target = pid is not None and pid == fact["pfr_id"]
+            recognizable = name == fact["name"] or _alias(name, fact["name"])
+            reason = _event_reason(row, entry, snaps=True)
+            if target:
+                fact["snap_matches"] += 1
+                if reason:
+                    fact["hard_error"] = reason
+                elif fact["snap_matches"] > 1:
+                    fact["hard_error"] = "ambiguous_participation_identity"
+                else:
+                    fact["snap_teams"].add(team)
+                if fact["stat_teams"] and fact["snap_teams"] and fact["stat_teams"] != fact["snap_teams"]:
+                    fact["hard_error"] = "source_player_team_conflict"
+            if not pid and recognizable:
+                fact["snap_error"] = "unidentified_participation_row"
+            elif pid and recognizable and not target:
+                # Do not interpret a target-looking row with an unverified
+                # alternate PFR ID as absence. A real namesake is harmless
+                # only when the retained roster identifies a different player.
+                alternative = crosswalk[3].get(pid, set())
+                if len(alternative) != 1 or None in alternative or fact["gsis_id"] in alternative:
+                    fact["snap_error"] = "unjoined_participation_identity_requires_crosswalk"
+            if team is None:
+                global_errors.setdefault(key[:3], "unlocatable_participation_identity")
+                continue
+            if team not in sides:
+                continue
+            sheet_key = (*key[:3], team)
+            if sheet_key in seen_sheets:
+                continue
+            seen_sheets.add(sheet_key)
+            sheet = sheets.setdefault(sheet_key, {"count": 0, "ids": set(), "duplicate": False,
+                "invalid": False, "hash": hashlib.sha256(b"["), "players": {}})
+            encoded = provenance(row) if encoded is None else encoded
+            if sheet["count"]:
+                sheet["hash"].update(b",")
+            sheet["hash"].update(encoded)
+            sheet["count"] += 1
+            snaps = _number(row.get("offense_snaps"))
+            sheet["invalid"] |= bool(reason) or not pid or snaps is None or snaps < 0 or not snaps.is_integer()
+            sheet["duplicate"] |= pid in sheet["ids"]
+            sheet["ids"].add(pid)
+            if pid:
+                sheet["players"][pid] = (snaps, "sha256:" + hashlib.sha256(encoded).hexdigest())
     for sheet in sheets.values():
         sheet["hash"].update(b"]")
         sheet["digest"] = "sha256:" + sheet["hash"].hexdigest()
@@ -432,6 +559,7 @@ def _measurement(entry, facts, published, sheets, global_errors, game, observati
     if source["week"] not in published: _fail("stats_week_not_published")
     key, participation = _identity(entry), {}
     fact = facts[key]
+    if fact["hard_error"]: _fail(fact["hard_error"])
     matches = fact["matches"]
     if len(matches) > 1: _fail("ambiguous_stat_identity")
     if matches:
@@ -441,17 +569,26 @@ def _measurement(entry, facts, published, sheets, global_errors, game, observati
     else:
         if fact["problem"]: _fail(fact["problem"])
         if instant(snap["observed_utc"]) < instant(game["observed_utc"]): _fail("participation_observed_before_final_evidence")
-        errors = [value for value in (fact["snap_error"], global_errors.get(source["week"])) if value is not None]
-        if errors: _fail(min(errors)[1])
-        sheet = sheets.get((source["week"], identity["team"]))
-        if not sheet or not sheet["count"] or sheet["invalid"]: _fail("missing_or_invalid_participation_sheet")
-        if sheet["duplicate"]: _fail("ambiguous_participation_sheet")
-        if key[1] in sheet["players"]:
-            snaps, row_hash = sheet["players"][key[1]]
+        if not fact["pfr_id"]: _fail("participation_crosswalk_missing_or_conflicting")
+        error = fact["snap_error"] or global_errors.get(key[:3])
+        if error: _fail(error)
+        teams = {capture._team(entry["game"][side]) for side in ("home", "away")}
+        paired = [sheets.get((*key[:3], team)) for team in sorted(teams)]
+        if any(not sheet or not sheet["count"] or sheet["invalid"] for sheet in paired):
+            _fail("missing_or_invalid_participation_sheet")
+        if any(sheet["duplicate"] for sheet in paired): _fail("ambiguous_participation_sheet")
+        present = [(team, sheets[(*key[:3], team)]["players"][fact["pfr_id"]])
+                   for team in sorted(teams) if fact["pfr_id"] in sheets[(*key[:3], team)]["players"]]
+        if len(present) > 1: _fail("conflicting_participation_team")
+        inference_team = present[0][0] if present else identity["team"]
+        if inference_team not in fact["published_teams"]:
+            _fail("stats_fixture_team_not_published")
+        if present:
+            _, (snaps, row_hash) = present[0]
             if snaps < 1: _fail("zero_offensive_snaps_requires_settlement_evidence")
             played, actual, basis = True, 0.0, "r106_positive_offensive_snaps_no_stat_row"
         else:
-            if fact["snap_alias"]: _fail("possible_participation_alias_requires_crosswalk")
+            sheet = sheets[(*key[:3], identity["team"])]
             played, actual, basis, row_hash = False, None, "r106_team_snap_absence_inference", sheet["digest"]
         primary, observation = ("nflverse.stats_player", stat) if played else ("nflverse.snap_counts", snap)
         participation = {"participation_source": "nflverse.snap_counts", "participation_observed_utc": snap["observed_utc"],
@@ -463,7 +600,12 @@ def _measurement(entry, facts, published, sheets, global_errors, game, observati
         reason=None if played else "did_not_play", status=game["status"], authoritative=True, source=primary,
         observed_utc=observation["observed_utc"], observation_id=observation["observation_id"], participation_basis=basis,
         evidence_quality="observed_source_snapshot", evidence_capture_id=capture_id, identity_join_policy=JOIN_POLICY,
-        source_row_sha256=row_hash, pool_snapshot_ids=entry["pool_snapshot_ids"], generation_ids=entry["generation_ids"], **participation)
+        source_row_sha256=row_hash, identity_crosswalk={"source": "nflverse.rosters",
+            "observation_id": observations[capture.ROSTERS_PROFILE]["observation_id"],
+            "observed_utc": observations[capture.ROSTERS_PROFILE]["observed_utc"],
+            "raw_sha256": observations[capture.ROSTERS_PROFILE]["raw_sha256"],
+            "player_id": source["player_id"], "gsis_id": fact["gsis_id"], "pfr_id": fact["pfr_id"],
+            "scope": "postgame_identity_only"}, pool_snapshot_ids=entry["pool_snapshot_ids"], generation_ids=entry["generation_ids"], **participation)
     normalized = {field: game[field] for field in ("season", "week", "game_id", "status", "kickoff_utc", "home", "away", "home_score", "away_score", "observed_utc")}
     normalized.update(source="espn.scoreboard", observation_id=game["source_observation_id"], final_utc=None, source_updated_utc=None)
     return leg, normalized
@@ -485,7 +627,7 @@ def bind_capture_labels(journal, capture_envelope, raw_chunks, *, max_total_byte
     watermark, entries = _frozen_entries(journal, manifest["season"], set(manifest["weeks"]))
     integrity = capture.verify_capture_envelope(envelope, raw_chunks, max_total_bytes=max_total_bytes)
     observations = {observation["profile"]: {"observation_id": oid, **observation} for oid, observation in sources
-                    if observation["profile"] in (capture.STATS_PROFILE, capture.SNAPS_PROFILE)}
+                    if observation["profile"] in (capture.STATS_PROFILE, capture.SNAPS_PROFILE, capture.ROSTERS_PROFILE)}
     grouped = defaultdict(list)
     for sid, entry in entries.items(): grouped[entry["scope"]].append(sid)
     groups, legs, games, rejections = [], [], {}, []
