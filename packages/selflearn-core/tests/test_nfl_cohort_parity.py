@@ -1,7 +1,7 @@
 """Actual local NFL producer/grader vs engine, on synthetic pinned evidence.
 
 No historical replay, fitting, production writes, cloud or database-fence claim.
-Run with NFL2026_CHECKOUT for actual cross-repository acceptance.
+Run with NFL2026_REVIEW_CHECKOUT for actual cross-repository acceptance.
 """
 import base64
 import copy
@@ -10,7 +10,6 @@ import importlib.util
 import io
 import json
 import math
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -24,9 +23,9 @@ from selflearn_core.adapters.nfl_observed_resolution import resolve_observed, ob
 from selflearn_core.store.receipt_journal import ReceiptJournal
 from selflearn_core.probability_receipts import fingerprint
 from tools import compare_nfl_cohort as parity
+from nfl_review_checkout import LEGACY_REVIEW_SKIP, legacy_review_checkout
 
-CHECKOUT = os.environ.get("NFL2026_CHECKOUT")
-AVAILABLE = bool(CHECKOUT and (Path(CHECKOUT) / "scripts/pinned_cohort_oracle.py").is_file())
+CHECKOUT = legacy_review_checkout()
 SCRIPT = r'''
 import base64,importlib.util,json,tempfile
 from pathlib import Path
@@ -51,7 +50,7 @@ def stamp():
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
-@unittest.skipUnless(AVAILABLE, "Explicit NFL2026_CHECKOUT required for actual producer/grader parity")
+@unittest.skipUnless(CHECKOUT, LEGACY_REVIEW_SKIP)
 class NFLCohortParityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

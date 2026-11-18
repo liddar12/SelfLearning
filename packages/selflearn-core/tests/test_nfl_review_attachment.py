@@ -2,12 +2,12 @@
 import copy
 from datetime import datetime, timezone
 import json
-import os
 import unittest
 from unittest.mock import patch
 
 from tools import nfl_review_attachment as A
 from selflearn_core.probability_receipts import fingerprint
+from nfl_review_checkout import LEGACY_REVIEW_SKIP, legacy_review_checkout
 
 
 def review():
@@ -233,10 +233,10 @@ class ReviewAttachmentTests(unittest.TestCase):
         self.assertIs(type(one["refit"]["a"]), float); self.assertIs(type(two["refit"]["a"]), int)
 
 
-CHECKOUT = os.environ.get("NFL2026_CHECKOUT")
+CHECKOUT = legacy_review_checkout()
 
 
-@unittest.skipUnless(CHECKOUT, "Explicit NFL2026_CHECKOUT required for actual raw-producer diagnostic attachment")
+@unittest.skipUnless(CHECKOUT, LEGACY_REVIEW_SKIP)
 class ActualProducerAttachmentTests(unittest.TestCase):
     def test_actual_evaluator_full_confirmation_stream_attaches_without_rewriting_review(self):
         # Uses the actual pinned comparator/raw fixture, not the mocked DTOs above.

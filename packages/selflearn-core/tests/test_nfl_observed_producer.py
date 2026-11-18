@@ -1,7 +1,5 @@
 """Real frozen NFL producer → observed resolver → append-only local journal."""
 import json
-import os
-from pathlib import Path
 import subprocess
 import sys
 import unittest
@@ -10,10 +8,10 @@ from selflearn_core.adapters.nfl import adapt_prospective
 from selflearn_core.adapters.nfl_observed_resolution import DNP_BASIS, resolve_observed
 from selflearn_core.scoring.binary_receipts import score_binary_receipts
 from selflearn_core.store.receipt_journal import ReceiptJournal
+from nfl_review_checkout import LEGACY_REVIEW_SKIP, legacy_review_checkout
 
 
-CHECKOUT = os.environ.get("NFL2026_CHECKOUT")
-AVAILABLE = bool(CHECKOUT and (Path(CHECKOUT) / "scripts/build_learning_outcomes.py").is_file())
+CHECKOUT = legacy_review_checkout()
 PROCESSING = "2026-10-01T00:00:00Z"  # Separate from the original September source captures.
 
 SCRIPT = r'''
@@ -44,7 +42,7 @@ with tempfile.TemporaryDirectory() as directory:
 '''
 
 
-@unittest.skipUnless(AVAILABLE, "Set NFL2026_CHECKOUT to verify the real frozen outcome producer")
+@unittest.skipUnless(CHECKOUT, LEGACY_REVIEW_SKIP)
 class RealObservedProducerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

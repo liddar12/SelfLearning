@@ -7,18 +7,16 @@ are used. Claims of supplied namespace/watermark remain unauthenticated.
 import copy
 from datetime import datetime, timedelta, timezone
 import json
-import os
-from pathlib import Path
 import unittest
 from unittest.mock import patch
 
 from selflearn_core.probability_receipts import fingerprint
 from tools import nfl_review_attachment as attachment, nfl_review_parity as evaluator
+from nfl_review_checkout import LEGACY_REVIEW_SKIP, legacy_review_checkout
 from test_nfl_review_parity import actual_fixture
 
 
-CHECKOUT = os.environ.get("NFL2026_CHECKOUT")
-AVAILABLE = bool(CHECKOUT and (Path(CHECKOUT) / "scripts/pinned_cohort_oracle.py").is_file())
+CHECKOUT = legacy_review_checkout()
 
 
 def encoded(value):
@@ -38,7 +36,7 @@ def base_review(diagnostic):
         "settlement": {"reduced_wins": 3}, "opaque": "\u2603\\\"[]"}
 
 
-@unittest.skipUnless(AVAILABLE, "Explicit NFL2026_CHECKOUT required for real local producer/oracle QA")
+@unittest.skipUnless(CHECKOUT, LEGACY_REVIEW_SKIP)
 class IndependentReviewAttachmentTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

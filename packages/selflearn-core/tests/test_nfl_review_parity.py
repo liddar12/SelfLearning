@@ -4,7 +4,6 @@ import copy
 from datetime import datetime, timezone
 import io
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -18,9 +17,9 @@ from selflearn_core.adapters.nfl import adapt_prospective
 from selflearn_core.adapters.nfl_observed_resolution import resolve_observed
 from selflearn_core.probability_receipts import fingerprint
 from selflearn_core.store.receipt_journal import ReceiptJournal
+from nfl_review_checkout import LEGACY_REVIEW_SKIP, legacy_review_checkout
 
-CHECKOUT = os.environ.get("NFL2026_CHECKOUT")
-AVAILABLE = bool(CHECKOUT and (Path(CHECKOUT) / "scripts/pinned_cohort_oracle.py").is_file())
+CHECKOUT = legacy_review_checkout()
 
 FIXTURE_SCRIPT = r'''
 import base64,importlib.util,json,tempfile
@@ -150,7 +149,7 @@ class ReviewInputUnitTests(unittest.TestCase):
             self.assertNotIn("SECRET", output.getvalue()); self.assertNotIn(directory, output.getvalue())
 
 
-@unittest.skipUnless(AVAILABLE, "Explicit NFL2026_CHECKOUT required for actual raw-producer/oracle comparison")
+@unittest.skipUnless(CHECKOUT, LEGACY_REVIEW_SKIP)
 class ActualReviewParityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
