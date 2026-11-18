@@ -21,9 +21,14 @@ BRIDGE_VERSION = "nfl.observed_resolution_v2"
 DNP_BASIS = "r106_team_snap_absence_inference"
 STAT_SOURCE = "nflverse.stats_player"
 SNAP_SOURCE = "nflverse.snap_counts"
+ROSTER_SOURCE = "nflverse.rosters"
 GAME_SOURCE = "espn.scoreboard"
+EVENT_BOUND_JOIN = "stable_player_ids_exact_fixture_v2"
 OBSERVATION_KIND = "nfl.observed_measurement.v1"
 _HASH = re.compile(r"sha256:[0-9a-f]{64}\Z")
+_GSIS_ID = re.compile(r"00-[0-9]{7}\Z")
+_CROSSWALK_FIELDS = {"source", "observation_id", "observed_utc", "raw_sha256", "player_id", "gsis_id", "pfr_id", "scope"}
+_SOURCES = {GAME_SOURCE, STAT_SOURCE, SNAP_SOURCE, ROSTER_SOURCE}
 _PARITY = ("base_prob", "served_prob", "base_model_version", "calibrator_version",
            "forecast_created_utc", "source_snapshot_id", "source_timestamps", "features", "publication_status")
 
@@ -40,6 +45,27 @@ def _component(source, observation_id, observed_utc, observed):
     if instant(observed_utc) > observed:
         raise ValueError("source_after_observation")
     return {"source": source, "observation_id": observation_id, "observed_utc": observed_utc}
+
+
+def _roster_component(trace, player_id, observed, *, participation):
+    proof = trace.get("identity_crosswalk")
+    if trace.get("identity_join_policy") != EVENT_BOUND_JOIN:
+        if "identity_crosswalk" in trace:
+            raise ValueError("unsupported_observed_identity_crosswalk")
+        return None
+    if (type(proof) is not dict or set(proof) != _CROSSWALK_FIELDS
+            or proof["source"] != ROSTER_SOURCE or proof["scope"] != "postgame_identity_only"
+            or proof["player_id"] != player_id
+            or not isinstance(proof["raw_sha256"], str) or not _HASH.fullmatch(proof["raw_sha256"])
+            or not isinstance(proof["gsis_id"], str) or not _GSIS_ID.fullmatch(proof["gsis_id"])
+            or (player_id.startswith("00-") and player_id != proof["gsis_id"])):
+        raise ValueError("invalid_observed_identity_crosswalk")
+    pfr = proof["pfr_id"]
+    if (pfr is None and participation
+            or pfr is not None and (not isinstance(pfr, str) or len(pfr) > 128 or pfr != pfr.strip()
+                                   or pfr.lower() in ("", "na", "nan", "none", "null"))):
+        raise ValueError("invalid_observed_identity_crosswalk")
+    return _component(ROSTER_SOURCE, proof["observation_id"], proof["observed_utc"], observed)
 
 
 def _source(receipt, source, leg):
@@ -113,6 +139,11 @@ def _evidence(receipt, source, leg, game, observed):
         if SNAP_SOURCE in components and fingerprint(components[SNAP_SOURCE]) != fingerprint(part):
             raise ValueError("conflicting_snap_observations")
         components[SNAP_SOURCE] = part
+    roster = _roster_component(leg, key[2], observed, participation=SNAP_SOURCE in components)
+    if roster:
+        if instant(roster["observed_utc"]) < instant(game["observed_utc"]):
+            raise ValueError("identity_crosswalk_observed_before_final_evidence")
+        components[ROSTER_SOURCE] = roster
     if leg.get("result") == "void":
         if (leg.get("reason") != "did_not_play" or leg.get("played") is not False
                 or leg.get("actual") is not None or leg["source"] != SNAP_SOURCE
@@ -156,7 +187,8 @@ def _evidence(receipt, source, leg, game, observed):
                                "source_updated_utc": None},
              "timing_limitations": {"upstream_updated_utc": None, "provider_final_revision_known": False},
              "participation_basis": basis}
-    trace_keys = ("evidence_capture_id", "pool_snapshot_id", "pool_snapshot_ids", "generation_ids", "identity_join_policy",
+    trace_keys = ("evidence_capture_id", "pool_snapshot_id", "pool_snapshot_ids", "generation_ids",
+                  "identity_join_policy", "identity_crosswalk",
                   "raw_row_digests", "stat_row_digest", "participation_row_digest", "participation_coverage",
                   "source_row_sha256", "evidence_quality")
     trace = {field: copy.deepcopy(leg[field]) for field in trace_keys if field in leg}
@@ -193,7 +225,7 @@ def _validate_observed_history(nodes, receipt):
         if value.get("evidence_observation_id") != fingerprint({"measurement_id": value["measurement_id"], "components": components}):
             raise ValueError("existing_observation_hash_mismatch")
         for source, component in watermarks.items():
-            if source not in (STAT_SOURCE, SNAP_SOURCE, GAME_SOURCE) or not isinstance(component, dict):
+            if source not in _SOURCES or not isinstance(component, dict):
                 raise ValueError("invalid_existing_observation_watermark")
             expected = _component(source, component.get("observation_id"), component.get("observed_utc"), instant(value["evidence_observed_utc"]))
             if fingerprint(expected) != fingerprint(component):
@@ -203,6 +235,11 @@ def _validate_observed_history(nodes, receipt):
                 raise ValueError("missing_existing_observation_watermark")
         if GAME_SOURCE not in components or value.get("source") not in components:
             raise ValueError("missing_existing_required_observation")
+        trace = value.get("producer_trace") or {}
+        if not isinstance(trace, dict) or _roster_component(
+                trace, measurement["canonical_contract"][2], instant(value["evidence_observed_utc"]),
+                participation=SNAP_SOURCE in components) != components.get(ROSTER_SOURCE):
+            raise ValueError("existing_identity_crosswalk_component_mismatch")
         game_clock = instant(components[GAME_SOURCE]["observed_utc"])
         if any(instant(c["observed_utc"]) < game_clock for source, c in components.items() if source != GAME_SOURCE):
             raise ValueError("existing_stat_observed_before_final_evidence")
@@ -309,7 +346,7 @@ def _observations(rows, receipt, observed, reference_measurement):
             raise ValueError("conflicting_existing_primary_observation_measurement")
         primary_states[primary_key] = state
         for source, component in source_components.items():
-            if source not in (GAME_SOURCE, STAT_SOURCE, SNAP_SOURCE) or not isinstance(component, dict):
+            if source not in _SOURCES or not isinstance(component, dict):
                 raise ValueError("invalid_existing_observation_component")
             expected = _component(source, component.get("observation_id"), component.get("observed_utc"), observed)
             if fingerprint(component) != fingerprint(expected):

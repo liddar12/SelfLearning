@@ -61,7 +61,7 @@ def make_capture_delivery_request(envelope, raw_pointers, *, destination_id, pro
         raise ValueError("invalid_capture_delivery_producer")
     frozen = capture._snapshot(envelope)
     manifest, _, _ = capture._preflight(frozen, capture.DEFAULT_MAX_TOTAL_BYTES)
-    if type(raw_pointers) is not list or len(raw_pointers) > 20:
+    if type(raw_pointers) is not list or len(raw_pointers) > capture.MAX_CAPTURE_OBJECTS:
         raise ValueError("invalid_capture_delivery_pointer_set")
     pointers = copy.deepcopy(raw_pointers)
     expected, seen, total = [], set(), 0

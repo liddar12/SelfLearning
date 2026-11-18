@@ -4,7 +4,8 @@ from __future__ import annotations
 from . import nfl_capture_application_v2 as V
 from . import nfl_capture_application as capacity
 from . import nfl_capture_delivery_journal as D
-from .nfl_observed_resolution import DNP_BASIS, GAME_SOURCE, STAT_SOURCE, SNAP_SOURCE
+from .nfl_capture_evidence import ROSTERS_PROFILE
+from .nfl_observed_resolution import DNP_BASIS, GAME_SOURCE, ROSTER_SOURCE, STAT_SOURCE, SNAP_SOURCE
 from ..probability_receipts import finite_number, fingerprint, instant
 
 SEAL_KEYS = {"version", "kind", "application_id", "request_id", "capture_intent_id", "capture_id", "execution_policy",
@@ -83,11 +84,11 @@ def _fact(value, scope, seal, request):
         raise ValueError("invalid_capture_application_game_fact")
     kickoff = instant(game["kickoff_utc"])
     sources = value["source_observations"]
-    if type(sources) is not dict or not {GAME_SOURCE} < set(sources) <= {GAME_SOURCE, STAT_SOURCE, SNAP_SOURCE}:
+    if type(sources) is not dict or not {GAME_SOURCE} < set(sources) <= {GAME_SOURCE, STAT_SOURCE, SNAP_SOURCE, ROSTER_SOURCE}:
         raise ValueError("invalid_capture_application_fact_sources")
     if value["status"] == "VOID":
         if (value["actual"] is not None or value["played"] is not False or value["reason"] != "did_not_play"
-                or value["participation_basis"] != DNP_BASIS or set(sources) != {GAME_SOURCE, SNAP_SOURCE}):
+                or value["participation_basis"] != DNP_BASIS or set(sources) - {ROSTER_SOURCE} != {GAME_SOURCE, SNAP_SOURCE}):
             raise ValueError("invalid_capture_application_void_fact")
     elif (value["status"] != "FINAL" or value["played"] is not True or value["reason"] is not None
             or not finite_number(value["actual"]) or STAT_SOURCE not in sources
@@ -96,7 +97,11 @@ def _fact(value, scope, seal, request):
                 and (value["actual"] != 0 or SNAP_SOURCE not in sources))):
         raise ValueError("invalid_capture_application_final_fact")
     envelope = request["capture_request"]["envelope"]
-    profiles = {GAME_SOURCE: "espn_scoreboard_v1", STAT_SOURCE: "nflverse_stats_player_v1", SNAP_SOURCE: "nflverse_snap_counts_v1"}
+    roster_in_capture = any(row["profile"] == ROSTERS_PROFILE for row in envelope["manifest"]["sources"])
+    if (ROSTER_SOURCE in sources) != roster_in_capture:
+        raise ValueError("capture_application_fact_crosswalk_membership_mismatch")
+    profiles = {GAME_SOURCE: "espn_scoreboard_v1", STAT_SOURCE: "nflverse_stats_player_v1",
+                SNAP_SOURCE: "nflverse_snap_counts_v1", ROSTER_SOURCE: ROSTERS_PROFILE}
     for name, component in sources.items():
         keys(component, {"source", "observation_id", "observed_utc"})
         D._hash(component["observation_id"])
