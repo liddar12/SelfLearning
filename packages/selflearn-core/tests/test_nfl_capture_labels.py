@@ -460,28 +460,43 @@ CHECKOUT = os.environ.get("NFL2026_CHECKOUT")
 
 @unittest.skipUnless(CHECKOUT, "Set NFL2026_CHECKOUT for original producer outcome parity")
 class ActualProducerBindingTests(unittest.TestCase):
-    def test_original_four_receipts_and_raw_outcomes_match_field_for_field(self):
+    def test_original_four_receipts_and_raw_outcomes_match_the_nfl_grader(self):
         self.assertTrue((Path(CHECKOUT) / "tests/fixtures/week6_outcomes.py").is_file())
         script = r'''
 import base64, importlib.util, json, tempfile
 from pathlib import Path
-from scripts import build_learning_outcomes as producer
 spec=importlib.util.spec_from_file_location('fixture',Path('tests/fixtures/week6_outcomes.py'))
 f=importlib.util.module_from_spec(spec);spec.loader.exec_module(f)
 with tempfile.TemporaryDirectory() as directory:
- root=Path(directory);f.generation(root);f.generation(root,'2026-09-01T13:00:00Z');plan=f.plan(root)
- captures=[f.bundle(),f.bundle(value='0'),f.bundle(value='-5'),f.bundle(value='NA'),f.bundle(status='STATUS_IN_PROGRESS'),
-  f.bundle(stats_rows=[f.stats_row('20',player_display_name='Other Receiver')]),
-  f.bundle(stats_rows=[f.stats_row('20',player_display_name='Other Receiver')],snap_rows=[f.snap_row(player='Other Receiver')])]
+ root=Path(directory)
+ _,_,schedule=f.bound_generation(root)
+ f.bound_generation(root,'2026-09-01T13:00:00Z');plan=f.plan(root)
+ other_stats=[f.bound_stats_row('20',player_index=2,player_display_name='Home Other')]
+ absent_snaps=[
+  f.bound_snap_row(player_index=2,player='Home Other'),
+  f.bound_snap_row(player_index=1,player='Away Starter',team='LAR',opponent='SEA')]
+ captures={
+  'two_thresholds':f.bound_bundle(value='42'),
+  'measured_zero':f.bound_bundle(value='0'),
+  'negative':f.bound_bundle(value='-5'),
+  'missing_value':f.bound_bundle(value='NA'),
+  'missing_final':f.bound_bundle(status='STATUS_IN_PROGRESS'),
+  'snap_zero':f.bound_bundle(stats_rows=other_stats),
+  'snap_void':f.bound_bundle(stats_rows=other_stats,snap_rows=absent_snaps),
+  'wrong_fixture':f.bound_bundle(stats_rows=[f.bound_stats_row('250',game_id='2026_06_MIN_SEA',opponent_team='MIN')]),
+  'no_crosswalk':f.bound_bundle(include_roster=False),
+ }
  output=[]
- for capture in captures:
-  output.append({'manifest':capture['manifest'],'observations':capture['observations'],
-    'raw':{key:base64.b64encode(raw).decode() for key,raw in capture['raw_objects'].items()},'expected':producer.build(plan,capture)})
+ for name,capture in captures.items():
+  output.append({'name':name,'manifest':capture['manifest'],'observations':capture['observations'],
+    'raw':{key:base64.b64encode(raw).decode() for key,raw in capture['raw_objects'].items()},
+    'expected':f.grades_from_capture(plan,schedule,capture),
+    'games':f.capture.scoreboard_rows(capture)})
  print(json.dumps({'documents':[item['request']['payload'] for item in plan['generations']],
                   'sources':plan['source_objects'],'cases':output}))
 '''
         run = subprocess.run([sys.executable, "-c", script], cwd=CHECKOUT, text=True, capture_output=True, timeout=30)
-        self.assertEqual(run.returncode, 0, "Actual local NFL producer fixture failed")
+        self.assertEqual(run.returncode, 0, run.stderr)
         payload = json.loads(run.stdout)
         adapted = adapt_prospective(journal_docs=payload["documents"])
         self.assertEqual(adapted["rejections"], [])
@@ -492,17 +507,63 @@ with tempfile.TemporaryDirectory() as directory:
                 for row in doc["receipts"]]}} for doc in payload["documents"]]
         objects = {item["object_id"]: {**item, "received_utc": "2026-10-20T11:00:00Z"} for item in payload["sources"]}
         journal = Journal({"version": 1, "watermark": "100", "receipts": adapted["receipts"], "generation_records": records}, objects)
+        originals = sorted((row["learning_receipt"] for doc in payload["documents"] for row in doc["receipts"]),
+                           key=lambda row: row["receipt_id"])
+        self.assertEqual(len(originals), 4)
+        snapshot_before = copy.deepcopy(journal.snapshot)
         for case in payload["cases"]:
-            raw = {key: base64.b64decode(value) for key, value in case["raw"].items()}
-            envelope = {"version": 1, "kind": "nfl.capture_envelope.v1", "scope": "uploaded_only", "manifest": case["manifest"],
-                        "observations": case["observations"], "raw_objects": [{"raw_sha256": key, "raw_bytes": len(value)} for key, value in raw.items()]}
-            actual = bind(journal, envelope, raw)
-            expected = case["expected"]
-            self.assertEqual(actual["source_receipts"], sorted(expected["source_receipts"], key=lambda row: row["receipt_id"]))
-            self.assertEqual(actual["observed_legs"], sorted(expected["observed_legs"], key=lambda row: row["source_receipt_id"]))
-            self.assertEqual(actual["game_observations"], expected["game_observations"])
-            self.assertEqual(actual["rejections"], expected["rejections"])
-            self.assertEqual(len(actual["groups"][0]["receipt_ids"]), 4)
+            with self.subTest(case=case["name"]):
+                raw = {key: base64.b64decode(value, validate=True) for key, value in case["raw"].items()}
+                envelope = {"version": 1, "kind": "nfl.capture_envelope.v1", "scope": "uploaded_only",
+                            "manifest": case["manifest"], "observations": case["observations"],
+                            "raw_objects": [{"raw_sha256": key, "raw_bytes": len(value)} for key, value in raw.items()]}
+                actual = bind(journal, envelope, raw)
+                resolved = resolve_observed(
+                    journal.snapshot["receipts"], actual["source_receipts"], actual["observed_legs"],
+                    actual["game_observations"], observed_utc="2026-09-04T15:00:00Z")
+                self.assertEqual(actual["source_receipts"], originals)
+                self.assertEqual(actual["groups"][0]["receipt_ids"], sorted(r["receipt_id"] for r in adapted["receipts"]))
+                self.assertEqual(actual["capture_integrity"]["scoreboard_rows"], case["games"])
+                outcomes = {p["resolution"]["receipt_id"]: p["resolution"] for p in resolved["proposals"]}
+                by_id = {leg["source_receipt_id"]: leg for leg in actual["observed_legs"]}
+                expected = case["expected"]
+                if case["name"] in ("missing_value", "missing_final", "wrong_fixture"):
+                    self.assertEqual({grade["result"] for grade in expected.values()}, {"pending"})
+                    self.assertEqual(actual["status"], "withheld")
+                missing = expected if case["name"] == "no_crosswalk" else {
+                    sid for sid, grade in expected.items() if grade["result"] == "pending"}
+                self.assertEqual(
+                    sorted((row["source_receipt_id"], row["reason"]) for row in resolved["rejections"]),
+                    [(sid, "no_observed_grade") for sid in sorted(missing)],
+                )
+                if case["name"] == "no_crosswalk":
+                    # The product's display grader permits an exact name join.
+                    # Captured learning labels require the separate ID proof.
+                    self.assertEqual(len(case["manifest"]["sources"]), 3)
+                    self.assertEqual(actual["status"], "withheld")
+                    self.assertEqual(by_id, {})
+                    self.assertEqual(outcomes, {})
+                    continue
+                self.assertEqual(len(case["manifest"]["sources"]), 4)
+                roster_id, roster = next((oid, o) for oid, o in case["observations"].items()
+                                         if o["profile"] == E.C.ROSTERS_PROFILE)
+                for source_id, grade in expected.items():
+                    if grade["result"] == "pending":
+                        self.assertNotIn(source_id, by_id)
+                        self.assertNotIn(by_source[source_id]["receipt_id"], outcomes)
+                        continue
+                    leg = by_id[source_id]
+                    self.assertEqual([leg[k] for k in ("game_id", "line", "result", "actual")],
+                                     [grade[k] for k in ("game_id", "line", "result", "actual")])
+                    outcome = outcomes[by_source[source_id]["receipt_id"]]
+                    self.assertIs(outcome["authoritative"], True)
+                    self.assertEqual(outcome["actual"], grade["actual"])
+                    self.assertIs(outcome["hit"], None if grade["result"] == "void" else grade["result"] == "hit")
+                    self.assertEqual(leg["identity_crosswalk"]["observation_id"], roster_id)
+                    self.assertEqual(leg["identity_crosswalk"]["raw_sha256"], roster["raw_sha256"])
+                    self.assertEqual(outcome["producer_trace"]["identity_crosswalk"], leg["identity_crosswalk"])
+                self.assertEqual(set(by_id), {sid for sid, grade in expected.items() if grade["result"] != "pending"})
+        self.assertEqual(journal.snapshot, snapshot_before)
 
 
 if __name__ == "__main__":

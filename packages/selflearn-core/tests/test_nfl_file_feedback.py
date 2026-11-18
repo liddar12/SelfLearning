@@ -176,19 +176,50 @@ from pathlib import Path
 spec=importlib.util.spec_from_file_location('fixture',Path('tests/fixtures/week6_outcomes.py'))
 f=importlib.util.module_from_spec(spec);spec.loader.exec_module(f)
 with tempfile.TemporaryDirectory() as directory:
- root=Path(directory);f.generation(root);f.generation(root,'2026-09-01T13:00:00Z');plan=f.plan(root);bundle=f.bundle()
- print(json.dumps({'graph':{k:plan[k]for k in('source_objects','generations')},'manifest':bundle['manifest'],
-  'observations':bundle['observations'],'raw':{key:base64.b64encode(raw).decode()for key,raw in bundle['raw_objects'].items()}}))
+ root=Path(directory)
+ _,_,schedule=f.bound_generation(root)
+ f.bound_generation(root,'2026-09-01T13:00:00Z');plan=f.plan(root)
+ cases=[f.bound_bundle(value='42'),f.bound_bundle(value='80',observed='2026-09-04T12:00:00Z')]
+ captures=[{'manifest':bundle['manifest'],'observations':bundle['observations'],
+  'raw':{key:base64.b64encode(raw).decode()for key,raw in bundle['raw_objects'].items()},
+  'expected':f.grades_from_capture(plan,schedule,bundle)} for bundle in cases]
+ print(json.dumps({'graph':{k:plan[k]for k in('source_objects','generations')},'captures':captures}))
 '''
         run=subprocess.run([sys.executable,"-c",script],cwd=checkout,text=True,capture_output=True,timeout=30)
-        self.assertEqual(run.returncode,0,"Actual local producer fixture failed")
-        payload=json.loads(run.stdout);raw={key:base64.b64decode(value)for key,value in payload["raw"].items()}
-        envelope={"version":1,"kind":"nfl.capture_envelope.v1","scope":"uploaded_only","manifest":payload["manifest"],
-            "observations":payload["observations"],"raw_objects":[{"raw_sha256":key,"raw_bytes":len(value)}for key,value in sorted(raw.items())]}
-        first=F.prepare(payload["graph"],observed_utc="2026-09-01T15:00:00Z")["state"]
-        second=F.prepare(payload["graph"],previous=first,captures=[(envelope,lambda key:E.stream(raw[key]))],observed_utc="2026-09-04T15:00:00Z")["state"]
-        report=F.evaluate(second,payload["graph"],as_of_utc="2026-09-04T15:00:01Z")
-        self.assertEqual((len(second["receipts"]),len(second["revisions"])),(4,4))
+        self.assertEqual(run.returncode,0,run.stderr)
+        payload = json.loads(run.stdout)
+        graph = payload["graph"]
+
+        def captured(case):
+            raw = {key: base64.b64decode(value, validate=True) for key, value in case["raw"].items()}
+            self.assertEqual(len(case["manifest"]["sources"]), 4)
+            envelope = {"version": 1, "kind": "nfl.capture_envelope.v1", "scope": "uploaded_only",
+                        "manifest": case["manifest"], "observations": case["observations"],
+                        "raw_objects": [{"raw_sha256": key, "raw_bytes": len(value)} for key, value in sorted(raw.items())]}
+            return envelope, lambda key: E.stream(raw[key])
+
+        initial, corrected = payload["captures"]
+        first = F.prepare(graph, observed_utc="2026-09-01T15:00:00Z")["state"]
+        second = F.prepare(graph, previous=first, captures=[captured(initial)],
+                           observed_utc="2026-09-04T15:00:00Z")["state"]
+        repeated = F.prepare(graph, previous=second, captures=[captured(initial)],
+                             observed_utc="2026-09-04T15:01:00Z")["state"]
+        latest = F.prepare(graph, previous=repeated, captures=[captured(corrected)],
+                           observed_utc="2026-09-05T15:00:00Z")["state"]
+        self.assertEqual(first["receipts"], latest["receipts"])
+        self.assertEqual(second["revisions"], repeated["revisions"])
+        self.assertEqual((len(second["receipts"]), len(second["revisions"]), len(latest["revisions"])), (4, 4, 8))
+        prior_ids = {row["revision_id"] for row in second["revisions"]}
+        source_ids = {row["receipt_id"]: row["source_receipt_id"] for row in first["receipts"]}
+        for state, case in ((second, initial), (latest, corrected)):
+            changes = [r["resolution"] for r in state["revisions"] if state is second or r["revision_id"] not in prior_ids]
+            self.assertEqual(len(changes), 4)
+            for outcome in changes:
+                expected = case["expected"][source_ids[outcome["receipt_id"]]]
+                self.assertEqual(outcome["actual"], expected["actual"])
+                self.assertIs(outcome["hit"], expected["result"] == "hit")
+                self.assertIn("nflverse.rosters", outcome["source_observations"])
+        report = F.evaluate(latest, graph, as_of_utc="2026-09-05T15:00:01Z")
         self.assertEqual(report["report"]["cohort_n"],2)  # canonical contracts, not four duplicated vintages
         self.assertEqual(report["first_imported_before_kickoff"],4)
         self.assertFalse(report["report"]["proposed_shared_return_gate"]["passed"])

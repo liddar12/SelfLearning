@@ -268,7 +268,7 @@ with tempfile.TemporaryDirectory() as directory:
   prototype=copy.deepcopy(pool['players'][0]);players=[]
   group_ids=range(185) if vintage<2 else range(173) if vintage==2 else range(1)
   for index in group_ids:
-   player=copy.deepcopy(prototype);player.update(player=f'Receiver {index}',team='SEA',gsis_id=f'espn-{index}')
+   player=copy.deepcopy(prototype);player.update(player=f'Receiver {index}',team='SEA',gsis_id=f.player_ids(index)[0])
    for rung in player['rungs']:
     z=(player['mu']-rung['line'])/30;coef={'a':math.log(rung['model_prob']/(1-rung['model_prob'])),'b':0,'c':0}
     features={'market':player['market'],'line':rung['line'],'mu':player['mu'],'sd':30,'z':z,'p_team':player['p_team'],
@@ -282,13 +282,15 @@ with tempfile.TemporaryDirectory() as directory:
   schedule={'season':2026,'games':[{'game_id':'G1','week':6,'home':'SEA','away':'LAR','status':'STATUS_SCHEDULED','kickoff_utc':f.KICKOFF}]}
   recorded=(f.lr.instant(created)+dt.timedelta(minutes=1)).isoformat().replace('+00:00','Z')
   f.learning_journal.record(pool,schedule,None,[],recorded,str(root))
- bundle=f.bundle(stats_rows=[f.stats_row('80',player_display_name=f'Receiver {i}') for i in range(185)],
-   snap_rows=[f.snap_row(player=f'Receiver {i}') for i in range(185)])
+ snaps=[f.bound_snap_row(player_index=i,player=f'Receiver {i}') for i in range(185)]
+ snaps.append(f.bound_snap_row(player_index=185,player='Away Starter',team='LAR',opponent='SEA'))
+ bundle=f.bound_bundle(stats_rows=[f.bound_stats_row('80',player_index=i,player_display_name=f'Receiver {i}') for i in range(185)],
+   snap_rows=snaps,roster_rows=[f.bound_roster_row(i) for i in range(186)])
  print(json.dumps({'plan':f.plan(root),'capture':{'manifest':bundle['manifest'],'observations':bundle['observations'],
    'raw':{key:base64.b64encode(raw).decode() for key,raw in bundle['raw_objects'].items()}}}))
 '''
         produced = subprocess.run([sys.executable, '-c', script], cwd=checkout, capture_output=True, text=True, timeout=60)
-        self.assertEqual(produced.returncode, 0, 'Actual NFL producer fixture must complete locally')
+        self.assertEqual(produced.returncode, 0, produced.stderr)
         value = json.loads(produced.stdout)
         documents = [row['request']['payload'] for row in value['plan']['generations']]
         adapted = adapt_prospective(journal_docs=documents)
@@ -303,6 +305,7 @@ with tempfile.TemporaryDirectory() as directory:
                 {'source_receipt_id': r['receipt_id'], 'receipt_id': by_source[r['receipt_id']]['receipt_id'], 'status': 'recorded'} for r in doc['receipts']]}
             journal.snapshot['generation_records'].append({'object_id': doc['envelope_id'], 'payload': doc, 'ack': ack, 'recorded_utc': '2026-10-15T00:01:00Z'})
         captured = value['capture']
+        self.assertEqual(len(captured['manifest']['sources']), 4)
         objects = {key: base64.b64decode(raw, validate=True) for key, raw in captured['raw'].items()}
         envelope = {'version': 1, 'kind': 'nfl.capture_envelope.v1', 'scope': 'uploaded_only', 'manifest': captured['manifest'],
             'observations': captured['observations'], 'raw_objects': [{'raw_sha256': key, 'raw_bytes': len(raw)} for key, raw in sorted(objects.items())]}
