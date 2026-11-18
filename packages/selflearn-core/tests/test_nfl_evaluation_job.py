@@ -27,14 +27,14 @@ def inputs():
 def definition(inputs,**changes):
     now=dt.datetime.now(dt.timezone.utc)
     return J.seal_spec({"version":1,"kind":"selflearn.job_definition.v1","namespace":dict(N.NS),"operation":N.OPERATION,
-        "input_object_id":fingerprint(inputs),"policy_object_id":fingerprint(N.policy()),"code_id":J.code_identity(),
+        "input_object_id":fingerprint(inputs),"policy_object_id":fingerprint(N.policy(outcome_admission=N.calibration.LEGACY_LABELS)),"code_id":J.code_identity(),
         "not_before_utc":J.stamp(now-dt.timedelta(seconds=10)),"not_after_utc":J.stamp(now+dt.timedelta(minutes=5)),
         "lease_seconds":60,"max_runtime_seconds":180,"max_attempts":3,"max_steps":2,**changes},authority_id=AUTHORITY)
 
 
 def staged(tmp_path,inputs,**changes):
     journal=LearningJobJournal(tmp_path/"nfl-jobs.db",authority_id=AUTHORITY)
-    for payload in(inputs,N.policy()):journal.append_object("source_snapshot",fingerprint(payload),payload)
+    for payload in(inputs,N.policy(outcome_admission=N.calibration.LEGACY_LABELS)):journal.append_object("source_snapshot",fingerprint(payload),payload)
     spec=definition(inputs,**changes);journal.register_job(spec);return journal,spec
 
 

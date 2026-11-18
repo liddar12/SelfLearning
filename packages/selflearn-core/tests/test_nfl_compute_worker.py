@@ -19,7 +19,7 @@ from test_nfl_evaluation_job import inputs,definition,AUTHORITY
 
 
 def packet(inputs,**changes):
-    settings=N.policy(execution_profile=P.profile())
+    settings=N.policy(outcome_admission=N.calibration.LEGACY_LABELS, execution_profile=P.profile())
     return {"version":1,"kind":"nfl.compute_request.v1","authority_id":AUTHORITY,
         "definition":definition(inputs,policy_object_id=fingerprint(settings)),"registered_utc":"2026-10-16T00:00:00Z",
         "inputs":inputs,"policy":settings,"cpu_seconds":30,**changes}
@@ -79,7 +79,7 @@ def test_worker_refuses_mismatched_scope_sources_profile_or_changed_code(inputs,
         spec=value["definition"]
         changed={**spec,"namespace":{**N.NS,"domain":"other"}}if fault=="namespace"else{**spec,"operation":"other"}
         value["definition"]=J.seal_spec({k:v for k,v in changed.items()if k not in("job_id","definition_id")},authority_id=AUTHORITY)
-    elif fault=="inline_policy":value["policy"]=N.policy()
+    elif fault=="inline_policy":value["policy"]=N.policy(outcome_admission=N.calibration.LEGACY_LABELS)
     elif fault=="cpu_bool":value["cpu_seconds"]=True
     elif fault=="cpu_high":value["cpu_seconds"]=31
     elif fault=="future":value["inputs"]["as_of_utc"]="2099-01-01T00:00:00Z"
