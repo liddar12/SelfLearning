@@ -11,6 +11,7 @@ from selflearn_core.probability_receipts import fingerprint, instant
 from test_nfl_calibration import case, corpus, reseal, stamp
 from test_nfl_file_feedback import EVALUATED, POSTGAME, PREGAME, capture, graph
 from test_nfl_owner_evidence import setup as owner_setup
+from test_nfl_prospective import rehash
 
 AS_OF = "2026-10-15T00:00:00Z"
 POPULATION = "eligible_pool"
@@ -135,6 +136,64 @@ def test_invalid_nonempty_generation_records_cannot_satisfy_proposed_gate():
     assert report["shared_shadow_numeric_gate"]["passed"] is True
     assert report["proposed_shared_return_gate"]["passed"] is False
     assert "committed_generation_evidence_unverified" in report["proposed_shared_return_gate"]["failures"]
+
+
+
+def test_fold_gate_requires_durable_generation_evidence_at_training_cutoff():
+    receipts, sources, _, revisions = qualified_corpus()
+    records = []
+    for week in (1, 2, 3):
+        members = [(receipt, source) for receipt, source in zip(receipts, sources, strict=True)
+                   if source["week"] == week]
+        created = members[0][1]["forecast_created_utc"]
+        captured = members[0][0]["first_seen_utc"]
+        manifest = {"version": 1, "season": 2026, "week": week, "pool_generated_utc": created,
+                    "source_snapshots": {name: fingerprint(name) for name in ("leg_pool", "schedule", "parlay_calibration")},
+                    "offered_cards": [], "selection_policy_version": fingerprint("selection"),
+                    "joint_model_version": fingerprint("joint")}
+        generation_id = fingerprint(manifest)
+        generation = {**manifest, "generation_id": generation_id, "recorded_utc": captured,
+                      "receipt_ids": sorted(source["receipt_id"] for _, source in members),
+                      "publication_status": "generated_unverified",
+                      "population": "eligible_pool_prop_rungs_before_display_dedupe"}
+        entries = [{"receipt_id": source["receipt_id"], "learning_receipt": source,
+                    "leg": {**source, "model_prob": source["served_prob"]},
+                    "kickoff_utc": receipt["event_start_utc"], "recorded_utc": captured,
+                    "generation_id": generation_id, "publication_status": "generated_unverified"}
+                   for receipt, source in members]
+        document = rehash({"version": 1, "season": 2026, "week": week,
+                           "receipts": entries, "generations": [generation]})
+        receipt_acks = [{"receipt_id": receipt["receipt_id"], "source_receipt_id": source["receipt_id"],
+                         "status": "recorded"} for receipt, source in members]
+        records.append({"object_id": document["envelope_id"], "payload": document,
+                        "recorded_utc": stamp(instant(captured) + timedelta(minutes=1)),
+                        "ack": {"version": 1, "object_id": document["envelope_id"], "durable": True,
+                                "receipts": receipt_acks, "rejections": []}})
+
+    def report(generation_records):
+        return calibration.walk_forward_report(receipts, sources, revisions, as_of_utc=AS_OF,
+            population=POPULATION, generation_records=generation_records, bootstrap_replicates=200, **QUALIFIED)
+
+    on_time = report(records)
+    # The same immutable documents and acknowledgments entered the durable
+    # journal after both fold cutoffs, but before this report's cutoff.
+    late_records = [{**row, "recorded_utc": "2026-10-14T00:00:00Z"} for row in records]
+    late = report(late_records)
+    partial = report([records[0], late_records[1], records[2]])
+    assert on_time["generation_coverage"] == late["generation_coverage"] == generation_coverage(330, 330)
+    assert on_time["metrics"] == late["metrics"]
+    assert [fold["fit_n"] for fold in late["folds"]] == [110, 220]
+    assert [fold["generation_coverage"] for fold in on_time["folds"]] == [
+        generation_coverage(110, 110), generation_coverage(220, 220)]
+    assert [fold["generation_coverage"] for fold in late["folds"]] == [
+        generation_coverage(110, 0), generation_coverage(220, 0)]
+    assert [fold["generation_coverage"] for fold in partial["folds"]] == [
+        generation_coverage(110, 110), generation_coverage(220, 110)]
+    assert on_time["proposed_shared_return_gate"]["passed"] is True
+    assert late["proposed_shared_return_gate"]["passed"] is False
+    assert late["proposed_shared_return_gate"]["failures"] == partial["proposed_shared_return_gate"]["failures"] == [
+        "training_fold_generation_evidence_unverified"]
+    assert partial["proposed_shared_return_gate"]["passed"] is False
 
 
 def test_first_unresolved_receipt_cannot_borrow_a_qualified_refresh_label():
