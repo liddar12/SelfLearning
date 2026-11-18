@@ -8,7 +8,7 @@ from selflearn_core.adapters import nfl_capture_delivery_journal as D
 from selflearn_core.probability_receipts import fingerprint
 from selflearn_core.store.receipt_journal import JournalConflict
 from test_nfl_capture_job import MemoryJournal, PROCESSING
-from test_nfl_capture_labels import journal_fixture, good_capture
+from test_nfl_capture_labels import BINDING_STATS, OTHER_APP_ID, binding_capture, good_capture, journal_fixture, stat_row
 import test_nfl_capture_evidence as E
 
 
@@ -94,15 +94,15 @@ class DeliveryJobTests(unittest.TestCase):
         self.assertEqual([len(row[2]) for row in journal.delivery_writes],[4,6])
         self.assertEqual([row[4] for row in journal.delivery_writes],['100','200'])
         self.assertEqual(len(result['result']['groups'][0]['receipt_ids']),6)
-        self.assertEqual(len(reads),10)
+        self.assertEqual(len(reads),14)
 
     def test_whole_group_kernel_quarantine_keeps_independent_good_group(self):
         journal=MemoryDeliveryJournal()
-        other=journal_fixture(player='Other Receiver',player_id='espn-other')
+        other=journal_fixture(player='Other Receiver',player_id=OTHER_APP_ID)
         journal.snapshot['receipts']+=other.snapshot['receipts']
         journal.snapshot['generation_records']+=other.snapshot['generation_records'];journal.objects.update(other.objects)
-        stats=E.STATS.replace(b',,,NA',b',,,80')+b'2026,6,REG,WR,SEA,Other Receiver,,,80\r\n'
-        envelope,objects=E.fixture(stats=stats,stats_audit=E.csv_audit(4));intent=request(envelope,objects)
+        stats=BINDING_STATS.replace(b',,,NA',b',,,80')+stat_row('Other Receiver', '80', player_index=4)
+        envelope,objects=binding_capture(stats=stats,stats_audit=E.csv_audit(4));intent=request(envelope,objects)
         original=job.resolve_observed
         def incomplete(*args,**kwargs):
             result=original(*args,**kwargs)
@@ -117,7 +117,7 @@ class DeliveryJobTests(unittest.TestCase):
         self.assertEqual(held['observation_ids'],[]);self.assertEqual(held['revision_ids'],[])
 
     def test_withheld_and_empty_population_are_explicit_original_results(self):
-        for journal,pair,status in ((MemoryDeliveryJournal(),E.fixture(),'withheld'),
+        for journal,pair,status in ((MemoryDeliveryJournal(),binding_capture(),'withheld'),
                                     (MemoryDeliveryJournal(vintages=0),good_capture(),'no_supported_membership')):
             envelope,objects=pair;intent=request(envelope,objects)
             result=run(journal,intent,objects)['result']

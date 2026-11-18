@@ -3,39 +3,34 @@
 import unittest
 
 from selflearn_core.adapters.nfl_observed_resolution import resolve_observed
-from test_nfl_capture_evidence import SNAPS, STATS, csv_audit, encoded, event, fixture, score_audit
-from test_nfl_capture_labels import bind, journal_fixture
+from test_nfl_capture_evidence import csv_audit, encoded, event, score_audit
+from test_nfl_capture_labels import (
+    BINDING_ROSTER, BINDING_SNAPS, BINDING_STATS, FIXTURE_NFLVERSE_GAME, RECEIVER_APP_ID,
+    RECEIVER_GSIS_ID, bind, binding_capture, journal_fixture, player_ids, roster_row,
+    snap_row, stat_row, unrelated_stats,
+)
 
 
-EXACT_GAME = b"2026_06_LAR_SEA"
-OTHER_GAME = b"2026_06_MIN_SEA"
-SCOPE = [2026, "g6", "espn-fixture-1", "wr_rec_yds", "home"]
+EXACT_GAME = FIXTURE_NFLVERSE_GAME
+OTHER_GAME = "2026_06_MIN_SEA"
+SCOPE = [2026, "g6", RECEIVER_APP_ID, "wr_rec_yds", "home"]
 OBSERVED_UTC = "2026-10-21T00:00:00Z"
 
 
-def stats_rows(game=EXACT_GAME, opponent=b"LAR", value=b"42"):
-    header, first, *others = STATS.replace(b",,,NA", b",,," + value).splitlines()
-    return b"\n".join([
-        header + b",game_id,opponent_team",
-        first + b"," + game + b"," + opponent,
-        *(row + b"," + EXACT_GAME + b",LAR" for row in others),
-    ]) + b"\n"
+def stats_rows(game=EXACT_GAME, opponent="LAR", value="42"):
+    header, _, *others = BINDING_STATS.splitlines(keepends=True)
+    return header + stat_row("Fixture Receiver", value, player_index=0, game=game, opponent=opponent) + b"".join(others)
 
 
-def snap_rows(game=EXACT_GAME, opponent=b"LAR", *, player_present=True):
-    header, home, away = SNAPS.splitlines()
-    if not player_present:
-        home = home.replace(b"Fixture Receiver", b"Another Player")
-    return b"\n".join([
-        header + b",game_id,opponent",
-        home + b"," + game + b"," + opponent,
-        away + b"," + EXACT_GAME + b",SEA",
-    ]) + b"\n"
+def snap_rows(game=EXACT_GAME, opponent="LAR", *, player_present=True):
+    header, _, away = BINDING_SNAPS.splitlines(keepends=True)
+    name, index = ("Fixture Receiver", 0) if player_present else ("Another Player", 5)
+    return header + snap_row(name, "40", player_index=index, game=game, opponent=opponent) + away
 
 
 def bind_and_resolve(**capture_kwargs):
     journal = journal_fixture(vintages=1, lines=(39.5,))
-    envelope, objects = fixture(**capture_kwargs)
+    envelope, objects = binding_capture(**capture_kwargs)
     staged = bind(journal, envelope, objects)
     original = journal.snapshot["receipts"][0]
     resolved = resolve_observed(
@@ -88,10 +83,10 @@ class CaptureEventIdentityTests(unittest.TestCase):
         self.assertEqual(outcome["measurement"]["game"]["game_id"], "g6")
 
     def test_wrong_fixture_stat_cannot_create_250_yard_hit(self):
-        self.assert_withheld(stats=stats_rows(OTHER_GAME, b"MIN", b"250"), snaps=snap_rows())
+        self.assert_withheld(stats=stats_rows(OTHER_GAME, "MIN", "250"), snaps=snap_rows())
 
     def test_matching_fixture_snap_sheet_can_settle_without_a_stat_row(self):
-        stats = stats_rows().replace(b"Fixture Receiver", b"Different Receiver")
+        stats = unrelated_stats(stats_rows())
         cases = ((True, "FINAL", 0.0, False), (False, "VOID", None, None))
         for player_present, status, actual, hit in cases:
             with self.subTest(player_present=player_present):
@@ -107,33 +102,33 @@ class CaptureEventIdentityTests(unittest.TestCase):
                 self.assertIs(outcome["authoritative"], True)
 
     def test_wrong_fixture_snaps_cannot_create_zero_yard_miss_or_void(self):
-        stats = stats_rows().replace(b"Fixture Receiver", b"Different Receiver")
+        stats = unrelated_stats(stats_rows())
         for player_present in (True, False):
             with self.subTest(player_present=player_present):
                 self.assert_withheld(stats=stats, snaps=snap_rows(
-                    OTHER_GAME, b"MIN", player_present=player_present))
+                    OTHER_GAME, "MIN", player_present=player_present))
 
     def test_stat_event_fields_must_agree_with_fixture_and_own_row(self):
         cases = {
-            "missing_game": (b"", b"LAR"),
-            "missing_opponent": (EXACT_GAME, b""),
-            "conflicting_opponent": (EXACT_GAME, b"MIN"),
-            "reversed_venue": (b"2026_06_SEA_LAR", b"LAR"),
-            "conflicting_week": (b"2026_07_LAR_SEA", b"LAR"),
-            "conflicting_season": (b"2025_06_LAR_SEA", b"LAR"),
-            "missing_season": (b"_06_LAR_SEA", b"LAR"),
+            "missing_game": ("", "LAR"),
+            "missing_opponent": (EXACT_GAME, ""),
+            "conflicting_opponent": (EXACT_GAME, "MIN"),
+            "reversed_venue": ("2026_06_SEA_LAR", "LAR"),
+            "conflicting_week": ("2026_07_LAR_SEA", "LAR"),
+            "conflicting_season": ("2025_06_LAR_SEA", "LAR"),
+            "missing_season": ("_06_LAR_SEA", "LAR"),
         }
         for name, (game, opponent) in cases.items():
             with self.subTest(name=name):
                 self.assert_withheld(stats=stats_rows(game, opponent), snaps=snap_rows())
 
     def test_snap_sheet_event_fields_must_agree_before_proving_absence(self):
-        stats = stats_rows().replace(b"Fixture Receiver", b"Different Receiver")
+        stats = unrelated_stats(stats_rows())
         cases = {
-            "missing_game": (b"", b"LAR"),
-            "missing_opponent": (EXACT_GAME, b""),
-            "conflicting_opponent": (EXACT_GAME, b"MIN"),
-            "conflicting_season": (b"2025_06_LAR_SEA", b"LAR"),
+            "missing_game": ("", "LAR"),
+            "missing_opponent": (EXACT_GAME, ""),
+            "conflicting_opponent": (EXACT_GAME, "MIN"),
+            "conflicting_season": ("2025_06_LAR_SEA", "LAR"),
         }
         for name, (game, opponent) in cases.items():
             with self.subTest(name=name):
@@ -141,9 +136,29 @@ class CaptureEventIdentityTests(unittest.TestCase):
                     game, opponent, player_present=False))
 
     def test_conflicting_rows_for_one_player_do_not_create_a_label(self):
-        wrong = stats_rows(OTHER_GAME, b"MIN", b"250").splitlines()[1]
+        wrong = stats_rows(OTHER_GAME, "MIN", "250").splitlines()[1]
         stats = stats_rows() + wrong + b"\n"
         self.assert_withheld(stats=stats, stats_audit=csv_audit(4), snaps=snap_rows())
+
+    def test_same_name_with_different_raw_id_cannot_satisfy_receipt(self):
+        stats = stats_rows(value="250").replace(RECEIVER_GSIS_ID.encode(), player_ids(1)[1].encode())
+        header, _, away = snap_rows().splitlines(keepends=True)
+        self.assert_withheld(stats=stats, snaps=header + away, snaps_audit=csv_audit(1))
+
+    def test_separate_namesake_id_does_not_override_the_bound_stat(self):
+        namesake = stat_row("Fixture Receiver", "250", player_index=1, team="LAR", opponent="SEA")
+        original, staged, resolved = bind_and_resolve(
+            stats=stats_rows() + namesake, stats_audit=csv_audit(4), snaps=snap_rows())
+        self.assertEqual(self.assert_membership(original, staged)["status"], "staged")
+        self.assertEqual(resolved["rejections"], [])
+        self.assertEqual([row["resolution"]["actual"] for row in resolved["proposals"]], [42.0])
+
+    def test_conflicting_or_missing_roster_crosswalk_withholds(self):
+        _, other_gsis, other_pfr = player_ids(7)
+        conflict = BINDING_ROSTER + roster_row(0, gsis_id=other_gsis, pfr_id=other_pfr)
+        for roster in (None, conflict):
+            with self.subTest(roster_present=roster is not None):
+                self.assert_withheld(stats=stats_rows(), snaps=snap_rows(), roster=roster)
 
     def test_stats_and_snaps_require_a_final_for_the_receipt_game(self):
         cases = (

@@ -13,25 +13,31 @@ from selflearn_core.adapters import nfl_capture_application as P
 from selflearn_core.adapters.nfl import adapt_prospective
 from selflearn_core.probability_receipts import fingerprint
 from test_nfl_capture_delivery_job import MemoryDeliveryJournal, PROCESSING, request, run as deliver
-from test_nfl_capture_labels import journal_fixture, good_capture
+from test_nfl_capture_labels import (
+    BINDING_ROSTER, BINDING_SNAPS, BINDING_STATS, RECEIVER_PFR_ID, binding_capture,
+    good_capture, journal_fixture, player_ids, roster_row, stat_row,
+)
 import test_nfl_capture_evidence as E
 
 
 def population(*, sizes=(4, 4), missing_first=False):
     journal = MemoryDeliveryJournal(vintages=0)
-    stats = E.STATS if missing_first else E.STATS.replace(b',,,NA', b',,,80')
+    stats = BINDING_STATS if missing_first else BINDING_STATS.replace(b',,,NA', b',,,80')
+    roster = BINDING_ROSTER
     rows = 3
     for index, size in enumerate(sizes):
         name = 'Fixture Receiver' if index == 0 else f'Other Receiver {index}'
+        player_index = index + 7 if index else 0
         item = journal_fixture(vintages=1, lines=tuple(float(n + 1) for n in range(size)),
-                               player=name, player_id=f'espn-player-{index}')
+                               player=name, player_id=player_ids(player_index)[0])
         journal.snapshot['receipts'] += item.snapshot['receipts']
         journal.snapshot['generation_records'] += item.snapshot['generation_records']
         journal.objects.update(item.objects)
         if index:
-            stats += f'2026,6,REG,WR,SEA,{name},,,80\r\n'.encode()
+            stats += stat_row(name, "80", player_index=player_index)
+            roster += roster_row(player_index)
             rows += 1
-    return journal, E.fixture(stats=stats, stats_audit=E.csv_audit(rows))
+    return journal, binding_capture(stats=stats, stats_audit=E.csv_audit(rows), roster=roster)
 
 
 def plan(journal, envelope, objects, **kwargs):
@@ -73,7 +79,7 @@ class ApplicationTests(unittest.TestCase):
         validate_manifest(self, preview)
         self.assertEqual(preview['status'], 'planned')
         self.assertEqual(preview['manifest']['counts']['members'], 10)
-        self.assertEqual(len(reads), 5, 'integrity and full-stat rereads occur once, never once per batch')
+        self.assertEqual(len(reads), 7, 'four integrity reads and three label rereads occur once, never per batch')
         self.assertEqual(journal.reads, 1)
         self.assertEqual(journal.snapshot, original)
         self.assertEqual(journal.delivery_writes, [])
@@ -147,18 +153,24 @@ class ApplicationTests(unittest.TestCase):
 
     def test_missing_NA_alias_period_and_named_zero_masks_never_become_false_VOID(self):
         journal = MemoryDeliveryJournal()
-        no_stat = E.STATS.splitlines(keepends=True)
+        no_stat = BINDING_STATS.splitlines(keepends=True)
         no_stat = no_stat[0] + b''.join(no_stat[2:])
-        variants = [E.fixture(),
-            E.fixture(stats=no_stat, stats_audit=E.csv_audit(2), snaps=E.SNAPS.replace(b'Receiver,40', b'Receiver,0')),
-            E.fixture(stats=no_stat, stats_audit=E.csv_audit(2), snaps=E.SNAPS.replace(b'Fixture Receiver', b'F. Receiver')),
-            E.fixture(stats=no_stat, stats_audit=E.csv_audit(2), snaps=E.SNAPS.replace(b'REG,SEA', b',SEA'))]
+        variants = [
+            binding_capture(),
+            binding_capture(stats=no_stat, stats_audit=E.csv_audit(2),
+                            snaps=BINDING_SNAPS.replace(b'Receiver,40', b'Receiver,0')),
+            binding_capture(stats=no_stat, stats_audit=E.csv_audit(2),
+                            snaps=BINDING_SNAPS.replace(b'Fixture Receiver', b'F. Receiver').replace(
+                                RECEIVER_PFR_ID.encode(), b'')),
+            binding_capture(stats=no_stat, stats_audit=E.csv_audit(2),
+                            snaps=BINDING_SNAPS.replace(b'REG,SEA', b',SEA')),
+        ]
         for envelope, objects in variants:
             with self.subTest(capture=envelope['manifest']['capture_id']):
                 preview = plan(journal, envelope, objects)
                 self.assertEqual(preview['status'], 'withheld')
                 self.assertEqual(preview['candidates'], [])
-        envelope, objects = E.fixture(stats=no_stat, stats_audit=E.csv_audit(2))
+        envelope, objects = binding_capture(stats=no_stat, stats_audit=E.csv_audit(2))
         preview = plan(journal, envelope, objects)
         self.assertEqual(preview['status'], 'planned')
         self.assertTrue(all(r['measurement']['actual'] == 0 and r['measurement']['played'] is True

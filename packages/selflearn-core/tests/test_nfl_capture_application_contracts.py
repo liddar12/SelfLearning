@@ -12,6 +12,7 @@ from selflearn_core.probability_receipts import fingerprint
 from test_nfl_capture_application_v2 import context
 from test_nfl_capture_delivery_job import PROCESSING
 from test_nfl_capture_delivery_job import request as capture_request
+from test_nfl_capture_labels import BINDING_SNAPS, BINDING_STATS, binding_capture, unrelated_snaps
 import test_nfl_capture_evidence as E
 
 
@@ -151,11 +152,11 @@ class CaptureApplicationContractTests(unittest.TestCase):
 
     def test_real_verified_zero_and_void_facts_do_not_collapse_numeric_identity(self):
         _, journal, _, _ = context(sizes=(4,))
-        lines = E.STATS.splitlines(keepends=True)
+        lines = BINDING_STATS.splitlines(keepends=True)
         no_stat = lines[0] + b"".join(lines[2:])
         for absent in (False, True):
-            envelope, objects = E.fixture(stats=no_stat, stats_audit=E.csv_audit(2),
-                snaps=E.SNAPS.replace(b"Fixture Receiver", b"Different Receiver") if absent else E.SNAPS)
+            envelope, objects = binding_capture(stats=no_stat, stats_audit=E.csv_audit(2),
+                snaps=unrelated_snaps() if absent else BINDING_SNAPS)
             request = V.make_request(capture_request(envelope, objects))
             ctx = V.bind_context(journal, request, lambda oid: E.stream(objects[oid]), clock=lambda: PROCESSING)
             seal = V.prepare_seal(ctx)

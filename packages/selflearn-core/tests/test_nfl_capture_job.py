@@ -89,7 +89,7 @@ class CaptureJobTests(unittest.TestCase):
         self.assertEqual(result["staged"]["membership_watermark"], "200")
         self.assertEqual(len(result["staged"]["groups"][0]["receipt_ids"]), 6)
         self.assertEqual(len(journal.snapshot["observations"]), 6)
-        self.assertEqual(len(reads), 10, "all three integrity sources + two label rereads per attempt")
+        self.assertEqual(len(reads), 14, "four integrity sources and three label rereads per attempt")
 
     def test_lost_response_has_no_success_and_later_stable_retry_recovers(self):
         journal, (envelope, objects) = MemoryJournal(), good_capture()

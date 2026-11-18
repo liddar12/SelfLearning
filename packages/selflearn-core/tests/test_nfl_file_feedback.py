@@ -31,7 +31,7 @@ def graph(journal=None):
 
 
 def capture(value=80,*,day=19):
-    envelope,objects=E.fixture(stats=E.STATS.replace(b",,,NA",(",,,"+str(value)).encode()))
+    envelope,objects=L.binding_capture(stats=L.BINDING_STATS.replace(b",,,NA",(",,,"+str(value)).encode()))
     if day!=19:
         for row in envelope["observations"].values():
             for name in("fetch_started_utc","observed_utc"):row[name]=row[name].replace("10-19",f"10-{day:02d}")

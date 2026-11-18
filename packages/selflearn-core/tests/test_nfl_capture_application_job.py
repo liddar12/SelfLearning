@@ -143,7 +143,7 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
             port.before_register=None;port.base.snapshot["watermark"]=str(int(port.base.snapshot["watermark"])+1)
         port=FakeApplicationPort();port.before_register=once
         register(port)
-        self.assertEqual(len(port.registers),2);self.assertEqual(len(port.raw_reads),10)
+        self.assertEqual(len(port.registers),2);self.assertEqual(len(port.raw_reads),14)
         def always(port):port.base.snapshot["watermark"]=str(int(port.base.snapshot["watermark"])+1)
         port=FakeApplicationPort();port.before_register=always
         with self.assertRaisesRegex(JournalConflict,"registration_retry_exhausted"):register(port,max_attempts=2)
@@ -156,17 +156,17 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
         def conflict(_port):raise JournalConflict("synthetic semantic conflict")
         port=FakeApplicationPort();port.before_register=conflict
         with self.assertRaisesRegex(JournalConflict,"without_changed_fence"):register(port)
-        self.assertEqual(len(port.raw_reads),5)
+        self.assertEqual(len(port.raw_reads),7)
         port=FakeApplicationPort();register(port);port.before_commit=conflict
         before=len(port.raw_reads)
         with self.assertRaisesRegex(JournalConflict,"without_changed_fence"):step(port)
-        self.assertEqual(len(port.raw_reads)-before,5)
+        self.assertEqual(len(port.raw_reads)-before,7)
 
     def test_now_known_original_after_conflict_recovers_without_another_bind(self):
         port=FakeApplicationPort();port.lose_register=JournalConflict("fake raced original")
         ack=register(port)
         self.assertEqual(ack,port.application["registration"])
-        self.assertEqual(len(port.raw_reads),5)
+        self.assertEqual(len(port.raw_reads),7)
         port.lose_commit=JournalConflict("fake raced original")
         result=step(port)
         self.assertEqual(result,port.application["batches"][0]["result"])
@@ -212,7 +212,7 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
             port.before_commit=None;port.base.snapshot["watermark"]=str(int(port.base.snapshot["watermark"])+1)
         port.before_commit=once
         before=len(port.raw_reads);step(port)
-        self.assertEqual(len(port.raw_reads)-before,10)
+        self.assertEqual(len(port.raw_reads)-before,14)
         self.assertEqual(len(port.commits),2)
         port=FakeApplicationPort();register(port)
         sentinel=object()
