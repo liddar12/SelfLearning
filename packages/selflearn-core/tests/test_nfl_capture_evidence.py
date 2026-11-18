@@ -231,6 +231,52 @@ class NFLCaptureEvidenceTests(unittest.TestCase):
             global_audit={"cross_week_conflicting_game_ids": [], "quarantined_game_ids": ids, "normalized_games": 1})
         self.assertEqual([row["game_id"] for row in verify(envelope, objects)["scoreboard_rows"]], ["good"])
 
+    def test_explicit_competition_id_and_kickoff_must_agree_with_event(self):
+        events = [event("missing")]
+        for gid, fields in (
+            ("matching", {"id": "matching", "date": "2026-10-18T20:25Z"}),
+            ("bad-id", {"id": "other-game"}),
+            ("bad-date", {"date": "2026-10-18T20:26:00Z"}),
+            ("null-id", {"id": None}),
+            ("null-date", {"date": None}),
+        ):
+            item = event(gid)
+            item["competitions"][0].update(fields)
+            events.append(item)
+        quarantined = ["bad-date", "bad-id", "null-date", "null-id"]
+        audit = score_audit(events=6, normalized_games=2, final_games=2,
+                            malformed_events=4, quarantined_game_ids=quarantined)
+        envelope, objects = fixture(score_raw={6: encoded({"events": events})}, score_audits={6: audit},
+            global_audit={"cross_week_conflicting_game_ids": [], "quarantined_game_ids": quarantined,
+                          "normalized_games": 2})
+        rows = verify(envelope, objects)["scoreboard_rows"]
+        self.assertEqual([(row["game_id"], row["kickoff_utc"], row["home_score"]) for row in rows], [
+            ("matching", "2026-10-18T20:25:00Z", 24),
+            ("missing", "2026-10-18T20:25:00Z", 24),
+        ])
+
+    def test_final_status_rejects_explicit_nonpost_lifecycle_state(self):
+        good, missing, live, bad, bad_nested = (
+            event("good"), event("missing"), event("live", "STATUS_IN_PROGRESS"),
+            event("bad-state"), event("bad-nested-state"),
+        )
+        good["status"]["type"].update(completed=True, state="post")
+        good["competitions"][0]["status"] = {"type": {"state": "post"}}
+        live["status"]["type"].update(completed=False, state="in")
+        bad["status"]["type"].update(completed=True, state="in")
+        bad_nested["competitions"][0]["status"] = {"type": {"state": "pre"}}
+        quarantined = ["bad-nested-state", "bad-state"]
+        audit = score_audit(events=5, normalized_games=3, final_games=2, nonfinal_games=1,
+                            malformed_events=2, quarantined_game_ids=quarantined)
+        envelope, objects = fixture(score_raw={6: encoded({"events": [good, missing, live, bad, bad_nested]})},
+            score_audits={6: audit},
+            global_audit={"cross_week_conflicting_game_ids": [], "quarantined_game_ids": quarantined,
+                          "normalized_games": 3})
+        rows = verify(envelope, objects)["scoreboard_rows"]
+        self.assertEqual([(row["game_id"], row["final"], row.get("home_score")) for row in rows], [
+            ("good", True, 24), ("live", False, None), ("missing", True, 24),
+        ])
+
     def test_exact_and_conflicting_event_duplicates_and_global_crossweek_quarantine(self):
         same = event("same")
         events = [event("conflict"), event("conflict", home="30"), same, copy.deepcopy(same)]

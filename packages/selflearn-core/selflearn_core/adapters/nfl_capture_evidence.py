@@ -441,11 +441,16 @@ def _scoreboard(raw, observation):
             status, kickoff = event["status"]["type"]["name"], event["date"]
             if type(status) is not str or not status.startswith("STATUS_"):
                 raise ValueError()
-            _clock(kickoff)
+            kickoff_clock = _clock(kickoff)
             competitions = event["competitions"]
-            if type(competitions) is not list or len(competitions) != 1:
+            if type(competitions) is not list or len(competitions) != 1 or type(competitions[0]) is not dict:
                 raise ValueError()
-            for status_doc in (event["status"], competitions[0].get("status")):
+            competition = competitions[0]
+            if "id" in competition and competition["id"] != gid:
+                raise ValueError()
+            if "date" in competition and _clock(competition["date"]) != kickoff_clock:
+                raise ValueError()
+            for status_doc in (event["status"], competition.get("status")):
                 if status_doc is None:
                     continue
                 if type(status_doc) is not dict or type(status_doc.get("type")) is not dict:
@@ -454,13 +459,15 @@ def _scoreboard(raw, observation):
                 if (("name" in other and other["name"] != status) or ("completed" in other and (
                         type(other["completed"]) is not bool or other["completed"] != (status in _FINAL)))):
                     raise ValueError()
+                if status in _FINAL and "state" in other and other["state"] != "post":
+                    raise ValueError()
             for metadata, field, expected in ((event.get("season"), "year", season), (event.get("week"), "number", week)):
                 if metadata is not None and (type(metadata) is not dict or type(metadata.get(field)) is not int or metadata[field] != expected):
                     raise ValueError()
             event_type = (event.get("season") or {}).get("type")
             if event_type is not None and (type(event_type) is not int or event_type != 2):
                 raise ValueError()
-            competitors = competitions[0]["competitors"]
+            competitors = competition["competitors"]
             if type(competitors) is not list or len(competitors) != 2:
                 raise ValueError()
             sides = {competitor["homeAway"]: competitor for competitor in competitors}
@@ -473,7 +480,7 @@ def _scoreboard(raw, observation):
                    **teams, "final": status in _FINAL, "final_utc": None, "upstream_updated_utc": None}
             if status in _FINAL:
                 home, away = _score(sides["home"].get("score")), _score(sides["away"].get("score"))
-                if home is None or away is None or _clock(kickoff) > _clock(observation["observed_utc"]):
+                if home is None or away is None or kickoff_clock > _clock(observation["observed_utc"]):
                     audit["invalid_final_scores"] += 1
                     raise ValueError()
                 row.update(home_score=home, away_score=away)
