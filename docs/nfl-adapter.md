@@ -146,6 +146,29 @@ cannot be resurrected by a changed validator. Without generation records, the
 conservative first-envelope membership is explicitly incomplete and cannot pass
 the proposed shared return gate. `eligible_pool` is a separate named population.
 
+Operational file feedback and the CLI require `event_bound_labels_v2`. Their
+version-2 reports share the corrections fitter's exact-fixture/stable-player
+label qualification, for the final cohort and every historical training fold.
+`label_coverage` keeps the frozen forecast denominator and names legacy,
+unresolved, void and unqualified exclusions. Re-observing an unchanged legacy
+result does not upgrade its original provenance. A real corrected revision may
+qualify only after its recorded time.
+
+`generation_coverage` verifies durable generation records and their exact
+accepted receipt IDs. An empty or invalid record list cannot satisfy the proposed
+gate. Each scored fold also needs complete generation coverage at its own fit
+cutoff; a later import cannot retroactively attest an earlier fit. Coverage of
+all frozen forecasts is required, including unresolved ones. Retrospective
+metrics remain visible when this evidence is incomplete, but the proposed gate
+stays held. Committed generation evidence alone does not prove public serving
+or pre-kickoff delivery; those are separate boundaries.
+
+The generic Python API keeps `retrospective_binary_v1` as a compatibility default
+for historical research. New operational callers must explicitly pass
+`outcome_admission=EVENT_BOUND_LABELS`. The owner reader replays legacy reports
+for inspection but never accepts their numeric gate as qualified evidence.
+No report, including a passing version-2 gate, activates a correction.
+
 The canonical first eligible forecast is selected **before** joining outcomes.
 Missing earliest-source lineage quarantines the contract; a later resolved
 forecast cannot silently replace it. Unresolved forecasts still constrain a

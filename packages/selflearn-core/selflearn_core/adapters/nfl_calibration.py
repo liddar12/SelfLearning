@@ -623,6 +623,13 @@ def walk_forward_report(receipts,source_receipts,revisions,*,as_of_utc,populatio
     if strict and (not cohort["generation_coverage"]["verified_count"]
                    or cohort["generation_coverage"]["missing_count"]):
         proposed.append("committed_generation_evidence_unverified")
+    if strict and any(not fold["generation_coverage"]["verified_count"]
+                      or fold["generation_coverage"]["missing_count"] for fold in scored_folds):
+        # Evidence first persisted after a hypothetical fit cannot attest its
+        # inputs at that earlier cutoff, even when the final report has it all.
+        # Require the frozen population, including unresolved forecasts, rather
+        # than silently lowering this denominator to the fitted subset.
+        proposed.append("training_fold_generation_evidence_unverified")
     if scored and metrics["delta_log_loss"]>=-PROPOSED_MARGIN:proposed.append("proposed_0.0015_margin_not_met")
     if interval["high"] is None or interval["high"]>=0:proposed.append("clustered_interval_not_below_zero")
     if any(v["n"]==0 or v["delta_log_loss"]>0 for v in per_position.values()):proposed.append("missing_or_worse_position")
