@@ -9,15 +9,29 @@ import pytest
 from selflearn_core import owner_intents as owner
 from selflearn_core.adapters import nfl_owner_evidence as evidence
 from selflearn_core.adapters.nfl_calibration import walk_forward_report
-from selflearn_core.probability_receipts import fingerprint
+from selflearn_core.probability_receipts import fingerprint, instant
 from selflearn_core.store.owner_intent_journal import OwnerIntentJournal
 from test_nfl_calibration import corpus
 
 AUTHORITY, ACTOR = fingerprint("configured-nfl-owner-evidence-test"), "configured-local-owner"
+FIXTURE_TIME = datetime(2026, 10, 16, 12, tzinfo=timezone.utc)
 
 
 def stamp(value):
     return value.isoformat().replace("+00:00", "Z")
+
+
+def fixture_clock():
+    return stamp(FIXTURE_TIME)
+
+
+def set_sqlite_clock(journal, clock):
+    """Keep SQLite's own write/read clock deterministic on this test connection."""
+    def strftime(format_string, origin):
+        assert (format_string, origin) == ("%Y-%m-%dT%H:%M:%fZ", "now")
+        return clock()
+
+    journal._db.create_function("strftime", 2, strftime)
 
 
 def seal(value, key):
@@ -42,7 +56,6 @@ def experiment():
 def documents(experiment):
     inputs, report = copy.deepcopy(experiment)
     candidate = report["candidate"]; base = candidate["base_model_version"]
-    now = datetime.now(timezone.utc)
     current = seal({"version": 1, "kind": "nfl.current_calibrator_claim.v1", "base_model_version": base,
         "adjustment": None, "calibrator_version": fingerprint(None), "artifact_id": None,
         "materialization_id": None}, "current_id")
@@ -51,14 +64,15 @@ def documents(experiment):
         "evaluation_policy_id": evidence.evaluation_policy_id(report), "max_candidate_age_seconds": 30 * 86400,
         "max_authority_age_seconds": 120}, "policy_id")
     context = seal({"version": 1, "kind": "nfl.future_generation_context.v1", "season": 2026, "week": 6,
-        "forecast_created_utc": stamp(now + timedelta(hours=1)), "first_kickoff_utc": stamp(now + timedelta(days=1)),
+        "forecast_created_utc": stamp(FIXTURE_TIME + timedelta(hours=1)),
+        "first_kickoff_utc": stamp(FIXTURE_TIME + timedelta(days=1)),
         "base_model_version": base, "source_snapshot_id": fingerprint("unverified-future-source-claim"),
         "nfl_code_id": policy["nfl_code_id"], "engine_code_id": policy["engine_code_id"]}, "context_id")
     return {"candidate": candidate, "report": report, "artifact": evidence.artifact(candidate),
         "policy": policy, "context": context, "current": current, "evaluation_inputs": inputs}
 
 
-def command(docs, bundle, *, head=None, action="approve"):
+def command(docs, bundle, *, head=None, action="approve", expires_utc=None):
     return owner.seal_command({"version": 1, "kind": "selflearn.owner_intent_command.v1", "namespace": dict(evidence.NS),
         "action": action, "expected_head_event_id": head,
         "pins": {"candidate_id": docs["candidate"]["candidate_id"], "artifact_id": docs["artifact"]["artifact_id"],
@@ -66,23 +80,24 @@ def command(docs, bundle, *, head=None, action="approve"):
             "generation_context_id": docs["context"]["context_id"],
             "expected_previous_current_id": docs["current"]["current_id"], "evidence_object_ids": sorted(bundle["objects"])},
         "effective_from_utc": None,
-        "expires_utc": None if action == "revoke" else docs["context"]["first_kickoff_utc"],
+        "expires_utc": None if action == "revoke" else expires_utc or docs["context"]["first_kickoff_utc"],
         "reason": "Record local shadow-evidence review only; never model activation"}, authority_id=AUTHORITY)
 
 
-def setup(tmp_path, experiment, mutate=None):
+def setup(tmp_path, experiment, mutate=None, *, expires_utc=None):
     docs = documents(experiment)
     if mutate:
         mutate(docs)
     bundle = evidence.prepare_manifest(docs)
     journal = OwnerIntentJournal(tmp_path / "owner.sqlite", authority_id=AUTHORITY, actor_ref=ACTOR)
+    set_sqlite_clock(journal, fixture_clock)
     for oid, value in bundle["objects"].items():
         journal.append_object("source_snapshot", oid, value)
-    original = command(docs, bundle); ack = journal.append_owner_intent(original)
+    original = command(docs, bundle, expires_utc=expires_utc); ack = journal.append_owner_intent(original)
     runtime = {k: docs["context"][k] for k in ("base_model_version", "nfl_code_id", "engine_code_id", "context_id")}
     runtime["current_id"] = docs["current"]["current_id"]
     reader = evidence.NFLOwnerEvidenceReader(journal, authority_id=AUTHORITY, actor_ref=ACTOR,
-                                            runtime_reader=lambda: copy.deepcopy(runtime))
+                                            runtime_reader=lambda: copy.deepcopy(runtime), clock=fixture_clock)
     return docs, bundle, journal, original, ack, runtime, reader
 
 
@@ -253,5 +268,56 @@ def test_complete_owner_snapshot_and_future_context_cannot_be_forged_by_old_succ
         reader.clock = lambda: docs["context"]["first_kickoff_utc"]
         result = reader.verify(bundle["manifest_id"])
         assert result["reason_codes"] == ["owner_evidence_clock_or_expiry_hold"]
+    finally:
+        journal.close()
+
+
+def test_expired_approval_is_held_before_replaying_evaluation(tmp_path, experiment):
+    expires = FIXTURE_TIME + timedelta(minutes=30)
+    docs, bundle, journal, _, _, _, reader = setup(tmp_path, experiment, expires_utc=stamp(expires))
+    try:
+        def after_expiry():
+            return stamp(expires + timedelta(seconds=1))
+
+        assert expires < instant(after_expiry()) < instant(docs["context"]["forecast_created_utc"])
+        set_sqlite_clock(journal, after_expiry)
+        reader.clock = after_expiry
+        with patch.object(evidence.calibration, "walk_forward_report", wraps=walk_forward_report) as replay:
+            result = reader.verify(bundle["manifest_id"])
+        assert result["reason_codes"] == ["owner_evidence_clock_or_expiry_hold"]
+        assert result["activation"] is False
+        replay.assert_not_called()
+    finally:
+        journal.close()
+
+
+@pytest.mark.parametrize("after_forecast", [0, 1], ids=["expires-at-forecast", "expires-after-forecast"])
+def test_approval_must_remain_valid_past_forecast_creation(tmp_path, experiment, after_forecast):
+    expires = stamp(FIXTURE_TIME + timedelta(hours=1, seconds=after_forecast))
+    _, bundle, journal, _, _, _, reader = setup(tmp_path, experiment, expires_utc=expires)
+    try:
+        result = reader.verify(bundle["manifest_id"])
+        assert result["activation"] is False
+        assert result["evaluation_reexecuted"] is bool(after_forecast)
+        if after_forecast == 0:
+            assert result["reason_codes"] == ["owner_evidence_clock_or_expiry_hold"]
+    finally:
+        journal.close()
+
+
+@pytest.mark.parametrize("past_limit", [0, 1], ids=["at-age-limit", "one-second-too-old"])
+def test_candidate_age_limit_is_inclusive(tmp_path, experiment, past_limit):
+    def set_age_policy(docs):
+        age = int((FIXTURE_TIME - instant(docs["candidate"]["fit_as_of_utc"])).total_seconds())
+        policy = {k: v for k, v in docs["policy"].items() if k != "policy_id"}
+        docs["policy"] = seal({**policy, "max_candidate_age_seconds": age - past_limit}, "policy_id")
+
+    _, bundle, journal, _, _, _, reader = setup(tmp_path, experiment, set_age_policy)
+    try:
+        result = reader.verify(bundle["manifest_id"])
+        assert result["activation"] is False
+        assert result["evaluation_reexecuted"] is (past_limit == 0)
+        if past_limit:
+            assert result["reason_codes"] == ["owner_evidence_clock_or_expiry_hold"]
     finally:
         journal.close()
