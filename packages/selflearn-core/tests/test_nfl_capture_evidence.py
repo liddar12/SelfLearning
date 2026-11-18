@@ -21,6 +21,8 @@ STATS = (b'\xef\xbb\xbfseason,week,season_type,position,team,player_display_name
          b'2026,6,REG,QB,SEA,Fixture Quarterback,0,,\r\n')
 SNAPS = (b'season,week,game_type,team,player,offense_snaps\n'
          b'2026,6,REG,SEA,Fixture Receiver,40\n2026,6,REG,LAR,Other Receiver,52\n')
+ROSTER = (b'season,week,espn_id,gsis_id,pfr_id,team\n'
+          b'2026,6,101,00-0080001,FictRe00,SEA\n2026,6,,00-0080002,OtheRe00,LAR\n')
 MEASUREMENT = "raw values retained; missing/negative cells are not coerced or graded"
 CLOCK_POLICY = "producer observations only; upstream issue and exact game-finish times unknown"
 
@@ -55,7 +57,7 @@ def csv_audit(rows, duplicate_rows=0, outside=0):
 
 
 def fixture(*, weeks=(6,), stats=STATS, snaps=SNAPS, stats_audit=None, snaps_audit=None,
-            score_raw=None, score_audits=None, global_audit=None):
+            score_raw=None, score_audits=None, global_audit=None, roster=None, roster_audit=None):
     manifest = {"version": 1, "kind": "nfl.outcome_capture.v1", "season": 2026, "weeks": list(weeks),
                 "started_utc": "2026-10-19T02:00:00Z", "completed_utc": "2026-10-19T02:00:59Z",
                 "sources": [], "clock_policy": CLOCK_POLICY,
@@ -64,6 +66,8 @@ def fixture(*, weeks=(6,), stats=STATS, snaps=SNAPS, stats_audit=None, snaps_aud
                                            "normalized_games": len(weeks)}}
     observations, objects = {}, {}
     specs = [("espn_scoreboard_v1", week) for week in weeks] + [("nflverse_stats_player_v1", None), ("nflverse_snap_counts_v1", None)]
+    if roster is not None:
+        specs.append(("nflverse_rosters_v1", None))
     for index, (profile, week) in enumerate(specs):
         if week is not None:
             raw = (score_raw or {}).get(week, encoded({"season": {"year": 2026}, "week": {"number": week}, "events": [event("g" + str(week))]}))
@@ -72,9 +76,12 @@ def fixture(*, weeks=(6,), stats=STATS, snaps=SNAPS, stats_audit=None, snaps_aud
         elif profile == "nflverse_stats_player_v1":
             raw, audit = stats, stats_audit or csv_audit(3)
             url = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv"
-        else:
+        elif profile == "nflverse_snap_counts_v1":
             raw, audit = snaps, snaps_audit or csv_audit(2)
             url = "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_2026.csv"
+        else:
+            raw, audit = roster, roster_audit or csv_audit(2)
+            url = "https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv"
         rid = digest(raw)
         objects[rid] = raw
         observation = {"version": 1, "kind": "nfl.outcome_source_observation.v1", "evidence_class": "observed_source_snapshot",
@@ -141,6 +148,51 @@ class NFLCaptureEvidenceTests(unittest.TestCase):
         self.assertEqual(result["source_audits"][1]["audit"], csv_audit(3))
         self.assertEqual(result["source_audits"][2]["audit"], csv_audit(2))
         self.assertFalse(result["labels_accepted"])
+
+    def test_optional_roster_is_verified_last_with_existing_raw_budgets(self):
+        no_week = ROSTER.replace(b",week", b"").replace(b"2026,6,", b"2026,")
+        outside = ROSTER.replace(b"2026,6,101", b"2026,19,101")
+        for roster, audit in ((ROSTER, csv_audit(2)), (no_week, csv_audit(2)), (outside, csv_audit(2, outside=1))):
+            envelope, objects = fixture(roster=roster, roster_audit=audit, weeks=tuple(range(1, 19)))
+            total = sum(map(len, objects.values()))
+            with self.subTest(audit=audit, header=roster.splitlines()[0]):
+                self.assertEqual(len(envelope["raw_objects"]), 21)
+                report = verify(envelope, objects, max_total_bytes=total)
+                self.assertEqual(report["verified_raw_bytes"], total)
+                self.assertEqual(report["source_audits"][-1]["profile"], "nflverse_rosters_v1")
+                self.assertEqual(report["source_audits"][-1]["audit"], audit)
+                self.assertFalse(report["labels_accepted"])
+                with self.assertRaisesRegex(ValueError, "total_size"):
+                    verify(envelope, objects, max_total_bytes=total - 1)
+
+    def test_roster_rejects_wrong_membership_clocks_and_source_bytes(self):
+        for name in ("order", "week", "url", "clock", "extra", "raw"):
+            envelope, objects = fixture(roster=ROSTER)
+            ref = envelope["manifest"]["sources"][-1]
+            observation = envelope["observations"][ref["observation_id"]]
+            if name == "order":
+                envelope["manifest"]["sources"][-2:] = [ref, envelope["manifest"]["sources"][-2]]
+            elif name == "week":
+                ref["week"] = observation["week"] = 6
+            elif name == "url":
+                observation["source_url"] = observation["source_url"].replace("roster_2026", "roster_2025")
+            elif name == "clock":
+                observation["observed_utc"] = "2026-10-19T01:59:59Z"
+            elif name == "extra":
+                envelope["raw_objects"].append({"raw_sha256": digest(b"extra"), "raw_bytes": 5})
+            else:
+                objects[observation["raw_sha256"]] = ROSTER.replace(b"FictRe00", b"FictRe99")
+            reseal(envelope)
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                verify(envelope, objects)
+
+    def test_rosters_require_same_season_and_the_three_crosswalk_columns(self):
+        missing_pfr = ROSTER.replace(b"pfr_id,", b"").replace(b"FictRe00,", b"").replace(b"OtheRe00,", b"")
+        for roster, error in ((missing_pfr, "missing_capture_csv_columns"),
+                              (ROSTER.replace(b"2026,6,101", b"2025,6,101"), "capture_csv_period_mismatch")):
+            envelope, objects = fixture(roster=roster)
+            with self.subTest(error=error), self.assertRaisesRegex(ValueError, error):
+                verify(envelope, objects)
 
     def test_full_season_post_rows_duplicates_and_embedded_csv_newline_are_preserved(self):
         extra = b'2026,19,POST,WR,SEA,"Postseason\nReceiver",,,80\r\n'

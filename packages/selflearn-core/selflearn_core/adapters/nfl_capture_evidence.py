@@ -27,9 +27,11 @@ from ..probability_receipts import fingerprint, instant
 
 STATS_PROFILE = "nflverse_stats_player_v1"
 SNAPS_PROFILE = "nflverse_snap_counts_v1"
+ROSTERS_PROFILE = "nflverse_rosters_v1"
 SCOREBOARD_PROFILE = "espn_scoreboard_v1"
 CSV_LIMIT = 16 * 1024 * 1024
 SCOREBOARD_LIMIT = 4 * 1024 * 1024
+MAX_CAPTURE_OBJECTS = 21  # Eighteen scoreboards and up to three season-wide CSVs.
 MAX_METADATA_DOCUMENT = 65536
 # Versioned receiver work limits, not claims about upstream/producer validation.
 MAX_CSV_COLUMNS = 256
@@ -128,7 +130,7 @@ def _ids(value, maximum):
 
 
 def _audit_shape(audit, profile=None):
-    if profile in (STATS_PROFILE, SNAPS_PROFILE):
+    if profile in (STATS_PROFILE, SNAPS_PROFILE, ROSTERS_PROFILE):
         _fields(audit, {"rows", "duplicate_rows", "outside_regular_week_rows", "measurement_policy"})
         if (type(audit["rows"]) is not int or not 1 <= audit["rows"] <= CSV_LIMIT
                 or any(type(audit[k]) is not int or not 0 <= audit[k] <= audit["rows"]
@@ -158,6 +160,9 @@ def _spec(profile, season, week):
     if profile == SNAPS_PROFILE and week is None:
         return ("https://github.com/nflverse/nflverse-data/releases/download/snap_counts/"
                 f"snap_counts_{season}.csv"), CSV_LIMIT
+    if profile == ROSTERS_PROFILE and week is None:
+        return ("https://github.com/nflverse/nflverse-data/releases/download/rosters/"
+                f"roster_{season}.csv"), CSV_LIMIT
     raise CaptureIntegrityError("unsupported_capture_profile")
 
 
@@ -180,9 +185,13 @@ def _preflight(envelope, maximum):
             or weeks != sorted(set(weeks))):
         raise CaptureIntegrityError("invalid_capture_weeks")
     specs = [(SCOREBOARD_PROFILE, week) for week in weeks] + [(STATS_PROFILE, None), (SNAPS_PROFILE, None)]
-    if (type(manifest["sources"]) is not list or len(manifest["sources"]) != len(specs)
-            or type(observations) is not dict or len(observations) != len(specs)
-            or type(descriptors) is not list or not 1 <= len(descriptors) <= 20):
+    refs = manifest["sources"]
+    if type(refs) is not list:
+        raise CaptureIntegrityError("invalid_capture_membership")
+    if len(refs) == len(specs) + 1:
+        specs.append((ROSTERS_PROFILE, None))
+    if (len(refs) != len(specs) or type(observations) is not dict or len(observations) != len(specs)
+            or type(descriptors) is not list or not 1 <= len(descriptors) <= MAX_CAPTURE_OBJECTS):
         raise CaptureIntegrityError("invalid_capture_membership")
     _audit_shape(manifest["audit"])
     if (len(_encoded(manifest)) > MAX_METADATA_DOCUMENT or len(_encoded(value)) > MAX_REQUEST_BYTES
@@ -197,7 +206,7 @@ def _preflight(envelope, maximum):
         objects[raw_id] = size
     previous, completed = _clock(manifest["started_utc"]), _clock(manifest["completed_utc"])
     expected_observations, expected_raw, total, sources = set(), set(), 0, []
-    for ref, (profile, week) in zip(manifest["sources"], specs):
+    for ref, (profile, week) in zip(refs, specs):
         _fields(ref, {"profile", "season", "week", "observation_id"})
         oid = _hash(ref["observation_id"])
         expected_ref = {"profile": profile, "season": manifest["season"], "week": week, "observation_id": oid}
@@ -297,8 +306,12 @@ def _csv_audit(reader, observation):
                     or any(not key or "\0" in key or len(key) > MAX_CSV_HEADER_CHARS for key in header)):
                 raise CaptureIntegrityError("invalid_capture_csv_header")
             profile = observation["profile"]
-            required = ({"season", "week", "position", "passing_yards", "rushing_yards", "receiving_yards"}
-                        if profile == STATS_PROFILE else {"season", "week", "team", "player", "offense_snaps"})
+            if profile == STATS_PROFILE:
+                required = {"season", "week", "position", "passing_yards", "rushing_yards", "receiving_yards"}
+            elif profile == SNAPS_PROFILE:
+                required = {"season", "week", "team", "player", "offense_snaps"}
+            else:  # The roster is an identity source. Its row week is optional.
+                required = {"season", "espn_id", "gsis_id", "pfr_id"}
             if (not required <= set(header) or (profile == STATS_PROFILE and (
                     not {"team", "recent_team"} & set(header) or not {"player_display_name", "player_name"} & set(header)))):
                 raise CaptureIntegrityError("missing_capture_csv_columns")
@@ -321,7 +334,8 @@ def _csv_audit(reader, observation):
 
             lines = Lines()
             rows = csv.reader(lines, strict=True)
-            season_index, week_index = header.index("season"), header.index("week")
+            season_index = header.index("season")
+            week_index = header.index("week") if "week" in header else None
             seen, count, duplicates, outside = set(), 0, 0, 0
             for cells in rows:
                 lines.record_bytes = 0
@@ -332,7 +346,8 @@ def _csv_audit(reader, observation):
                 try:
                     if int(cells[season_index]) != observation["season"]:
                         raise ValueError()
-                    outside += int(not 1 <= int(cells[week_index]) <= 18)
+                    if week_index is not None:
+                        outside += int(not 1 <= int(cells[week_index]) <= 18)
                 except (ValueError, OverflowError):
                     raise CaptureIntegrityError("capture_csv_period_mismatch") from None
                 # Under one unique fixed header, equal cell arrays and equal
