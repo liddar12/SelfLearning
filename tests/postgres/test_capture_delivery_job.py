@@ -5,7 +5,9 @@ native concurrent database connections or producer authentication are implied.
 """
 import base64
 import copy
+import csv
 import hashlib
+import io
 
 import pytest
 
@@ -13,8 +15,9 @@ from selflearn_core.adapters.nfl_capture_delivery_job import commit_capture_deli
 from selflearn_core.adapters.nfl_capture_delivery_journal import make_capture_delivery_request
 from selflearn_core.probability_receipts import fingerprint
 from selflearn_core.store.supabase_store import StoreError
-from test_capture_delivery_adapter import DeliveryBridge, journals, port, raw_producer
-from test_capture_outcomes_atomic import stage, admit, DELIVERED
+from test_capture_application_adapter import ApplicationBridge
+from test_capture_delivery_adapter import journals, port, raw_producer
+from test_capture_outcomes_atomic import DELIVERED, admit, assert_integrity_reads, stage
 
 
 def intent(captured):
@@ -72,7 +75,7 @@ def test_actual_CAS_expansion_rebinds_full_six_receipt_group_and_raw_hashes(jour
     assert result['attempts']==2
     assert [n for n,_ in attempted]==[4,6]
     assert attempted[0][1]!=attempted[1][1]
-    assert len(storage.calls)==10
+    assert_integrity_reads(raw_producer['captures'][0], storage, 2)
     assert len(result['result']['groups'][0]['receipt_ids'])==6
     assert (result['result']['added_observations'],result['result']['added_revisions'])==(6,6)
 
@@ -105,8 +108,15 @@ def unknown_measurement(captured):
         observation=value['observations'][ref['observation_id']]
         if observation['profile']=='nflverse_stats_player_v1':
             raw=base64.b64decode(value['raw'].pop(observation['raw_sha256']),validate=True)
-            changed=raw.replace(b',80\r\n',b',NA\r\n')
-            assert changed!=raw
+            reader = csv.DictReader(io.StringIO(raw.decode(), newline=""))
+            rows = list(reader)
+            assert len(rows) == 1 and rows[0]["receiving_yards"] == "80"
+            rows[0]["receiving_yards"] = "NA"
+            output = io.StringIO(newline="")
+            writer = csv.DictWriter(output, fieldnames=reader.fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+            changed = output.getvalue().encode()
             raw_id='sha256:'+hashlib.sha256(changed).hexdigest()
             value['raw'][raw_id]=base64.b64encode(changed).decode()
             observation.update(raw_sha256=raw_id,raw_bytes=len(changed))
@@ -124,7 +134,7 @@ def test_actual_withheld_and_empty_results_are_explicit_and_recoverable(journals
     assert held['status']=='withheld' and held['added_observations']==held['added_revisions']==0
     assert held['watermark']==before
     assert commit_capture_delivery(journal,request,forbidden,clock=forbidden)['result']==held
-    bridge=DeliveryBridge()
+    bridge=ApplicationBridge()
     try:
         empty=port(bridge);request,storage=intent(raw_producer['captures'][0])
         result=run(empty,request,storage)['result']

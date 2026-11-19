@@ -5,13 +5,10 @@ multi-session, network HTTP, hosted credential/deployment or provider-auth test.
 """
 import copy
 from contextlib import contextmanager
-import json
 import os
-from pathlib import Path
-import subprocess
 import sys
+from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from services.web.application import create_app
@@ -20,10 +17,11 @@ from selflearn_core.adapters.nfl_capture_delivery_journal import make_capture_de
 from selflearn_core.probability_receipts import fingerprint
 from selflearn_core.store.capture_staging import CaptureStagingQuota, staging_namespace
 from selflearn_core.store.supabase_evidence import SupabaseEvidenceStore
-from selflearn_core.store.supabase_store import StoreConflict, StoreError
-from test_adapter_integration import PostgresBridge, ROOT
+from selflearn_core.store.supabase_store import StoreError
+from test_adapter_integration import ROOT
+from test_capture_application_api import ApplicationAPITransport
 from test_capture_delivery_adapter import port
-from test_capture_outcomes_atomic import raw_producer, admit, stage
+from test_capture_outcomes_atomic import roster_producer as raw_producer, admit, stage
 
 sys.path.insert(0,str(ROOT/'tests'))
 try:
@@ -37,31 +35,7 @@ DEST=fingerprint({'base_url':'https://self-learning-beige.vercel.app'})
 CHUNKS,DELIVERIES='/api/v1/nfl/capture-chunks','/api/v1/nfl/capture-deliveries'
 
 
-class IntakeBridge(PostgresBridge):
-    def __init__(self):
-        if not os.environ.get('SELFLEARN_PGLITE_MODULE'): raise RuntimeError('Set SELFLEARN_PGLITE_MODULE to an installed reviewed module')
-        self.process=subprocess.Popen(['node','tests/postgres/capture_intake_bridge.mjs'],cwd=ROOT,
-            stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',bufsize=1)
-        self.calls,self.counter=[],0
-        try:
-            self.ready=self._read(timeout=30)
-            if self.ready.get('ready') is not True or self.ready.get('engine')!='postgresql-wasm':
-                raise RuntimeError('Actual capture intake bridge did not initialize')
-        except Exception:
-            self.close();raise
-
-    def request(self,method,path,*,data):
-        self.counter+=1
-        request={'id':self.counter,'method':method,'path':path,'data':data}
-        self.calls.append(copy.deepcopy(request))
-        self.process.stdin.write(json.dumps(request,allow_nan=False)+'\n');self.process.stdin.flush()
-        response=self._read();self.last_response=response
-        if response.get('id')!=self.counter: raise RuntimeError('Bridge response identity mismatch')
-        if response.get('ok') is not True:
-            if response.get('code')=='PT409': raise StoreConflict()
-            raise StoreError({'PT422':422,'PT429':429,'PT503':503,'42501':403}.get(response.get('code'),503))
-        return response['result']
-
+class IntakeBridge(ApplicationAPITransport):
     def provision(self,namespace_id,*,max_total_bytes=64*1024*1024,max_chunks=65536,enabled=True):
         return self.request('TEST_ADMIN','/test/provision-capture-staging',data={
             'namespace_id':namespace_id,'max_total_bytes':max_total_bytes,'max_chunks':max_chunks,'enabled':enabled})
@@ -90,7 +64,8 @@ class PrivateStorageFixture:
 @contextmanager
 def intake_context(raw_producer,*,producer_id='nfl2026',destination_id=DEST,maximum=64*1024*1024,max_chunks=65536,
                    admit_receipts=True,journal_transport=None):
-    bridge=IntakeBridge()
+    with patch.dict(os.environ, {"SELFLEARN_ROSTER_CAPTURE_TEST": "1"}):
+        bridge = IntakeBridge()
     try:
         namespace=staging_namespace(destination_id=destination_id,producer_id=producer_id)
         bridge.provision(namespace,max_total_bytes=maximum,max_chunks=max_chunks)

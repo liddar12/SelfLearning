@@ -104,7 +104,7 @@ def test_actual_request_identity_conflict_and_provenance_wrong_capture_reject_be
     other=prepare(journal,raw_producer['captures'][1])
     with pytest.raises(StoreError) as err:
         raw_commit(bridge,other,p_request_json=_canonical(prepared[0]))
-    assert err.value.status==422,bridge.last_response
+    assert err.value.status==422,bridge.errors
     assert journal.read_observed_snapshot()['observations']==[]
     original=commit(journal,prepared)
     altered=copy.deepcopy(prepared[0]);altered['raw_pointers'][0]['chunks'][0]['chunk_id']=fingerprint('wrong')
@@ -119,7 +119,7 @@ def test_actual_member_omission_stale_CAS_and_bad_revision_leave_no_delivery_or_
     missing=copy.deepcopy(binding);missing['groups']=[]
     missing['membership_id']=fingerprint({'binding_policy':'nfl.capture_labels_v1','groups':[]})
     with pytest.raises(StoreError) as err: raw_commit(bridge,prepared,p_binding_json=_canonical(missing))
-    assert err.value.status==422,bridge.last_response
+    assert err.value.status==422,bridge.errors
     bad=copy.deepcopy(rev);bad[0]['resolution'].pop('measurement_id')
     with pytest.raises(StoreError): raw_commit(bridge,(request,binding,obs,bad,snapshot))
     after=journal.read_observed_snapshot()

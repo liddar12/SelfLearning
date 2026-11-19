@@ -8,12 +8,12 @@ from contextlib import contextmanager
 from fastapi.testclient import TestClient
 
 from services.web.application import create_app
-from test_capture_outcomes_atomic import journals, raw_producer, deliver
+from test_capture_outcomes_atomic import journals, roster_producer, deliver
 
 
-def test_real_pinned_trace_http_preserves_forecasts_and_exposes_corrections(journals, raw_producer):
+def test_real_pinned_trace_http_preserves_forecasts_and_exposes_corrections(journals, roster_producer):
     journal, _, _ = journals
-    initial, _, correction, _, void = raw_producer["captures"]
+    initial, _, correction, _, void = roster_producer["captures"]
     first, _ = deliver(journal, initial)
     receipt_id = first["staged"]["groups"][0]["receipt_ids"][0]
     original_receipts = journal.receipts()
