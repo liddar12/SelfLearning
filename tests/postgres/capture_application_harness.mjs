@@ -18,6 +18,8 @@ export async function openCaptureApplicationDatabase() {
     await db.exec(await readFile(new URL('../../supabase/migrations/20261016040611_capture_staging_quotas_v1.sql',import.meta.url),'utf8'));
     const prior = await db.query("SELECT p.oid::regprocedure::text AS signature, pg_get_functiondef(p.oid) AS definition FROM pg_proc p WHERE p.pronamespace IN ('public'::regnamespace,'selflearn_private'::regnamespace) ORDER BY p.oid");
     await db.exec(await readFile(applicationMigration, 'utf8'));
+    const membershipMigration = new URL('../../supabase/migrations/20261119205000_capture_membership_source_join.sql', import.meta.url);
+    await db.exec(await readFile(membershipMigration, 'utf8'));
     db.originalV1Functions = prior.rows;
     return db;
   } catch (error) {

@@ -16,7 +16,7 @@ from selflearn_core import learning_jobs as dto
 from selflearn_core.adapters import nfl_collection_handoff as H
 from selflearn_core.adapters import nfl_collection_publication as P
 from selflearn_core.adapters import nfl_publication_delivery as D
-from selflearn_core.probability_receipts import fingerprint
+from selflearn_core.probability_receipts import fingerprint, instant
 from selflearn_core.store.receipt_journal import JournalConflict
 from selflearn_core.store.supabase_journal import SupabaseReceiptJournal
 from selflearn_core.store.supabase_learning_jobs import SupabaseLearningJobJournal
@@ -68,6 +68,7 @@ class NativeCollectionTests(unittest.TestCase):
                 db.execute((MIGRATION.parent / name).read_text(encoding="utf-8"))
             db.execute(MIGRATION.read_text(encoding="utf-8"))
             db.execute(PUBLICATION_MIGRATION.read_text(encoding="utf-8"))
+            db.execute((MIGRATION.parent / "20261119205100_collection_publication_minute_clock.sql").read_text(encoding="utf-8"))
 
     def call_as(self, role, operation, data):
         sql = self.driver.sql
@@ -102,7 +103,7 @@ class NativeCollectionTests(unittest.TestCase):
         request = {"version": 1, "workflow": "daily.yml", "run_id": run, "run_attempt": "1",
                    "generation_object_id": generation["envelope_id"], "generation_id": gen["generation_id"],
                    "recorded_utc": gen["recorded_utc"], "source_snapshots": gen["source_snapshots"],
-                   "latest_kickoff_utc": generation["receipts"][0]["kickoff_utc"]}
+                   "latest_kickoff_utc": dto.stamp(instant(generation["receipts"][0]["kickoff_utc"]))}
         return authority.objects, request
 
     def test_native_staged_objects_recover_and_finalize_after_lost_reply(self):
@@ -236,7 +237,8 @@ class NativeCollectionTests(unittest.TestCase):
 
     def test_native_publication_recovers_immutable_stage_and_job_and_filters_terminal(self):
         repository = "fixture/native-publication"
-        store, jobs, intent, publisher, unsigned = self.eligible_publication(repository)
+        kickoff = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(timespec="minutes").replace("+00:00", "Z")
+        store, jobs, intent, publisher, unsigned = self.eligible_publication(repository, kickoff=kickoff)
         self.assertIsNone(store.read(intent, publisher))
         staged = store.prepare(intent, publisher, unsigned)  # Discard the reply.
         base, _ = self.ports(repository)
