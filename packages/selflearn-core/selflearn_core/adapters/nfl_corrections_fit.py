@@ -196,14 +196,11 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
                          artifact_version=artifact_version)
 
 
-def _fit_snapshot(snapshot, *, trained_through, expires_at, fitted_at, prior_strength,
-                  min_graded_total, min_graded_per_market, leg_cap_pp, artifact_version):
-    from .nfl_calibration import _latest_as_of
+def _select_publication_cohort(snapshot, as_of):
+    """Select the first attested forecast per contract/event before reading outcomes."""
     from .nfl_publication import validate_publication_attestation
 
-    if type(artifact_version) is not int or artifact_version not in (1, LINEAGE_VERSION):
-        raise CorrectionsError("unsupported_corrections_artifact_version")
-    cutoff = instant(trained_through)
+    cutoff = instant(as_of)
     if (type(snapshot) is not dict or type(snapshot.get("version")) is not int or snapshot["version"] != 1
             or type(snapshot.get("watermark")) is not str or not snapshot["watermark"].isdigit()
             or any(type(snapshot.get(k)) is not list for k in
@@ -315,17 +312,33 @@ def _fit_snapshot(snapshot, *, trained_through, expires_at, fitted_at, prior_str
         selected.append(min(vintages, key=lambda v:
             (instant(receipts[v[0]]["forecast_created_utc"]),
              instant(receipts[v[0]]["first_seen_utc"]), v[0])))
-    cohort = [{"contract_id":receipts[rid]["contract_id"], "event_id":receipts[rid]["event_id"],
-        "receipt_id":rid, "source_receipt_id":receipts[rid]["source_receipt_id"],
-        "generation_object_id":proof["object_id"], "generation_id":proof["generation_id"],
-        "source_pool_id":proof["source_pool_id"], "attestation_id":proof["attestation_id"],
-        "policy_id":proof["policy_id"]} for rid,proof,_,_ in selected]
+    return receipts, selected
+
+
+def _revision_histories(snapshot):
     histories = defaultdict(list)
     for revision in snapshot["revisions"]:
         try:
             histories[revision["resolution"]["receipt_id"]].append(revision)
         except (TypeError, KeyError):
             continue
+    return histories
+
+
+def _fit_snapshot(snapshot, *, trained_through, expires_at, fitted_at, prior_strength,
+                  min_graded_total, min_graded_per_market, leg_cap_pp, artifact_version):
+    from .nfl_calibration import _latest_as_of
+
+    if type(artifact_version) is not int or artifact_version not in (1, LINEAGE_VERSION):
+        raise CorrectionsError("unsupported_corrections_artifact_version")
+    cutoff = instant(trained_through)
+    receipts, selected = _select_publication_cohort(snapshot, trained_through)
+    cohort = [{"contract_id":receipts[rid]["contract_id"], "event_id":receipts[rid]["event_id"],
+        "receipt_id":rid, "source_receipt_id":receipts[rid]["source_receipt_id"],
+        "generation_object_id":proof["object_id"], "generation_id":proof["generation_id"],
+        "source_pool_id":proof["source_pool_id"], "attestation_id":proof["attestation_id"],
+        "policy_id":proof["policy_id"]} for rid,proof,_,_ in selected]
+    histories = _revision_histories(snapshot)
     excluded = []
     graded, provenance = [], []
     lineages = set()
