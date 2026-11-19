@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { spawnSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
 import {
   openDatabase, canonical, digest, digestText, receipt, resolution, revision, generation,
   asRole, rpc, appendReceipt, appendRevision, appendObject, appendGeneration,
@@ -9,11 +8,7 @@ import {
 } from './harness.mjs';
 
 let db;
-before(async () => {
-  db = await openDatabase();
-  const migration = new URL('../../supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql', import.meta.url);
-  await db.exec(await readFile(migration, 'utf8'));
-});
+before(async () => { db = await openDatabase(); });
 after(async () => { if (db) await db.close(); });
 
 test('actual PostgreSQL migration creates RLS tables and invoker-only RPCs', async () => {
