@@ -29,6 +29,7 @@ from selflearn_core.types import Outcome, Prediction
 from .security import OwnerBoundary, MAX_IMAGE
 from .nfl_ingestion import register_nfl_routes
 from .nfl_collection_handoff import register_collection_routes, select_factory as select_collection_factory
+from .nfl_collection_publication import register_publication_handoff_routes
 from .nfl_capture_intake import register_capture_routes
 from .capture_configuration import select_capture_factory
 from .nfl_capture_applications import register_application_routes
@@ -463,7 +464,10 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
             "Content-Disposition": f'attachment; filename="{asset_id}"'})
 
     register_nfl_routes(app, journal_factory, body)
-    register_collection_routes(app, collection_repository, collection_factory, body)
+    register_collection_routes(app, collection_repository, collection_factory, body,
+                               publication_pending=publication_job_factory is not None)
+    register_publication_handoff_routes(app, collection_repository, collection_factory,
+                                       publication_job_factory, publication_verifier, body)
     register_capture_routes(app, capture_factory, body)
     register_application_routes(app, capture_factory, body)
     register_corrections_routes(app, journal_factory, body, env=env)

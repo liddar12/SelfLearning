@@ -9,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 
 from selflearn_core import learning_jobs as dto
 from selflearn_core.adapters import nfl_collection_handoff as handoff
+from selflearn_core.adapters import nfl_collection_publication as publication
 from selflearn_core.adapters.nfl_generation import validate_generation
 from selflearn_core.probability_receipts import instant
 from selflearn_core.store.receipt_journal import JournalConflict
@@ -133,7 +134,7 @@ def status(store, journal, key, *, recover_id=None, view=None):
     return _response(view, state, ack=ack, complete=True)
 
 
-def register_collection_routes(app, repository, factory, body_reader):
+def register_collection_routes(app, repository, factory, body_reader, *, publication_pending=False):
     def run(operation):
         if factory is None:
             raise HTTPException(503, "NFL collection handoff is disabled")
@@ -174,7 +175,11 @@ def register_collection_routes(app, repository, factory, body_reader):
                 or len(request.query_params.multi_items()) != len(request.query_params)
                 or len(raw) > 2 or not raw.isascii() or not raw.isdecimal()):
             raise HTTPException(422, "Use an optional bounded limit and cursor")
-        return await run_in_threadpool(run, lambda store, _: store.pending(int(raw), request.query_params.get("after")))
+        def scan(store, _):
+            port = publication.attach(store) if publication_pending else store
+            return port.pending(int(raw), request.query_params.get("after"))
+
+        return await run_in_threadpool(run, scan)
 
     run_path = NFL_COLLECTION_PATH + "/{workflow}/{run_id}/{run_attempt}"
 
