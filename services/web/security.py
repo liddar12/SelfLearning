@@ -13,6 +13,7 @@ NFL_CORRECTIONS_PATHS = frozenset(("/api/v1/nfl/corrections",))
 NFL_PUBLICATION_PATHS = frozenset(("/api/v1/nfl/publication-attestations", "/api/v1/nfl/publication-jobs",
     "/api/v2/nfl/publication-jobs", "/api/v2/nfl/publication-job-policy"))
 NFL_PUBLICATION_WORKER_PATH = "/api/v1/nfl/publication-worker"
+NFL_COLLECTION_PATH = "/api/v1/nfl/collection-intents"
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
@@ -25,13 +26,14 @@ SECURITY_HEADERS = {
 class OwnerBoundary:
     def __init__(self, app, *, token: str, origins: set[str], ingest_token: str = "",
                  capture_token: str = "", corrections_token: str = "", publication_token: str = "",
-                 publication_worker_token: str = ""):
+                 publication_worker_token: str = "", collection_token: str = ""):
         self.app, self.token, self.origins = app, token, origins
         self.ingest_token = ingest_token
         self.capture_token = capture_token
         self.corrections_token = corrections_token
         self.publication_token = publication_token
         self.publication_worker_token = publication_worker_token
+        self.collection_token = collection_token
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -56,7 +58,7 @@ class OwnerBoundary:
 
         if private:
             tokens = (self.token, self.ingest_token, self.capture_token, self.corrections_token,
-                      self.publication_token, self.publication_worker_token)
+                      self.publication_token, self.publication_worker_token, self.collection_token)
             if any(type(key) is not str for key in tokens):
                 return await reject(503, "Scoped access is not configured")
             nfl_ingest = path in NFL_INGEST_PATHS
@@ -66,6 +68,8 @@ class OwnerBoundary:
             nfl_publication = path in NFL_PUBLICATION_PATHS or path.startswith(("/api/v1/nfl/publication-jobs/", "/api/v2/nfl/publication-jobs/"))
             if path == NFL_PUBLICATION_WORKER_PATH:
                 credential = self.publication_worker_token
+            elif path == NFL_COLLECTION_PATH or path.startswith(NFL_COLLECTION_PATH + "/"):
+                credential = self.collection_token
             elif nfl_publication:
                 credential = self.publication_token
             elif nfl_corrections:

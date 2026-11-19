@@ -191,6 +191,16 @@ jobs:
           psql --version
       - name: Execute publication evidence, replay, clock and privilege transactions
         run: python -m unittest discover -s tests/postgres -p test_native_publication.py -v
+      - name: Create separate disposable collection database and install test dependencies
+        env:
+          PGPASSWORD: selflearn_journal_test_only
+        run: |
+          psql -X -w -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE selflearn_collection_test'
+          python -m pip install -r requirements.txt 'psycopg[binary]==3.2.12'
+      - name: Verify native collection handoff recovery and immutable grants
+        env:
+          SELFLEARN_NATIVE_PG_DSN: postgresql://postgres:selflearn_journal_test_only@127.0.0.1:5432/selflearn_collection_test
+        run: python -m unittest discover -s tests/postgres -p test_native_collection_handoff.py -v
       - name: Declare the independent hosted boundary
         run: >-
           echo 'This fresh disposable database applies journal, observed and publication

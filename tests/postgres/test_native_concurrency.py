@@ -34,19 +34,19 @@ RPCS = {
 }
 
 
-def guarded_environment(uri):
+def guarded_environment(uri, *, database=DATABASE):
     """Build a non-redirectable connection environment without logging a URI.
 
     Ambient PGSERVICE/PGHOSTADDR/PGOPTIONS/PGPASSFILE must not redirect a test
     toward another cluster. The original URI and password never enter argv.
     """
-    message = "Native tests require a loopback PostgreSQL URI for the disposable selflearn_journal_test database"
+    message = "Native tests require a loopback PostgreSQL URI for the disposable " + database + " database"
     try:
         parsed = urlsplit(uri)
         if (not isinstance(uri, str) or any(ch.isspace() for ch in uri)
                 or parsed.scheme not in ("postgres", "postgresql")
                 or parsed.hostname not in ("localhost", "127.0.0.1", "::1")
-                or parsed.path != "/" + DATABASE or parsed.query or parsed.fragment
+                or parsed.path != "/" + database or parsed.query or parsed.fragment
                 or unquote(parsed.username or "") != "postgres"
                 or not parsed.password):
             raise ValueError(message)
@@ -61,7 +61,7 @@ def guarded_environment(uri):
     env.update({
         "PGHOST": host,
         "PGHOSTADDR": "::1" if host == "::1" else "127.0.0.1",
-        "PGPORT": str(port), "PGDATABASE": DATABASE,
+        "PGPORT": str(port), "PGDATABASE": database,
         "PGUSER": "postgres", "PGPASSWORD": password,
         "PGPASSFILE": os.devnull, "PGSSLMODE": "disable", "PGCONNECT_TIMEOUT": "5",
         "PGAPPNAME": "selflearn_native_gate",
@@ -72,12 +72,12 @@ def guarded_environment(uri):
     return env
 
 
-def validate_preflight(value):
+def validate_preflight(value, *, database=DATABASE):
     # Client destination safety is enforced by guarded_environment/PGHOSTADDR.
     # inet_server_addr() is the server's own endpoint, not the client target:
     # GitHub's loopback-published Docker service legitimately reports 172.x.
     # Rejecting that address would break the intended disposable CI topology.
-    if (value.get("database") != DATABASE or type(value.get("version")) is not int
+    if (value.get("database") != database or type(value.get("version")) is not int
             or not 170000 <= value["version"] < 180000
             or value.get("schema_exists") is not False):
         raise RuntimeError("Native gate requires a fresh disposable loopback PostgreSQL 17 database; existing schema was not changed")
