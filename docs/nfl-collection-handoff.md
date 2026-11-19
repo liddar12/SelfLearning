@@ -95,3 +95,18 @@ instances. The native PostgreSQL test uses a fresh disposable loopback PG17
 production Supabase adapter through a local RPC transport to real SQL, including
 rollback of a new registration whose actual DB clock crossed kickoff. Hosted
 PostgREST routing, hosted timings and deployed credentials remain unverified.
+
+## Hosted catalog preflight
+
+Run [the read-only preflight](../supabase/checks/nfl_collection_preflight.sql)
+in the intended project's SQL Editor before changing its collection
+configuration. It reports the 26 expected RPC signatures and 18 private
+tables defined by this revision. Review any missing signatures, service
+execution refusals, direct browser-role grants, or missing row-level
+security. The query reads catalog metadata only.
+
+A passing catalog check establishes that the named objects and inspected
+permissions are present. Verify the migration ledger, deployed engine
+identity, scoped credentials, and the first end-to-end collection cycle
+as separate checks. Keep recommendation corrections off during this
+collection acceptance.
