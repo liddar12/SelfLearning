@@ -10,10 +10,13 @@ import pytest
 from publication_fit_fixture import FIXTURES, PUBLICATION_TIME, observed_revision, seed_publication_journal
 from selflearn_core.adapters.nfl import adapt_prospective
 from selflearn_core.adapters.nfl_generation import MANIFEST_KEYS
+from selflearn_core.adapters.nfl_baseline_audit import audit_baseline
+from selflearn_core.adapters.nfl_corrections import public_artifact
 from selflearn_core.adapters.nfl_corrections_fit import (
+    FIRST_DURABLE_PUBLICATION, _fit_snapshot, _select_publication_cohort,
     authorize_corrections_artifact, fit_corrections_from_journal,
 )
-from selflearn_core.adapters.nfl_corrections_policy import CorrectionsError, TRUSTED_ARTIFACT_SOURCE
+from selflearn_core.adapters.nfl_corrections_policy import CorrectionsError, HARD_LEG_CAP_PP, LINEAGE_VERSION, TRUSTED_ARTIFACT_SOURCE
 from selflearn_core.probability_receipts import fingerprint, instant, seal_receipt
 from selflearn_core.adapters.nfl_publication_journal import NFLPublicationJournal as ReceiptJournal
 
@@ -402,6 +405,48 @@ def refresh_vintage(original, seconds):
 def append_vintage(snapshot, vintage):
     for key, rows in vintage.items():
         snapshot[key].extend(rows)
+
+
+def test_delayed_older_forecast_cannot_displace_first_durable_publication(snapshot):
+    newest = refresh_vintage(snapshot, 60)
+    older_proof = snapshot["publication_attestations"][0]
+    older_proof["observation"].update(
+        observed_started_utc="2026-09-01T14:09:00Z", observed_completed_utc="2026-09-01T14:09:01Z",
+    )
+    older_proof["recorded_utc"] = "2026-09-01T14:09:02Z"
+    reseal(older_proof)
+    append_vintage(snapshot, newest)
+    expected = {r["receipt_id"] for r in newest["receipts"]}
+    for cutoff in ("2026-09-01T14:05:00Z", CUTOFF):
+        _, wanted = _select_publication_cohort(snapshot, cutoff, cohort_policy=FIRST_DURABLE_PUBLICATION)
+        assert {rid for rid, *_ in wanted} == expected
+    _, legacy = _select_publication_cohort(snapshot, CUTOFF)
+    assert {rid for rid, *_ in legacy} == {r["receipt_id"] for r in snapshot["receipts"]} - expected
+
+    # Leave an older outcome available, so both policies can form a v2 fit.
+    snapshot["revisions"] = [row for index, row in enumerate(snapshot["revisions"])
+                             if index == 0 or row["resolution"]["receipt_id"] in expected]
+    args = dict(trained_through=CUTOFF, fitted_at=CUTOFF, expires_at="2099-01-01T00:00:00Z",
+                prior_strength=10, min_graded_total=1, min_graded_per_market=1,
+                leg_cap_pp=HARD_LEG_CAP_PP, artifact_version=LINEAGE_VERSION)
+    journal = Snapshot(snapshot)
+    fit = fit_corrections_from_journal(journal, **args)
+    assert fit["n_graded"] == len(expected)
+    baseline = audit_baseline(journal, as_of_utc=CUTOFF)
+    assert baseline["training_cohort_policy"] == FIRST_DURABLE_PUBLICATION
+    assert baseline["correction_fit_support"]["fit_eligible_graded_count"] == fit["n_graded"]
+    assert fit["training_cohort_policy"] == FIRST_DURABLE_PUBLICATION
+    assert public_artifact(fit)["training_cohort_policy"] == FIRST_DURABLE_PUBLICATION
+    assert authorize_corrections_artifact(journal, fit) == fit
+
+    historical_fit = _fit_snapshot(snapshot, **args)
+    assert "training_cohort_policy" not in historical_fit
+    assert historical_fit["n_graded"] == 1
+    assert authorize_corrections_artifact(journal, historical_fit) == historical_fit
+    relabeled = dict(historical_fit, training_cohort_policy=FIRST_DURABLE_PUBLICATION)
+    relabeled["artifact_id"] = fingerprint({k: v for k, v in relabeled.items() if k != "artifact_id"})
+    with pytest.raises(CorrectionsError, match="trusted_artifact_journal_mismatch"):
+        authorize_corrections_artifact(journal, relabeled)
 
 
 def test_refresh_vintages_cannot_satisfy_sample_floors(snapshot):

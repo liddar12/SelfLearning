@@ -9,10 +9,13 @@ import pytest
 
 from selflearn_core.adapters.nfl_corrections import (
     CorrectionsError,
+    _leg_result,
+    _parlay_result,
     corrections_mode,
     fit_corrections_artifact,
     plan_corrections,
     validate_artifact,
+    validate_request,
 )
 from selflearn_core.adapters.nfl_corrections_policy import (
     HARD_CLAMP,
@@ -77,8 +80,15 @@ def make_artifact(**kwargs):
 
 
 def plan_on(request, artifact, **kwargs):
-    return plan_corrections(request, mode="on", artifact=artifact,
-                            binder_verified=True, **kwargs)
+    """Test the adjustment kernels after the production binder boundary."""
+    parsed = validate_request(request)
+    validate_artifact(artifact)
+    legs = [_leg_result(leg, mode="on", artifact=artifact, cap_pp=artifact["leg_cap_pp"],
+                        binder_verified=True, **kwargs) for leg in parsed["legs"]]
+    by_id = {leg["leg_id"]: leg for leg in legs}
+    return {"corrections_mode": "on", "legs": legs,
+            "parlays": [_parlay_result(parlay, legs_by_id=by_id, mode="on", cap_pp=HARD_PARLAY_CAP_PP,
+                                       baseline_verified=True) for parlay in parsed["parlays"]]}
 
 
 def make_request(*, legs=None, parlays=None, request_id="req-1"):
@@ -192,6 +202,17 @@ def test_on_applies_within_caps_and_clamp():
             assert HARD_CLAMP[0] <= row["adjusted_prob"] <= HARD_CLAMP[1]
 
 
+def test_v1_verified_artifact_remains_read_only():
+    artifact = make_artifact()
+    result = plan_corrections(make_request(), mode="on", artifact=artifact,
+                              now="2026-11-02T00:00:00Z", binder_verified=True)
+    assert result["schema_version"] == 1
+    assert result["artifact"]["artifact_id"] == artifact["artifact_id"]
+    for row in result["legs"] + result["parlays"]:
+        assert row["reason"] == "missing_baseline_lineage"
+        assert row["applied"] is False and row["adjusted_prob"] == row["baseline_prob"]
+
+
 def test_insufficient_total_graded_blocks_everything():
     artifact = make_artifact(graded_records=make_graded(n_per_market=40),
                              min_graded_total=200, min_graded_per_market=30)
@@ -234,6 +255,28 @@ def test_stale_artifact_refuses_application():
     response = plan_on(make_request(), artifact, now="2026-11-02T00:00:00Z")
     assert all(row["reason"] == "stale_artifact" for row in response["legs"])
     assert all(row["applied"] is False for row in response["legs"])
+
+
+@pytest.mark.parametrize(("now", "reason"), [
+    ("2026-11-01T00:59:59.999999Z", "artifact_not_yet_fitted"),
+    ("2026-11-01T01:00:00Z", None),
+    ("2026-12-01T00:00:00Z", None),
+    ("2026-12-01T00:00:00.000001Z", "stale_artifact"),
+])
+def test_corrections_apply_only_in_inclusive_artifact_window(now, reason):
+    artifact = make_artifact()
+    result = plan_on(make_request(), artifact, now=now)
+    for row in result["legs"] + result["parlays"]:
+        assert row["applied"] is (reason is None)
+        if reason is not None:
+            assert row["reason"] == reason
+            assert row["adjusted_prob"] == row["baseline_prob"]
+            assert row["delta"] == 0
+    shadow = plan_corrections(make_request(), mode="shadow", artifact=artifact, now=now,
+                              binder_verified=True)
+    for row in shadow["legs"] + shadow["parlays"]:
+        assert row["applied"] is False
+        assert row["adjusted_prob"] == row["baseline_prob"]
 
 
 def test_push_void_and_post_cutoff_excluded_from_fit():

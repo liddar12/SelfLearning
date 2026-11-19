@@ -7,6 +7,7 @@ which source commit ran or refresh an earlier public HTTP observation.
 from __future__ import annotations
 
 from datetime import timedelta
+import re
 
 from .. import learning_jobs as dto
 from ..probability_receipts import fingerprint, instant, finite_number
@@ -18,6 +19,13 @@ LEASE_SECONDS, MAX_RUNTIME_SECONDS, MAX_ATTEMPTS, MAX_STEPS = 60, 3600, 8, 1
 RECOVERY_SECONDS = 3600
 FALSE_FLAGS = {"learning_enabled":False, "model_adoption":False, "fitting_run":False,
                "browser_display_verified":False, "hard_execution_limit":False}
+MINUTE_KICKOFF = re.compile(r"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2})(Z|[+-](?:0[0-9]|1[0-5]):[0-5][0-9])\Z")
+
+
+def _kickoff_clock(value):
+    """Validate provider kickoff times without changing the signed evidence."""
+    match = MINUTE_KICKOFF.fullmatch(value) if type(value) is str else None
+    return dto.clock(f"{match[1]}:00{match[2]}" if match else value)
 
 
 def settings(policy):
@@ -33,7 +41,7 @@ def definition(object_id, generation_id, generation_recorded_utc, event_start_ut
     dto.clock(generation_recorded_utc)
     dto.need(type(event_start_utcs) in (list, tuple) and 0 < len(event_start_utcs) <= 10000,
              "publication_job_membership_invalid")
-    for value in event_start_utcs: dto.clock(value)
+    latest_kickoff = max(map(_kickoff_clock, event_start_utcs))
     policy_settings = settings(policy)
     inputs = {"version":1, "kind":"nfl.publication_job_input.v1", "object_id":object_id,
               "generation_id":generation_id, "policy_id":fingerprint(policy)}
@@ -41,7 +49,7 @@ def definition(object_id, generation_id, generation_recorded_utc, event_start_ut
         "namespace":dict(NAMESPACE), "operation":OPERATION,
         "input_object_id":fingerprint(inputs), "policy_object_id":fingerprint(policy_settings), "code_id":code_id,
         "not_before_utc":generation_recorded_utc,
-        "not_after_utc":dto.stamp(max(instant(v) for v in event_start_utcs) + timedelta(seconds=RECOVERY_SECONDS)),
+        "not_after_utc":dto.stamp(latest_kickoff + timedelta(seconds=RECOVERY_SECONDS)),
         "lease_seconds":LEASE_SECONDS, "max_runtime_seconds":MAX_RUNTIME_SECONDS,
         "max_attempts":MAX_ATTEMPTS, "max_steps":MAX_STEPS}, authority_id=authority_id)
     return spec, inputs, policy_settings
@@ -134,7 +142,7 @@ def validate_delivery(view, expected_spec, inputs, policy_settings, members, gen
             and row["market"] in MARKETS and row["direction"] == "over"
             and finite_number(row["served_prob"]) and 0 < row["served_prob"] < 1,
             "publication_job_membership_invalid")
-        dto.digest(sid); dto.digest(row["receipt_id"]); dto.clock(row["event_start_utc"])
+        dto.digest(sid); dto.digest(row["receipt_id"]); _kickoff_clock(row["event_start_utc"])
         dto.need(row["receipt_id"] not in generic_ids, "publication_job_membership_invalid")
         generic_ids.add(row["receipt_id"])
     rebuilt, rebuilt_input, rebuilt_policy = definition(inputs["object_id"], generation["generation_id"],

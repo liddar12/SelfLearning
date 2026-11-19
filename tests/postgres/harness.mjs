@@ -5,6 +5,7 @@ import { isAbsolute, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const migration = new URL('../../supabase/migrations/20261015222425_receipt_journal_v1.sql', import.meta.url);
+const canonicalStringMigration = new URL('../../supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql', import.meta.url);
 export const observedMigration = new URL('../../supabase/migrations/20261015233134_observed_journal_v1.sql', import.meta.url);
 
 // The test dependency is supplied explicitly. Never download a package, use an
@@ -29,6 +30,7 @@ export async function openDatabase() {
       CREATE ROLE service_role NOLOGIN BYPASSRLS;
     `);
     await db.exec(sql);
+    await db.exec(await readFile(canonicalStringMigration, 'utf8'));
     return db;
   } catch (error) {
     await db.close();

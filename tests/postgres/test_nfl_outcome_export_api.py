@@ -16,7 +16,7 @@ import pytest
 
 from selflearn_core.evidence_chunks import make_chunk
 from selflearn_core.probability_receipts import fingerprint
-from test_capture_outcomes_atomic import raw_producer, admit
+from test_capture_outcomes_atomic import roster_producer as raw_producer, admit
 from test_capture_intake_api import (
     intake_context, CAPTURE_KEY, GENERATION_KEY, ENV, DEST, CHUNKS, DELIVERIES,
 )

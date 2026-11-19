@@ -102,7 +102,7 @@ def test_cli_refuses_trusted_source_label(tmp_path):
     assert not out.exists()
 
 
-def test_legitimate_binder_authorize_and_apply(tmp_path):
+def test_legitimate_v1_binder_authorizes_but_remains_read_only(tmp_path):
     with ReceiptJournal(tmp_path / "ok.sqlite") as journal:
         seeded = seed_publication_journal(journal, n_per=60)
         originals = journal.receipts()
@@ -118,10 +118,40 @@ def test_legitimate_binder_authorize_and_apply(tmp_path):
         response = plan_corrections(
             _request(0.55), mode="on", artifact=art, binder_verified=True,
             now="2099-01-02T00:00:00Z")
-        assert response["legs"][0]["applied"] is True
+        assert response["legs"][0]["applied"] is False
+        assert response["legs"][0]["reason"] == "missing_baseline_lineage"
+        assert response["legs"][0]["adjusted_prob"] == 0.55
         denied = plan_corrections(
             _request(0.003), mode="on", artifact=art, binder_verified=False,
             now="2099-01-02T00:00:00Z")
         assert denied["legs"][0]["applied"] is False
         assert denied["legs"][0]["adjusted_prob"] == 0.003
         assert journal.receipts() == originals
+
+
+def test_historical_fit_hash_and_homogeneous_v2_fit(tmp_path):
+    args = dict(trained_through="2099-01-01T00:00:00Z", expires_at="2099-02-01T00:00:00Z",
+                fitted_at="2099-01-01T01:00:00Z", min_graded_total=6, min_graded_per_market=2)
+    with ReceiptJournal(tmp_path / "history.sqlite") as journal:
+        seeded = seed_publication_journal(journal, n_per=3)
+        legacy = fit_corrections_from_journal(journal, **args)
+        assert legacy["fit_inputs_hash"] == "sha256:c0a860bb9ae639d594e70a9de0046cb72fb878daca7eaf57e89bb8abb028aeee"
+        assert legacy["artifact_id"] == "sha256:40ad546351bb1ee533118428385ede9afef86d34ba9b860d29bb8531330de6d4"
+        assert authorize_corrections_artifact(journal, legacy) == legacy
+        qualified = fit_corrections_from_journal(journal, **args, artifact_version=2)
+        assert qualified["n_graded"] == legacy["n_graded"] == 9
+        assert qualified["fit_inputs_hash"] != legacy["fit_inputs_hash"]
+        assert qualified["artifact_id"] != legacy["artifact_id"]
+        assert qualified["lineage"] == {key: seeded["receipts"][0][key]
+                                       for key in ("base_model_version", "calibrator_version")}
+        assert authorize_corrections_artifact(journal, qualified) == qualified
+    with ReceiptJournal(tmp_path / "mixed.sqlite") as journal:
+        seed_publication_journal(journal, n_per=3, identity_calibrator_markets={"rb_rush_yds"})
+        assert fit_corrections_from_journal(journal, **args)["n_graded"] == 9
+        with pytest.raises(CorrectionsError, match="^mixed_training_lineage$"):
+            fit_corrections_from_journal(journal, **args, artifact_version=2)
+    with ReceiptJournal(tmp_path / "missing.sqlite") as journal:
+        seed_publication_journal(journal, n_per=3, base_model_version="legacy-without-digest")
+        assert fit_corrections_from_journal(journal, **args)["n_graded"] == 9
+        with pytest.raises(CorrectionsError, match="^missing_baseline_lineage$"):
+            fit_corrections_from_journal(journal, **args, artifact_version=2)

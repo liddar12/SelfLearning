@@ -8,10 +8,10 @@ production rollout, model adoption or prediction improvement.
 from __future__ import annotations
 
 import copy
-import base64
 from datetime import datetime, timezone
 import importlib
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -20,8 +20,10 @@ import time
 
 import pytest
 
+from selflearn_core.adapters.nfl_calibration import build_cohort
 from selflearn_core.adapters.nfl_capture_application_journal import NFLCaptureApplicationJournal
 from selflearn_core.probability_receipts import fingerprint
+from selflearn_core.scoring.binary_receipts import score_binary_receipts
 from selflearn_core.store.capture_staging import CaptureStagingQuota, staging_namespace
 from test_capture_application_api import ApplicationAPITransport
 from test_capture_outcomes_atomic import admit
@@ -68,7 +70,7 @@ for vintage in range(4):
  pool=f.cards._fixture_pool(created);pool.update(week=6,base_model_version='fixture-base')
  prototype=copy.deepcopy(pool['players'][0]);players=[]
  for index in (range(185) if vintage<2 else range(173) if vintage==2 else range(1)):
-  player=copy.deepcopy(prototype);player.update(player=f'Receiver {index}',team='SEA',gsis_id=f'espn-{index}')
+  player=copy.deepcopy(prototype);player.update(player=f'Receiver {index}',team='SEA',gsis_id=f.player_ids(index)[0])
   for rung in player['rungs']:
    z=(player['mu']-rung['line'])/30
    coef={'a':math.log(rung['model_prob']/(1-rung['model_prob'])),'b':0,'c':0}
@@ -85,10 +87,15 @@ for vintage in range(4):
   'status':'STATUS_SCHEDULED','kickoff_utc':f.KICKOFF}]}
  recorded=(f.lr.instant(created)+dt.timedelta(minutes=1)).isoformat().replace('+00:00','Z')
  f.learning_journal.record(pool,schedule,None,[],recorded,str(journal))
-bundle=f.bundle(stats_rows=[f.stats_row('80',player_display_name=f'Receiver {i}') for i in range(185)],
- snap_rows=[f.snap_row(player=f'Receiver {i}') for i in range(185)])
+bundle=f.bound_bundle(
+ stats_rows=[f.bound_stats_row('80',player_index=i,player_display_name=f'Receiver {i}') for i in range(185)],
+ snap_rows=[f.bound_snap_row(player_index=i,player=f'Receiver {i}') for i in range(185)] +
+           [f.bound_snap_row(player_index=185,player='Away Starter',team='LAR',opponent='SEA')],
+ roster_rows=[f.bound_roster_row(i) for i in range(186)])
 capture_path=f.capture.save_capture(bundle,root/'raw-authority')
-print(json.dumps({'journal':f.plan(journal),'sender':sender.plan(capture_path,sender.ORIGIN)}))
+plan=f.plan(journal)
+print(json.dumps({'journal':plan,'sender':sender.plan(capture_path,sender.ORIGIN),
+ 'nfl_grades':f.grades_from_capture(plan,schedule,bundle)}))
 '''
     run = subprocess.run([sys.executable, "-c", script, str(directory)], cwd=checkout,
         capture_output=True, text=True, timeout=90)
@@ -146,7 +153,8 @@ class TimedASGITransport:
 
 
 def test_real1088_sender_resumes_whole_groups_lost_replies_and_original_without_raw(
-        large_producer, v2_sender, tmp_path):
+        large_producer, v2_sender, tmp_path, monkeypatch):
+    monkeypatch.setenv("SELFLEARN_ROSTER_CAPTURE_TEST", "1")
     bridge = TimedSQLBridge()
     try:
         # Use the existing maximum page size, never1088 single-member requests.
@@ -181,7 +189,7 @@ def test_real1088_sender_resumes_whole_groups_lost_replies_and_original_without_
             assert middle["seal"]["limits"]["revisions"] == 400
             # Different vintage counts create6/8-member groups. Never split
             # the next whole group merely to fill a two-member spare slot.
-            assert [b["member_count"] for b in middle["seal"]["batches"]] == [400, 398, 290]
+            assert [b["member_count"] for b in middle["seal"]["batches"]] == [396, 400, 292]
             assert middle["terminal"] is None
             assert sum(b["result"] is not None for b in middle["batches"]) == 1
             # A fresh sender invocation recovers pinned original work, then
@@ -199,26 +207,48 @@ def test_real1088_sender_resumes_whole_groups_lost_replies_and_original_without_
             assert after["receipts"] == originals
             assert len(after["observations"]) == len(after["revisions"]) == 1088
             assert all(row["resolution"]["hit"] is True for row in after["revisions"])
-            # Compare the ACTUAL SQL-generated revision IDs, full confirmation
-            # stream and exact first-forecast membership against independently
-            # regraded original NFL raw data.1088 vintages become370 independent
-            # canonical rung contracts, not1088 training samples.
-            from tools.nfl_review_parity import evaluate, NAMESPACE
-            raw = v2_sender.capture.load_capture(sender_plan["capture_plan"]["capture_path"])
-            cutoff = datetime.now(timezone.utc).isoformat()
-            wrapper = {"version": 1, "kind": "nfl.review_parity_input.v1", "namespace": NAMESPACE,
-                "snapshot_exported_utc": cutoff, "analysis": {"version": 1, "snapshot": after,
-                    "export_plan": large_producer["journal"], "as_of_utc": cutoff,
-                    "population": "eligible_pool", "captures": [{"manifest": raw["manifest"],
-                        "observations": raw["observations"],
-                        "raw": {key: base64.b64encode(value).decode() for key, value in raw["raw_objects"].items()}}]}}
-            parity = evaluate(wrapper, expected_input_id=fingerprint(wrapper),
-                nfl_checkout=os.environ["NFL2026_CHECKOUT"], now_utc=cutoff)
-            assert parity["parity"] is True and parity["status"] == "supported_pinned_cohort_parity", parity
-            assert parity["coverage"]["first_eligible_forecasts"] == parity["coverage"]["graded_contracts"] == 370
-            assert parity["nfl_set_id"] == parity["engine_set_id"]
-            assert parity["namespace_authenticated"] is parity["completeness_authenticated"] is False
-            assert parity["live_review_replaced"] is parity["model_adoption"] is False
+            # Regrade every original in the NFL checkout, then independently
+            # compare the engine's cohort with the first complete generation.
+            generic = {row["source_receipt_id"]: row for row in originals}
+            grades = large_producer["nfl_grades"]
+            assert set(grades) == set(generic)
+            revisions = {node["resolution"]["receipt_id"]: node for node in after["revisions"]}
+            for source_id, expected in grades.items():
+                revision = revisions[generic[source_id]["receipt_id"]]["resolution"]
+                assert expected["result"] in ("hit", "miss")
+                assert revision["hit"] is (expected["result"] == "hit"), source_id
+                assert revision["actual"] == expected["actual"], source_id
+
+            documents = [item["request"]["payload"] for item in plan["generations"]]
+            first_document = min(documents, key=lambda doc: min(
+                row["learning_receipt"]["forecast_created_utc"] for row in doc["receipts"]))
+            first = {row["receipt_id"] for row in first_document["receipts"]}
+            source_receipts = [row["learning_receipt"] for doc in documents for row in doc["receipts"]]
+            cohort = build_cohort(originals, source_receipts, after["revisions"],
+                as_of_utc=datetime.now(timezone.utc).isoformat(), population="eligible_pool",
+                generation_records=after["generation_records"])
+            selected = {generic[source_id]["receipt_id"] for source_id in first}
+            assert cohort["n"] == len(selected) == 370
+            assert {row["receipt_id"] for row in cohort["forecasts"]} == selected
+            assert {row["source_receipt_id"] for row in cohort["rows"]} == first
+            for row in cohort["rows"]:
+                receipt = generic[row["source_receipt_id"]]
+                assert row["revision_id"] == revisions[receipt["receipt_id"]]["revision_id"]
+                for key in ("contract_id", "base_prob", "served_prob"):
+                    assert row[key] == receipt[key]
+
+            scores = score_binary_receipts(
+                [generic[source_id] for source_id in first],
+                [revisions[receipt_id]["resolution"] for receipt_id in selected])
+            ordered = sorted(first)
+            probabilities = [generic[source_id]["served_prob"] for source_id in ordered]
+            hits = [int(grades[source_id]["result"] == "hit") for source_id in ordered]
+            assert scores["n"] == 370
+            assert scores["brier"] == pytest.approx(
+                sum((p - hit) ** 2 for p, hit in zip(probabilities, hits)) / len(first), abs=1e-12)
+            assert scores["log_loss"] == pytest.approx(
+                -sum(math.log(p if hit else 1 - p) for p, hit in zip(probabilities, hits)) / len(first),
+                abs=1e-12)
             storage_before, sql_before = len(storage.calls), len(bridge.calls)
             storage.bucket["public"] = True
             # The original can be recovered even if the saved capture cannot

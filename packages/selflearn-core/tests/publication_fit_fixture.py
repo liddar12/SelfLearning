@@ -53,11 +53,13 @@ def observed_revision(receipt, source, *, hit, observed_utc=FIRST_OUTCOME, prior
     return result["proposals"][0]
 
 
-def seed_publication_journal(journal, n_per=1, *, publish=True):
+def seed_publication_journal(journal, n_per=1, *, publish=True, identity_calibrator_markets=(), base_model_version=None):
     requests = [json.loads((FIXTURES / name).read_text()) for name in (
         "source_snapshot_leg_pool.json", "source_snapshot_schedule.json",
         "source_snapshot_parlay_calibration.json")]
     pool, schedule, calibration = [request["payload"] for request in requests]
+    if base_model_version is not None:
+        pool["base_model_version"] = base_model_version
     doc = json.loads((FIXTURES / "generation_envelope.json").read_text())["payload"]
     template_player = pool["players"][0]
     template_row = doc["receipts"][0]
@@ -70,6 +72,11 @@ def seed_publication_journal(journal, n_per=1, *, publish=True):
             player["rungs"] = [rung]
             receipt = rung["learning_receipt"]
             receipt.update(player_id=player["gsis_id"], market=market)
+            if base_model_version is not None:
+                receipt["base_model_version"] = base_model_version
+            if market in identity_calibrator_markets:
+                receipt["calibrator"] = {"a": 0, "b": 1}
+                receipt["calibrator_version"] = fingerprint(receipt["calibrator"])
             receipt["features"]["market"] = market
             receipt["features"].pop("selection", None)
             receipt["features"].pop("direction", None)

@@ -125,6 +125,8 @@ class NativePublicationTests(unittest.TestCase):
         # writes, applies the two prerequisite migrations, and checks PG17.
         observed.NativeObservedConcurrencyTests.setUpClass.__func__(cls)
         cls.pg.run(MIGRATION.read_text(encoding="utf-8"))
+        cls.pg.run((ROOT / "supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql").read_text(encoding="utf-8"))
+        cls.pg.run((ROOT / "supabase/migrations/20261119195600_publication_canonical_comparison_fast_path.sql").read_text(encoding="utf-8"))
 
     compete = observed.NativeObservedConcurrencyTests.compete
 

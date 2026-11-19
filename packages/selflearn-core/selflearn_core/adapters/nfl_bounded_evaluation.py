@@ -1,7 +1,7 @@
 """Explicit POSIX compute boundary around the existing durable shadow job.
 
 No credential is passed to the fixed child; journal IO remains in the parent.
-V2 policies bind the execution profile. Legacy v1 inline policies/results retain
+V2 and bounded v3 policies bind the execution profile. Legacy v1 policies retain
 their old shape and cannot claim this boundary. Receipts are local observations,
 NOT authenticated execution, source/label authority, or model approval.
 """
@@ -49,7 +49,7 @@ class BoundedNFLEvaluator:
 
     def __call__(self, inputs, settings, spec, current):
         started=time.monotonic()
-        jobs.need(settings["version"]==2 and fingerprint(settings["execution_profile"])==self.profile_id)
+        jobs.need(nfl.bounded_policy(settings) and fingerprint(settings["execution_profile"])==self.profile_id)
         self.current=jobs.snapshot(current,limit=jobs.MAX_HISTORY_BYTES)
         remaining=min((jobs.clock(current["state"][key])-jobs.clock(current["observed_utc"])).total_seconds()
             for key in("lease_until_utc","runtime_deadline_utc"))
@@ -105,7 +105,7 @@ def run_bounded_shadow_job(journal, job_id, *, authority_id, worker_id, max_phas
     jobs.need(getattr(journal,"authority_id",None)==jobs.digest(authority_id))
     current=journal.read_job(jobs.digest(job_id))
     settings=nfl._object(journal,current["definition"]["policy_object_id"],current["registered_utc"]);nfl._policy(settings)
-    jobs.need(settings["version"]==2,"bounded_shadow_policy_required")
+    jobs.need(nfl.bounded_policy(settings),"bounded_shadow_policy_required")
     runner=BoundedNFLEvaluator(settings["execution_profile"])
     try:
         return nfl.run_shadow_job(journal,job_id,authority_id=authority_id,worker_id=worker_id,max_phases=max_phases,compute=runner)

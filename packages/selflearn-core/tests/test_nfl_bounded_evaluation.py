@@ -22,7 +22,7 @@ from test_nfl_evaluation_job import inputs,definition,AUTHORITY
 
 def staged(tmp_path,inputs,*,profile=None,**changes):
     profile=P.profile()if profile is None else profile
-    settings=N.policy(execution_profile=profile)
+    settings=N.policy(outcome_admission=N.calibration.LEGACY_LABELS, execution_profile=profile)
     journal=LearningJobJournal(tmp_path/"bounded-jobs.db",authority_id=AUTHORITY)
     for value in(inputs,settings):journal.append_object("source_snapshot",fingerprint(value),value)
     spec=definition(inputs,policy_object_id=fingerprint(settings),**changes)
@@ -89,7 +89,7 @@ def test_bounded_policy_requires_matching_executor_before_any_claim(tmp_path,inp
             with pytest.raises(ValueError,match="shadow_job_bounded_executor_required"):
                 N.run_shadow_job(journal,spec["job_id"],authority_id=AUTHORITY,worker_id="test",compute=compute)
         assert journal.read_job(spec["job_id"])["events"]==[]
-    assert N.policy()["version"]==1
+    assert N.policy(outcome_admission=N.calibration.LEGACY_LABELS)["version"]==1
     with pytest.raises(ValueError):N._policy({**settings,"execution_profile":{}})
 
 
@@ -183,7 +183,7 @@ def test_receipt_scope_and_false_authority_flags_cannot_be_rehashed_away(tmp_pat
     with journal,patch.object(P,"run_worker",side_effect=emulated_worker):result=run(journal,spec)
     original=result["result"];changed=copy.deepcopy(original);changed["execution"][key]=value
     with pytest.raises(ValueError):N._result(changed,spec,settings)
-    with pytest.raises(ValueError):N._result(original,spec,N.policy())
+    with pytest.raises(ValueError):N._result(original,spec,N.policy(outcome_admission=N.calibration.LEGACY_LABELS))
     with pytest.raises(ValueError):N._result({**original,"extra":True},spec,settings)
 
 

@@ -40,8 +40,8 @@ Values: `off` | `shadow` | `on`. Unset or invalid → **`off`**.
 | Mode | Served values | `applied` | Notes |
 |------|---------------|-----------|-------|
 | `off` | Exact submitted baselines | `false` | Kill switch. Artifact ignored. |
-| `shadow` | Exact submitted baselines | `false` | Computes would-be adjustments and logs them. |
-| `on` | Adjusted when learned rules pass | `true` only for learned fits | Still fails closed to baseline on any fault. |
+| `shadow` | Exact submitted baselines | `false` | Logs would-be adjustments for qualified v2 legs. |
+| `on` | Qualified v2 legs may be adjusted | `true` only for matched, eligible legs | V1 and parlay probabilities echo baseline. |
 
 ### How the flag is read / redeploy (not rapid)
 
@@ -63,11 +63,14 @@ Fit offline with `tools/fit_nfl_corrections.py` or
 Caller-supplied grade lists are integrity-hashed only — **not** authenticated
 provenance. Default `source` is `graded_caller_list_untrusted` and **cannot**
 set `applied=true`. The caller-list fitter and CLI **refuse** to seal
-`source=receipt_journal_publication_as_of_v2`. Trusted fits come only from
-`fit_corrections_from_journal`. At serve time, a trusted label is accepted for
-`applied=true` only after `authorize_corrections_artifact` recomputes the binder
-fit from the live journal and matches `artifact_id`. Digests detect mutation;
-they are **not** signatures.
+the trusted v2 artifact kind. Journal fits come from `fit_corrections_from_journal`.
+The default v1 keeps its existing hashes and historical recomputation.
+`artifact_version=2` seals `nfl.corrections_artifact.v2` with
+`lineage_policy=exact_frozen_base_calibrator_v1` and the one verified
+`base_model_version`/`calibrator_version` pair shared by every admitted graded
+receipt. Missing or mixed training lineage prevents a v2 fit. The pair and
+policy participate in both hashes. `authorize_corrections_artifact` independently
+recomputes the artifact by version from the journal and compares the full result.
 
 Store the sealed artifact **body** (all fields except nested `artifact_id`)
 as an existing receipt-journal **`source_snapshot`** object whose
@@ -79,6 +82,137 @@ as an existing receipt-journal **`source_snapshot`** object whose
 Artifact storage itself needs no new table. Publication-aware fitting requires
 the separate publication-attestation migration and an explicitly composed NFL
 publication journal; neither is deployed by this local checkpoint.
+
+### Offline replay from a publication journal
+
+Use an existing SQLite NFL publication journal, such as a local rehearsal
+journal. Supply explicit UTC cutoffs and save the three JSON results locally.
+`HOLDOUT_START` must follow `FITTED_AT`, and `AS_OF` must be at or after
+`HOLDOUT_END`. The optional `--policy` on `freeze` accepts a document from
+`seal_evaluation_policy`. With a policy, `AS_OF` must equal its sealed outcome
+cutoff.
+
+```sh
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" fit \
+  --trained-through "$TRAINED_THROUGH" --fitted-at "$FITTED_AT" \
+  --expires-at "$EXPIRES_AT" > correction.json
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" freeze \
+  --artifact correction.json --start "$HOLDOUT_START" --end "$HOLDOUT_END" > holdout.json
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" score \
+  --artifact correction.json --holdout holdout.json --as-of "$AS_OF" > report.json
+```
+
+Each command uses a read-only journal connection. The fit verifies publication,
+label and lineage evidence and emits a version 2 artifact. Freeze records the
+original forecast cohort, and score revalidates that membership, uses labels
+known by the cutoff and reports paired log loss with game- and week-clustered
+intervals. Inspect the forecast and scored counts and the hold reasons before
+interpreting a result. This report is retrospective evidence. A local policy
+document carries no independently verified registration time or serving
+authority.
+
+Run `python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" baseline --as-of "$AS_OF"`
+to audit coverage even when no outcomes qualify. It reports the frozen
+forecast count, qualified outcomes, distinct games, lineage and counts
+against the fitter's default floors. When verified results exist, it
+compares raw and served probabilities on the same results. Rounding or
+clamping may change a served value even when no calibrator is configured.
+Meeting count floors supplies no accuracy or serving approval.
+
+### Register a fixed holdout before kickoff
+
+An existing local publication journal can reserve a holdout for one fitted
+artifact and its sealed evaluation policy. Run `register` before `HOLDOUT_START`.
+The artifact must already be fitted and stay valid through the full window.
+
+```sh
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" register \
+  --artifact correction.json --policy sealed-policy.json \
+  --start "$HOLDOUT_START" --end "$HOLDOUT_END" > registration.json
+```
+
+`register` reserves the window in an append-only transaction, then records when
+the committed plan was observed. Both times come from SQLite and must
+precede the holdout. Running the same plan again returns the original
+receipt. An overlapping plan, including one with different thresholds,
+is refused. A registration that was never observed before the start
+cannot be used by replay.
+
+After `HOLDOUT_END`, pass the returned `registration_id` to `freeze` with
+`--registration-id`. Run `score` after the sealed outcome cutoff. The report
+checks the registration in the same journal and identifies SQLite as its
+clock authority. This verifies local preregistration of the candidate and
+rules. By default it replays candidate probabilities from frozen inputs.
+
+New holdouts pin the first independently verified publication that the
+journal durably recorded for each contract and game. A delayed refresh
+can carry an older generation timestamp. That timestamp cannot replace
+the first recorded publication in an active evaluation. Existing
+registrations and their original holdouts retain their sealed membership
+rule, and previously fitted artifacts retain their exact training
+cohort for reproducibility.
+
+### Score decisions that were recorded before kickoff
+
+During an active registered window, run `capture-shadow` after each
+independent publication observation. It uses only forecasts already known to
+the local journal at decision time. Both the decision and the observation
+of its committed record must precede the relevant game's kickoff. Retrying
+keeps the first decision for each receipt. This command and `register` write
+local evidence. Fit, freeze and score use read-only journal connections.
+
+```sh
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" capture-shadow \
+  --artifact correction.json --registration-id "$REGISTRATION_ID" \
+  --start "$HOLDOUT_START" --end "$HOLDOUT_END"
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" score \
+  --artifact correction.json --holdout holdout.json --as-of "$AS_OF" \
+  --recorded-shadow > shadow-report.json
+```
+
+`--recorded-shadow` scores the recorded decisions matched to original
+publication and outcome receipts. Missing, changed or late evidence holds
+the decision and remains visible in the denominator. Hosted collection
+and approval to serve a correction require separate evidence.
+
+### Grade a retained local forecast
+
+Capture official scoreboard, weekly stats, snaps and roster evidence with
+the NFL2026 producer and retain the original manifest and raw objects. The
+default command verifies and binds a capture without modifying the journal.
+
+```sh
+python3 tools/apply_local_nfl_outcomes.py --journal "$NFL_JOURNAL" \
+  --nfl-checkout "$NFL_CHECKOUT" --nfl-commit "$NFL_COMMIT" \
+  --capture "$OUTCOME_CAPTURE"
+```
+
+Add `--apply` to append observations and outcome revisions to that local
+SQLite journal. A change to the journal after binding refuses the whole
+write. Rerun the command to bind against the new membership. An exact
+retry creates no duplicate grades, and a newer verified correction
+extends the original revision chain. Games without a verified final and
+complete scores remain unresolved.
+
+### Retain a public forecast before kickoff
+
+Use the approved site origin, the exact Git commit whose generated data the
+site serves, and a clean local checkout of the producer code. The two Git
+commits can differ. Reuse a private local workspace across refreshes.
+
+```sh
+python3 tools/observe_local_nfl_forecast.py --origin "$NFL_ORIGIN" \
+  --workspace "$NFL_EVIDENCE" --nfl-checkout "$NFL_CHECKOUT" \
+  --nfl-commit "$NFL_COMMIT" --published-commit "$NFL_PUBLISHED_COMMIT"
+```
+
+The observer checks the pool, schedule and calibration bytes against Git,
+validates the frozen forecast, then independently retrieves the pool again
+before recording its publication. If those bytes change, rerun against the
+actual new public commit. Retrying identical inputs recovers the original
+attestation and clock. Use `$NFL_EVIDENCE/journal.sqlite` for the local
+grading command when outcomes are available. The attestation covers public
+retrievability of the yardage pool and supplies no serving approval.
 
 ## Method
 
@@ -102,12 +236,14 @@ then capped at ±`leg_cap_pp` (hard ceiling 3pp).
 - Eligibility: `served_at` before kickoff, binary outcome, exclude push/void
   (casefold), `graded_at <= trained_through`, required `selection`.
 - Expired `expires_at` → `stale_artifact`.
+- An authorized artifact with `fitted_at` after the server decision clock → `artifact_not_yet_fitted`.
 
 ## Caps
 
 - Leg: ±3 percentage points (configurable, never above hard ceiling).
-- Parlay: `baseline_parlay * Π(adj_leg / base_leg)`, then tighter of ±3pp
-  absolute and 15% relative.
+- The parlay math kernel caps the product of leg ratios at the tighter of ±3pp
+  absolute and 15% relative. The endpoint holds joint probability until the
+  original joint price has a trusted binding.
 - Clamp `[0.01, 0.99]` applies **only** when `applied=true`. If clamping would
   exceed the cap or flip direction, refuse (`applied=false`, echo baseline).
 - When `applied=false`, `adjusted_prob` equals the submitted `baseline_prob`
@@ -115,7 +251,7 @@ then capped at ±`leg_cap_pp` (hard ceiling 3pp).
 
 ## Request / response
 
-Request:
+Historical v1 request:
 
 ```json
 {
@@ -175,12 +311,12 @@ Response `artifact` (when present) includes full public provenance:
   },
   "legs": [
     {"leg_id": "L1", "baseline_prob": 0.55, "adjusted_prob": 0.55,
-     "delta": 0.0, "applied": false, "reason": "insufficient_graded_data",
+     "delta": 0.0, "applied": false, "reason": "untrusted_artifact_source",
      "cap_pp": 0.03}
   ],
   "parlays": [
     {"parlay_id": "P1", "baseline_prob": 0.55, "adjusted_prob": 0.55,
-     "delta": 0.0, "applied": false, "reason": "insufficient_graded_data",
+     "delta": 0.0, "applied": false, "reason": "untrusted_artifact_source",
      "cap_pp": 0.03}
   ]
 }
@@ -189,6 +325,28 @@ Response `artifact` (when present) includes full public provenance:
 Duplicate or missing `leg_id` references force affected legs/parlays to
 `applied=false` with exact baseline echoes. `request_id` and all baseline
 fields are echoed exactly.
+
+### Lineage-bound v2 requests
+
+V2 uses `schema_version: 2` on the same route. Add `calibrator_version` and a
+`baseline_generation` object containing `workflow`, `run_id`, `run_attempt`,
+`intent_id`, `generation_object_id` and `generation_id`. Each leg carries its
+`contract_id` and `source_receipt_id`. Use the original pool `generated_at`.
+The declaration and receipt references are checked against the server's
+collection repository, immutable intent, durably finalized generation and exact
+frozen source objects. The generation commit must precede kickoff. A leg's
+decision must also precede kickoff. An apply-eligible leg must have a known,
+matching pair and the original receipt's exact market, direction, game,
+contract and `served_prob`. The response echoes schema version 2 and includes
+the artifact lineage when available.
+
+V1 keeps the request and response shape for inspection. A trusted v1 fit in
+on mode returns `missing_baseline_lineage` with baseline probabilities. Missing
+or incompatible v2 lineage also leaves baseline intact. A selected parlay
+echoes `unverified_parlay_baseline` when its legs qualify, or the applicable
+leg refusal if a leg is held. A valid v2 binding qualifies the request for
+the configured calculation. Prospective policy evaluation and serving approval
+are separate decisions.
 
 ## NFL owner relay — minimum evidence gaps (read-only)
 

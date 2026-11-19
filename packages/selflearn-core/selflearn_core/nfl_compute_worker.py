@@ -57,7 +57,7 @@ def compute(packet, limits):
     spec=jobs.validate_spec(packet["definition"],authority_id=packet["authority_id"])
     jobs.need(spec["namespace"]==nfl.NS and spec["operation"]==nfl.OPERATION)
     settings=packet["policy"];nfl._policy(settings)
-    jobs.need(settings["version"]==2 and type(packet["cpu_seconds"]) is int
+    jobs.need(nfl.bounded_policy(settings) and type(packet["cpu_seconds"]) is int
         and 1<=packet["cpu_seconds"]<=settings["execution_profile"]["cpu_seconds"])
     limits=process.validate_limits(limits,packet["cpu_seconds"])
     inputs=packet["inputs"];nfl._inputs(inputs,packet["registered_utc"])
@@ -65,7 +65,7 @@ def compute(packet, limits):
     jobs.need(jobs.code_identity()==spec["code_id"],"compute_source_changed")
     report=calibration.walk_forward_report(inputs["receipts"],inputs["source_receipts"],inputs["revisions"],
         as_of_utc=inputs["as_of_utc"],population=settings["population"],bootstrap_replicates=settings["bootstrap_replicates"],
-        generation_records=inputs["generation_records"])
+        generation_records=inputs["generation_records"],outcome_admission=nfl.outcome_admission(settings))
     report=evidence._copy(json.loads(json.dumps(report,allow_nan=False)))
     jobs.need(jobs.code_identity()==spec["code_id"],"compute_source_changed")
     return {"version":1,"kind":"nfl.compute_response.v1","request_id":fingerprint(packet),"work_id":work_id(spec),

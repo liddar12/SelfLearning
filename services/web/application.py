@@ -28,6 +28,8 @@ from selflearn_core.store.supabase_learning_jobs import SupabaseLearningJobJourn
 from selflearn_core.types import Outcome, Prediction
 from .security import OwnerBoundary, MAX_IMAGE
 from .nfl_ingestion import register_nfl_routes
+from .nfl_collection_handoff import register_collection_routes, select_factory as select_collection_factory
+from .nfl_collection_publication import register_publication_handoff_routes
 from .nfl_capture_intake import register_capture_routes
 from .capture_configuration import select_capture_factory
 from .nfl_capture_applications import register_application_routes
@@ -218,7 +220,8 @@ def image_extension(data: bytes, mime: str) -> str:
 
 
 def create_app(*, store=None, env=None, journal_factory=None, capture_factory=None,
-               owner_intent_factory=None, publication_transport=None, publication_job_factory=None):
+               owner_intent_factory=None, publication_transport=None, publication_job_factory=None,
+               collection_handoff_store=None):
     env = os.environ if env is None else env
     token = env.get("SELFLEARN_OPERATOR_TOKEN", "")
     if store is None:
@@ -228,6 +231,7 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
         except ValueError:
             store = None  # Never fall back to ephemeral/local storage in production.
     journal_factory, journal_selection = _journal_selection(env, journal_factory)
+    collection_repository, collection_factory = select_collection_factory(env, journal_factory, collection_handoff_store)
     capture_factory, capture_selection = select_capture_factory(env, capture_factory)
     publication_verifier = select_verifier(env, publication_transport)
     publication_job_factory, publication_worker_selection = select_worker_factory(
@@ -324,7 +328,8 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
                        capture_token=env.get("SELFLEARN_NFL_OUTCOME_INGEST_TOKEN", ""),
                        corrections_token=env.get("SELFLEARN_NFL_CORRECTIONS_TOKEN", ""),
                        publication_token=env.get("SELFLEARN_NFL_PUBLICATION_TOKEN", ""),
-                       publication_worker_token=env.get("SELFLEARN_NFL_PUBLICATION_WORKER_TOKEN", ""))
+                       publication_worker_token=env.get("SELFLEARN_NFL_PUBLICATION_WORKER_TOKEN", ""),
+                       collection_token=env.get("SELFLEARN_NFL_COLLECTION_TOKEN", "") if collection_factory else "")
 
     @app.exception_handler(StoreError)
     async def store_error(request, exc):
@@ -459,9 +464,14 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
             "Content-Disposition": f'attachment; filename="{asset_id}"'})
 
     register_nfl_routes(app, journal_factory, body)
+    register_collection_routes(app, collection_repository, collection_factory, body,
+                               publication_pending=publication_job_factory is not None)
+    register_publication_handoff_routes(app, collection_repository, collection_factory,
+                                       publication_job_factory, publication_verifier, body)
     register_capture_routes(app, capture_factory, body)
     register_application_routes(app, capture_factory, body)
-    register_corrections_routes(app, journal_factory, body, env=env)
+    register_corrections_routes(app, journal_factory, body, env=env,
+                                collection_factory=collection_factory, collection_repository=collection_repository)
     register_publication_routes(app, journal_factory, body, publication_verifier)
     register_worker_routes(app, publication_job_factory, body, publication_verifier)
     # Explicit trusted server injection only. Environment/store credentials do

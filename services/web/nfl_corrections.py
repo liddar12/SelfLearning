@@ -21,7 +21,7 @@ from selflearn_core.adapters.nfl_corrections import (
     plan_corrections,
     validate_artifact,
 )
-from selflearn_core.adapters.nfl_corrections_policy import artifact_source_trusted
+from selflearn_core.adapters.nfl_corrections_policy import LINEAGE_VERSION, artifact_source_trusted
 
 LOG = logging.getLogger(__name__)
 
@@ -35,34 +35,42 @@ def artifact_snapshot_payload(artifact):
     return {key: value for key, value in artifact.items() if key != "artifact_id"}
 
 
-def _load_artifact(journal_factory, env):
-    """Load pinned snapshot; authorize trusted labels against the live journal."""
+def _artifact_from_journal(journal, env):
     artifact_id = env.get("SELFLEARN_CORRECTIONS_ARTIFACT_ID", "")
     if not isinstance(artifact_id, str) or not artifact_id.startswith("sha256:"):
-        return None, False
-    if journal_factory is None:
+        return None
+    record = journal.get_object(artifact_id)
+    if not isinstance(record, dict) or record.get("kind") != "source_snapshot":
+        raise CorrectionsError("artifact_object_missing")
+    payload = record.get("payload")
+    if not isinstance(payload, dict):
+        raise CorrectionsError("artifact_payload_missing")
+    if payload.get("kind") == "nfl.corrections_envelope.v1":
+        candidate = payload.get("artifact")
+    elif "artifact_id" in payload:
+        candidate = payload
+    else:
+        candidate = {**payload, "artifact_id": artifact_id}
+    artifact = validate_artifact(candidate)
+    if artifact["version"] == LINEAGE_VERSION and artifact["artifact_id"] != artifact_id:
+        raise CorrectionsError("lineage_artifact_object_mismatch")
+    return artifact
+
+
+def _load_artifact(journal_factory, env):
+    """Keep historical inspection and exact v1 recomputation available."""
+    if journal_factory is None or not env.get("SELFLEARN_CORRECTIONS_ARTIFACT_ID"):
         return None, False
     with journal_factory() as journal:
-        record = journal.get_object(artifact_id)
-        if not isinstance(record, dict) or record.get("kind") != "source_snapshot":
-            raise CorrectionsError("artifact_object_missing")
-        payload = record.get("payload")
-        if not isinstance(payload, dict):
-            raise CorrectionsError("artifact_payload_missing")
-        if payload.get("kind") == "nfl.corrections_envelope.v1":
-            candidate = payload.get("artifact")
-        elif "artifact_id" in payload:
-            candidate = payload
-        else:
-            candidate = {**payload, "artifact_id": artifact_id}
-        artifact = validate_artifact(candidate)
-        if not artifact_source_trusted(artifact.get("source")):
+        artifact = _artifact_from_journal(journal, env)
+        if artifact is None or not artifact_source_trusted(artifact.get("source")):
             return artifact, False
         authorize_corrections_artifact(journal, artifact)
         return artifact, True
 
 
-def register_corrections_routes(app, journal_factory, body_reader, env=None):
+def register_corrections_routes(app, journal_factory, body_reader, env=None, *,
+                                collection_factory=None, collection_repository=None):
     env = os.environ if env is None else env
 
     @app.post("/api/v1/nfl/corrections")
@@ -78,6 +86,12 @@ def register_corrections_routes(app, journal_factory, body_reader, env=None):
             mode = corrections_mode(env.get("SELFLEARN_CORRECTIONS_MODE"))
             binder_verified = False
             try:
+                if (mode != "off" and collection_factory is not None
+                        and isinstance(data, dict) and data.get("schema_version") == LINEAGE_VERSION):
+                    with collection_factory() as (collection, journal):
+                        artifact = _artifact_from_journal(journal, env)
+                        return plan_corrections(data, mode=mode, artifact=artifact, journal=journal,
+                                                collection=collection, repository=collection_repository)
                 if mode == "off":
                     artifact = None
                 else:

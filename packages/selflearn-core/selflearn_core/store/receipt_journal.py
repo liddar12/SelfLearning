@@ -85,17 +85,25 @@ class ReceiptJournal:
     fields cannot replace the journal's database-owned insertion timestamps.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, *, read_only=False):
         self.path = str(path)
-        if self.path != ":memory:":
-            Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(self.path, timeout=30)
-        self._db.row_factory = sqlite3.Row
-        self._db.execute("PRAGMA foreign_keys = ON")
-        self._db.executescript(_SCHEMA)
-        if [r[0] for r in self._db.execute("SELECT version FROM receipt_journal_meta")] != [1]:
+        if read_only:
+            uri = Path(self.path).resolve().as_uri() + "?mode=ro"
+            self._db = sqlite3.connect(uri, uri=True, timeout=30)
+        else:
+            if self.path != ":memory:":
+                Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+            self._db = sqlite3.connect(self.path, timeout=30)
+        try:
+            self._db.row_factory = sqlite3.Row
+            self._db.execute("PRAGMA foreign_keys = ON")
+            if not read_only:
+                self._db.executescript(_SCHEMA)
+            if [r[0] for r in self._db.execute("SELECT version FROM receipt_journal_meta")] != [1]:
+                raise ValueError("unsupported_journal_schema")
+        except Exception:
             self._db.close()
-            raise ValueError("unsupported_journal_schema")
+            raise
 
     def close(self):
         self._db.close()
@@ -228,6 +236,11 @@ class ReceiptJournal:
             "SELECT payload FROM receipt_journal_receipts ORDER BY receipt_id")]
 
     def append_resolution(self, resolution, *, revision_id, supersedes=None, reason=None):
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            return self._append_resolution(resolution, revision_id=revision_id, supersedes=supersedes, reason=reason)
+
+    def _append_resolution(self, resolution, *, revision_id, supersedes=None, reason=None):
         for key, value in (("revision_id", revision_id), ("supersedes", supersedes)):
             if (value is None and key == "supersedes"):
                 continue
@@ -244,30 +257,28 @@ class ReceiptJournal:
         envelope = {"version": 1, "revision_id": revision_id, "supersedes": supersedes,
                     "reason": reason, "resolution": resolution}
         payload = _json(envelope)
-        with self._db:
-            self._db.execute("BEGIN IMMEDIATE")
-            receipt = self.get_receipt(resolution.get("receipt_id"))
-            if receipt is None:
-                raise ValueError("unknown_receipt")
-            validate_journal_resolution(receipt, resolution)
-            old = self._db.execute("SELECT payload FROM receipt_journal_revisions WHERE revision_id = ?",
-                                   (revision_id,)).fetchone()
-            if old:
-                if old["payload"] != payload:
-                    raise JournalConflict("revision_id_conflict")
-                return False
-            latest = self._db.execute(
-                "SELECT revision_id,payload FROM receipt_journal_revisions "
-                "WHERE receipt_id = ? ORDER BY sequence DESC LIMIT 1", (receipt["receipt_id"],)).fetchone()
-            if supersedes != (latest["revision_id"] if latest else None):
-                raise JournalConflict("correction_must_extend_current_receipt_head")
-            if latest:
-                previous = json.loads(latest["payload"])["resolution"]
-                if instant(resolution["resolved_utc"]) < instant(previous["resolved_utc"]):
-                    raise ValueError("correction_time_regressed")
-            self._db.execute(
-                "INSERT INTO receipt_journal_revisions (revision_id,receipt_id,supersedes,payload) VALUES (?,?,?,?)",
-                (revision_id, receipt["receipt_id"], supersedes, payload))
+        receipt = self.get_receipt(resolution.get("receipt_id"))
+        if receipt is None:
+            raise ValueError("unknown_receipt")
+        validate_journal_resolution(receipt, resolution)
+        old = self._db.execute("SELECT payload FROM receipt_journal_revisions WHERE revision_id = ?",
+                               (revision_id,)).fetchone()
+        if old:
+            if old["payload"] != payload:
+                raise JournalConflict("revision_id_conflict")
+            return False
+        latest = self._db.execute(
+            "SELECT revision_id,payload FROM receipt_journal_revisions "
+            "WHERE receipt_id = ? ORDER BY sequence DESC LIMIT 1", (receipt["receipt_id"],)).fetchone()
+        if supersedes != (latest["revision_id"] if latest else None):
+            raise JournalConflict("correction_must_extend_current_receipt_head")
+        if latest:
+            previous = json.loads(latest["payload"])["resolution"]
+            if instant(resolution["resolved_utc"]) < instant(previous["resolved_utc"]):
+                raise ValueError("correction_time_regressed")
+        self._db.execute(
+            "INSERT INTO receipt_journal_revisions (revision_id,receipt_id,supersedes,payload) VALUES (?,?,?,?)",
+            (revision_id, receipt["receipt_id"], supersedes, payload))
         return True
 
     def resolution_history(self, receipt_id):

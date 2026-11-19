@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import time
 
-from ..probability_receipts import instant, validate_probability_receipt
+from ..probability_receipts import fingerprint, instant, validate_probability_receipt
 from ..store.receipt_journal import ReceiptJournal, _json
 from ..store.supabase_journal import SupabaseReceiptJournal, _canonical, _clock, _decode
 from ..store.supabase_store import StoreError
@@ -31,19 +31,58 @@ CREATE TRIGGER IF NOT EXISTS receipt_journal_publication_evidence_no_update
 BEFORE UPDATE ON receipt_journal_publication_evidence BEGIN SELECT RAISE(ABORT, 'immutable publication evidence'); END;
 CREATE TRIGGER IF NOT EXISTS receipt_journal_publication_evidence_no_delete
 BEFORE DELETE ON receipt_journal_publication_evidence BEGIN SELECT RAISE(ABORT, 'immutable publication evidence'); END;
+CREATE TABLE IF NOT EXISTS nfl_correction_registrations (
+    registration_id TEXT PRIMARY KEY,
+    plan_id TEXT NOT NULL UNIQUE,
+    payload TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS nfl_correction_registrations_no_update
+BEFORE UPDATE ON nfl_correction_registrations BEGIN SELECT RAISE(ABORT, 'immutable correction registration'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_correction_registrations_no_delete
+BEFORE DELETE ON nfl_correction_registrations BEGIN SELECT RAISE(ABORT, 'immutable correction registration'); END;
+CREATE TABLE IF NOT EXISTS nfl_correction_registration_observations (
+    registration_id TEXT PRIMARY KEY REFERENCES nfl_correction_registrations(registration_id),
+    observed_utc TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS nfl_correction_observations_no_update
+BEFORE UPDATE ON nfl_correction_registration_observations BEGIN SELECT RAISE(ABORT, 'immutable correction observation'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_correction_observations_no_delete
+BEFORE DELETE ON nfl_correction_registration_observations BEGIN SELECT RAISE(ABORT, 'immutable correction observation'); END;
+CREATE TABLE IF NOT EXISTS nfl_shadow_decisions (
+    registration_id TEXT NOT NULL REFERENCES nfl_correction_registrations(registration_id),
+    receipt_id TEXT NOT NULL REFERENCES receipt_journal_receipts(receipt_id),
+    payload TEXT NOT NULL,
+    PRIMARY KEY (registration_id, receipt_id)
+);
+CREATE TABLE IF NOT EXISTS nfl_shadow_decision_observations (
+    registration_id TEXT NOT NULL,
+    receipt_id TEXT NOT NULL,
+    observed_utc TEXT NOT NULL,
+    PRIMARY KEY (registration_id, receipt_id),
+    FOREIGN KEY (registration_id, receipt_id) REFERENCES nfl_shadow_decisions(registration_id, receipt_id)
+);
+CREATE TRIGGER IF NOT EXISTS nfl_shadow_decisions_no_update
+BEFORE UPDATE ON nfl_shadow_decisions BEGIN SELECT RAISE(ABORT, 'immutable shadow decision'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_shadow_decisions_no_delete
+BEFORE DELETE ON nfl_shadow_decisions BEGIN SELECT RAISE(ABORT, 'immutable shadow decision'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_shadow_observations_no_update
+BEFORE UPDATE ON nfl_shadow_decision_observations BEGIN SELECT RAISE(ABORT, 'immutable shadow observation'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_shadow_observations_no_delete
+BEFORE DELETE ON nfl_shadow_decision_observations BEGIN SELECT RAISE(ABORT, 'immutable shadow observation'); END;
 """
 
 
 class NFLPublicationJournal(ReceiptJournal):
     """Opt-in SQLite publication policy and evidence, preserving original IDs."""
 
-    def __init__(self, path):
-        super().__init__(path)
-        try:
-            self._db.executescript(_PUBLICATION_SCHEMA)
-        except Exception:
-            self.close()
-            raise
+    def __init__(self, path, *, read_only=False):
+        super().__init__(path, read_only=read_only)
+        if not read_only:
+            try:
+                self._db.executescript(_PUBLICATION_SCHEMA)
+            except Exception:
+                self.close()
+                raise
 
     def _publication_recorded_utc(self):
         """Database insertion clock, taken after acquiring the writer lock.
@@ -52,6 +91,119 @@ class NFLPublicationJournal(ReceiptJournal):
         a claim that the eventual transaction commit completed at this time.
         """
         return self._db.execute("SELECT strftime('%Y-%m-%dT%H:%M:%fZ','now')").fetchone()[0]
+
+    def correction_evaluation_utc(self):
+        return self._publication_recorded_utc()
+
+    def get_correction_registration(self, registration_id):
+        row = self._db.execute(
+            "SELECT r.payload, o.observed_utc FROM nfl_correction_registrations r "
+            "JOIN nfl_correction_registration_observations o USING (registration_id) "
+            "WHERE r.registration_id=?", (registration_id,),
+        ).fetchone()
+        return {**json.loads(row["payload"]), "durable_observed_utc": row["observed_utc"]} if row else None
+
+    def commit_correction_registration(self, plan):
+        """Reserve an evaluation window for a validated artifact and policy."""
+        plan = json.loads(_json(plan))
+        plan_id = fingerprint(plan)
+        start, end = instant(plan["start_utc"]), instant(plan["end_utc"])
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            existing = self._db.execute(
+                "SELECT payload FROM nfl_correction_registrations WHERE plan_id=?", (plan_id,),
+            ).fetchone()
+            if existing is None and "cohort_policy" in plan:
+                legacy = {key: value for key, value in plan.items() if key != "cohort_policy"}
+                existing = self._db.execute(
+                    "SELECT payload FROM nfl_correction_registrations WHERE plan_id=?", (fingerprint(legacy),),
+                ).fetchone()
+            if existing is None:
+                recorded = self.correction_evaluation_utc()
+                now = instant(recorded)
+                if not (instant(plan["fitted_at"]) <= now < start < end
+                        and instant(plan["policy"]["registered_utc"]) <= now):
+                    raise ValueError("registration_must_follow_fit_and_precede_holdout")
+                for row in self._db.execute("SELECT payload FROM nfl_correction_registrations"):
+                    other = json.loads(row[0])["plan"]
+                    if start < instant(other["end_utc"]) and instant(other["start_utc"]) < end:
+                        raise ValueError("overlapping_correction_registration")
+                body = {"version": 1, "plan": plan, "recorded_utc": recorded}
+                registration = {**body, "registration_id": fingerprint(body)}
+                self._db.execute(
+                    "INSERT INTO nfl_correction_registrations VALUES (?,?,?)",
+                    (registration["registration_id"], plan_id, _json(registration)),
+                )
+            else:
+                registration = json.loads(existing[0])
+        return self._observe_correction_registration(registration, start)
+
+    def _observe_correction_registration(self, registration, start):
+        registration_id = registration["registration_id"]
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            existing = self.get_correction_registration(registration_id)
+            if existing is not None:
+                return existing
+            # The prior transaction has committed. Its insertion time alone
+            # cannot establish that the plan became durable before the window.
+            observed = self.correction_evaluation_utc()
+            if not instant(registration["recorded_utc"]) <= instant(observed) < start:
+                raise ValueError("durable_registration_not_observed_before_holdout")
+            self._db.execute(
+                "INSERT INTO nfl_correction_registration_observations VALUES (?,?)",
+                (registration_id, observed),
+            )
+        return {**registration, "durable_observed_utc": observed}
+
+    def correction_shadow_decisions(self, registration_id):
+        rows = self._db.execute(
+            "SELECT d.payload, o.observed_utc FROM nfl_shadow_decisions d "
+            "JOIN nfl_shadow_decision_observations o USING (registration_id, receipt_id) "
+            "WHERE d.registration_id=? ORDER BY d.receipt_id", (registration_id,),
+        )
+        return [{**json.loads(row["payload"]), "durable_observed_utc": row["observed_utc"]} for row in rows]
+
+    def commit_correction_shadow_decisions(self, registration_id, decisions, *, decided_utc):
+        """Persist the original decision once, then observe its durable commit."""
+        registration = self.get_correction_registration(registration_id)
+        if registration is None:
+            raise ValueError("correction_registration_missing")
+        start, end = (instant(registration["plan"][key]) for key in ("start_utc", "end_utc"))
+        decision_time = instant(decided_utc)
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            recorded = self.correction_evaluation_utc()
+            recorded_time = instant(recorded)
+            if not start <= decision_time <= recorded_time < end:
+                raise ValueError("shadow_decision_outside_registered_window")
+            for decision in decisions:
+                if recorded_time >= instant(decision["event_start_utc"]):
+                    continue
+                body = {**decision, "version": 1, "registration_id": registration_id,
+                        "decided_utc": decided_utc, "recorded_utc": recorded}
+                payload = {**body, "decision_id": fingerprint(body)}
+                self._db.execute(
+                    "INSERT INTO nfl_shadow_decisions VALUES (?,?,?) "
+                    "ON CONFLICT(registration_id, receipt_id) DO NOTHING",
+                    (registration_id, decision["receipt_id"], _json(payload)),
+                )
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            observed = self.correction_evaluation_utc()
+            observed_time = instant(observed)
+            for row in self._db.execute(
+                "SELECT d.payload FROM nfl_shadow_decisions d "
+                "LEFT JOIN nfl_shadow_decision_observations o USING (registration_id, receipt_id) "
+                "WHERE d.registration_id=? AND o.receipt_id IS NULL", (registration_id,),
+            ).fetchall():
+                decision = json.loads(row["payload"])
+                if instant(decision["recorded_utc"]) <= observed_time < min(end, instant(decision["event_start_utc"])):
+                    self._db.execute(
+                        "INSERT INTO nfl_shadow_decision_observations VALUES (?,?,?)",
+                        (registration_id, decision["receipt_id"], observed),
+                    )
+        return self.correction_shadow_decisions(registration_id)
 
     def publication_generation_receipts(self, object_id):
         """One PK join of the frozen generation ACK, never receipt history."""
@@ -125,18 +277,24 @@ class NFLPublicationJournal(ReceiptJournal):
         """
         with self._db:
             self._db.execute("BEGIN")
-            watermark = str(sum(self._db.execute("SELECT count(*) FROM " + table).fetchone()[0]
-                for table in ("receipt_journal_receipts", "receipt_journal_objects", "receipt_journal_generation_commits",
-                              "receipt_journal_revisions", "receipt_journal_publication_attestations")))
-            receipts = self.receipts()
-            records = self.generations()
-            revisions = [row for receipt in receipts for row in self.resolution_history(receipt["receipt_id"])]
-            attested = [row[0] for row in self._db.execute(
-                "SELECT object_id FROM receipt_journal_publication_attestations ORDER BY object_id")]
-            publications = [self.get_publication_attestation(oid) for oid in attested]
-            return {"version": 1, "watermark": watermark, "receipts": receipts,
-                    "generation_records": records, "revisions": revisions,
-                    "publication_attestations": publications}
+            return self._publication_fit_snapshot()
+
+    def _publication_watermark(self):
+        return sum(self._db.execute("SELECT count(*) FROM " + table).fetchone()[0]
+                   for table in ("receipt_journal_receipts", "receipt_journal_objects", "receipt_journal_generation_commits",
+                                 "receipt_journal_revisions", "receipt_journal_publication_attestations"))
+
+    def _publication_fit_snapshot(self):
+        watermark = str(self._publication_watermark())
+        receipts = self.receipts()
+        records = self.generations()
+        revisions = [row for receipt in receipts for row in self.resolution_history(receipt["receipt_id"])]
+        attested = [row[0] for row in self._db.execute(
+            "SELECT object_id FROM receipt_journal_publication_attestations ORDER BY object_id")]
+        publications = [self.get_publication_attestation(oid) for oid in attested]
+        return {"version": 1, "watermark": watermark, "receipts": receipts,
+                "generation_records": records, "revisions": revisions,
+                "publication_attestations": publications}
 
 
 class NFLSupabasePublicationJournal(SupabaseReceiptJournal):

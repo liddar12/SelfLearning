@@ -1,11 +1,13 @@
 # Durable learning jobs and NFL shadow evaluation
 
-Revision 3 · October 16, 2026, 12:50 p.m. America/Chicago (CDT).
+Revision 4 · November 18, 2026, America/Chicago (CST). Local implementation;
+hosted execution and activation remain unverified.
 
 The shared engine can now persist a bounded evaluation job, resume its saved
 checkpoint with a replacement worker, and store an actual NFL shadow report and
-typed artifact. An explicit v2 policy now runs the fixed fitter in a separate
-bounded POSIX process, keeping database credentials in its parent. This is a
+typed artifact. New policies default to v3, which explicitly admits only
+event-bound qualified labels. An optional execution profile runs the fixed fitter
+in a separate bounded POSIX process, keeping database credentials in its parent. This is a
 local Python and PostgreSQL-WASM implementation, not
 a scheduled or deployed learning loop. The application still reports learning
 jobs as not configured; model activation remains false.
@@ -51,6 +53,32 @@ configuration or approval is written. A completed job means the computation
 finished, not that its statistical gates passed: an empty cohort completes with
 an explicitly insufficient report and no artifact.
 
+V3 carries `outcome_admission=event_bound_labels_v2` and an explicit
+`execution_profile` (null for inline operation). Both inline and subprocess
+execution use that same label policy. Legacy outcomes stay visible in the
+forecast denominator with a named exclusion; they do not enter the fit. Missing
+generation evidence keeps the proposed return gate held. Policy and result
+versions are distinct from the report version: a v3 job emits a v2 qualified
+walk-forward report. V1/v2 policies retain their original shapes and hashes and
+require an explicit legacy policy selection for research/replay. V2 alone means
+bounded compute, not qualified labels.
+
+Completed jobs can be recovered read-only after a package upgrade. Recovery
+validates the original immutable result, policy, artifact and execution receipt,
+preserving the old code ID and report without rerunning it or upgrading its
+claims. Queued or paused jobs still require their exact original code identity;
+they cannot resume under a replacement package. A new qualified evaluation must
+be a new job with its own input, policy and code identities.
+
+The input assembler remains a trusted, unfinished boundary. A v3 report checks
+the supplied generation documents, ACKs and timestamps; it does not prove those
+objects exist in the job store's forecast journal. The numeric gate and
+`generation_coverage` describe the supplied cohort only. They are not independent
+public-serving evidence, a complete authoritative-journal join, or permission to
+activate. Job authority/activation flags remain false even if the numeric gate
+passes. Production assembly must join forecasts, observed labels and publication
+attestations from one durable journal watermark before considering a candidate.
+
 This uses the existing MY-yardage `eligible_pool` / `offered_my` profile, not
 Game/Week, moneyline or anytime-TD calibration. Dataset assembly from the
 authoritative journal and its independent complete-cohort proof remain separate
@@ -66,7 +94,7 @@ accuracy-improvement indicators remain false.
 
 ### Bounded compute execution
 
-`nfl_bounded_evaluation.run_bounded_shadow_job` requires a v2 policy with an
+`nfl_bounded_evaluation.run_bounded_shadow_job` requires a v2 or v3 policy with an
 immutable execution profile. It never silently upgrades or falls back to the
 legacy v1 inline worker. Profiles bound wall and CPU seconds to 1–300, request
 bytes to 4 MiB, response bytes to 3 MiB and charged stderr to 16 KiB. The normal
@@ -80,7 +108,7 @@ package root, a fresh working directory and only locale/timezone environment
 variables. It passes no database credentials, storage path or uploaded command.
 The child applies and reads back Unix CPU, zero core-dump and zero regular-file
 growth limits before parsing the bounded input. The fitter uses exactly the
-same source-pinned inputs, policy and chronological evaluation as v1. A v2
+same source-pinned inputs and explicit outcome policy as the inline path. A bounded
 result binds the report to the job, definition, code and profile with pipe
 hashes, effective budgets and observed limits. These are local observations,
 not authenticated execution or clocks; those authority flags remain false.
