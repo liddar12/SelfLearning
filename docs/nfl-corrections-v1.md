@@ -111,6 +111,14 @@ interpreting a result. This report is retrospective evidence. A local policy
 document carries no independently verified registration time or serving
 authority.
 
+Run `python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" baseline --as-of "$AS_OF"`
+to audit coverage even when no outcomes qualify. It reports the frozen
+forecast count, qualified outcomes, distinct games, lineage and counts
+against the fitter's default floors. When verified results exist, it
+compares raw and served probabilities on the same results. Rounding or
+clamping may change a served value even when no calibrator is configured.
+Meeting count floors supplies no accuracy or serving approval.
+
 ### Register a fixed holdout before kickoff
 
 An existing local publication journal can reserve a holdout for one fitted

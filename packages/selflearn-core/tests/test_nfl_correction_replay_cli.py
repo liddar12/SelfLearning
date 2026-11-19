@@ -28,6 +28,12 @@ def test_replay_uses_an_existing_journal_without_changing_it(tmp_path):
     fit_clock = "2090-01-01T00:00:00Z"
     start = "2090-01-02T00:00:00Z"
     end = "2090-01-03T00:00:00Z"
+    baseline = read(run(database, "baseline", "--as-of", fit_clock))
+    assert baseline["total"]["forecast_count"] == baseline["total"]["graded_count"] == 3
+    assert baseline["total"]["graded_games"] == 1
+    assert baseline["total"]["served_log_loss"] > 0
+    assert "insufficient_graded_total" in baseline["correction_fit_support"]["hold_reasons"]
+    assert baseline["adoption_approved"] is False
     fitted = read(run(database, "fit", "--trained-through", fit_clock, "--fitted-at", fit_clock,
                       "--expires-at", end))
     assert fitted["version"] == 2

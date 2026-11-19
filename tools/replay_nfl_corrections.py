@@ -9,6 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "selflearn-core"))
 
+from selflearn_core.adapters.nfl_baseline_audit import audit_baseline
 from selflearn_core.adapters.nfl_corrections_evaluation import (
     evaluate_correction_holdout,
     freeze_correction_holdout,
@@ -31,6 +32,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--journal", type=Path, required=True, help="existing SQLite publication journal")
     commands = parser.add_subparsers(dest="command", required=True)
+    baseline = commands.add_parser("baseline", help="audit forecast, calibration and grading coverage")
+    baseline.add_argument("--as-of", required=True)
     fit = commands.add_parser("fit")
     fit.add_argument("--trained-through", required=True)
     fit.add_argument("--fitted-at", required=True)
@@ -65,7 +68,9 @@ def main(argv=None):
             with NFLPublicationJournal(args.journal, read_only=True) as journal:
                 journal.read_publication_fit_snapshot()
         with NFLPublicationJournal(args.journal, read_only=not writes_journal) as journal:
-            if args.command == "fit":
+            if args.command == "baseline":
+                result = audit_baseline(journal, as_of_utc=args.as_of)
+            elif args.command == "fit":
                 result = fit_corrections_from_journal(
                     journal, trained_through=args.trained_through, fitted_at=args.fitted_at,
                     expires_at=args.expires_at, artifact_version=LINEAGE_VERSION,
