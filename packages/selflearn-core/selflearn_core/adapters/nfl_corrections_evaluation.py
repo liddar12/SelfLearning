@@ -105,13 +105,13 @@ def _evidence(rows, forecast_count, policy, game_interval, week_interval, positi
     }
 
 
-def _membership(snapshot, artifact, start_utc, end_utc):
+def _membership(snapshot, artifact, start_utc, end_utc, *, known_at=None):
     start, end = instant(start_utc), instant(end_utc)
     if start >= end or instant(artifact["fitted_at"]) >= start:
         raise CorrectionsError("holdout_must_follow_fit")
     training_receipts, training = _select_publication_cohort(snapshot, artifact["trained_through"])
     training_events = {training_receipts[rid]["event_id"] for rid, *_ in training}
-    receipts, selected = _select_publication_cohort(snapshot, end_utc)
+    receipts, selected = _select_publication_cohort(snapshot, known_at or end_utc)
     members, sources = [], {}
     for rid, proof, source, completed in selected:
         receipt = receipts[rid]
@@ -195,12 +195,65 @@ def _verify_artifact(snapshot, artifact):
     _authorize_snapshot(snapshot, artifact)
 
 
-def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootstrap_replicates=None):
+def _candidate_prediction(receipt, source, artifact, decision_utc):
+    lineage_hold = None
+    try:
+        if lineage_pair(receipt) != lineage_pair(artifact["lineage"]):
+            lineage_hold = "incompatible_baseline_lineage"
+    except CorrectionsError:
+        lineage_hold = "missing_baseline_lineage"
+    leg = {"leg_id": receipt["receipt_id"], "duplicate": False, "market": source["market"],
+           "selection": source["direction"], "baseline_prob": receipt["served_prob"]}
+    return _leg_result(leg, mode="on", artifact=artifact, now=decision_utc,
+                       cap_pp=artifact["leg_cap_pp"], binder_verified=True, lineage_hold=lineage_hold)
+
+
+def _shadow_terms(receipt, source, member, artifact, decision_utc):
+    prediction = _candidate_prediction(receipt, source, artifact, decision_utc)
+    return {**member, "kernel": "additive_fixed_shadow_v1", "artifact_id": artifact["artifact_id"],
+            "event_start_utc": receipt["event_start_utc"], "served_prob": receipt["served_prob"],
+            "candidate_prob": prediction["adjusted_prob"], "correction": prediction["reason"]}
+
+
+def record_correction_shadow(journal, artifact, *, registration_id, start_utc, end_utc):
+    """Compute shadow decisions from forecasts independently observed so far."""
+    _read_registration(journal, registration_id, artifact, start_utc, end_utc, None, start_utc)
+    now = journal.correction_evaluation_utc()
+    if not instant(start_utc) <= instant(now) < instant(end_utc):
+        raise CorrectionsError("shadow_decision_outside_registered_window")
+    snapshot = journal.read_publication_fit_snapshot()
+    _verify_artifact(snapshot, artifact)
+    receipts, sources, members = _membership(snapshot, artifact, start_utc, end_utc, known_at=now)
+    decisions = []
+    for member in members:
+        rid = member["receipt_id"]
+        if instant(now) < instant(receipts[rid]["event_start_utc"]):
+            decisions.append(_shadow_terms(receipts[rid], sources[rid], member, artifact, now))
+    records = journal.commit_correction_shadow_decisions(registration_id, decisions, decided_utc=now)
+    return {"registration_id": registration_id, "durable_decision_count": len(records),
+            "decision_ids": [row["decision_id"] for row in records], "adoption_approved": False}
+
+
+def _verified_shadow(record, receipt, source, member, artifact, registration_id, start, end):
+    if record is None:
+        return False
+    decided, recorded, observed = (record[key] for key in ("decided_utc", "recorded_utc", "durable_observed_utc"))
+    body = {**_shadow_terms(receipt, source, member, artifact, decided), "version": 1,
+            "registration_id": registration_id, "decided_utc": decided, "recorded_utc": recorded}
+    return (record == {**body, "decision_id": fingerprint(body), "durable_observed_utc": observed}
+            and max(instant(start), instant(member["publication_observed_utc"])) <= instant(decided) <= instant(recorded)
+            <= instant(observed) < min(instant(end), instant(receipt["event_start_utc"])))
+
+
+def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootstrap_replicates=None,
+                                recorded_shadow=False):
     """Evaluate one fixed fit. The report carries no serving or adoption authority."""
     cutoff = instant(as_of_utc)
     start, end = holdout["start_utc"], holdout["end_utc"]
     policy = holdout.get("policy")
     registration_id = holdout.get("registration_id")
+    if recorded_shadow and registration_id is None:
+        raise CorrectionsError("recorded_shadow_requires_registration")
     if registration_id is not None:
         policy = _read_registration(journal, registration_id, artifact, start, end, policy, as_of_utc)
     _verify_policy(policy, start, end)
@@ -220,6 +273,8 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
         raise CorrectionsError("frozen_holdout_membership_mismatch")
 
     histories = _revision_histories(snapshot)
+    decisions = {row["receipt_id"]: row for row in journal.correction_shadow_decisions(registration_id)} if recorded_shadow else {}
+    verified_decisions = 0
     scored, results = [], []
     for member in members:
         rid = member["receipt_id"]
@@ -234,6 +289,12 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
                          if head else "unresolved_outcome")
         except (ValueError, TypeError, KeyError, OverflowError):
             head, exclusion = None, "invalid_outcome_history"
+        decision = decisions.get(rid)
+        if recorded_shadow:
+            if _verified_shadow(decision, receipt, source, member, artifact, registration_id, start, end):
+                verified_decisions += 1
+            elif exclusion is None:
+                exclusion = "shadow_decision_missing_or_invalid"
         row = {**member, "position": position, "week_group": week,
                "revision_id": head["revision_id"] if head else None, "exclusion": exclusion}
         results.append(row)
@@ -241,20 +302,15 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
             continue
 
         baseline = receipt["served_prob"]
-        lineage_hold = None
-        try:
-            if lineage_pair(receipt) != lineage_pair(artifact["lineage"]):
-                lineage_hold = "incompatible_baseline_lineage"
-        except CorrectionsError:
-            lineage_hold = "missing_baseline_lineage"
-        leg = {"leg_id": rid, "duplicate": False, "market": market, "selection": source["direction"],
-               "baseline_prob": baseline}
-        prediction = _leg_result(leg, mode="on", artifact=artifact,
-                                 now=receipt["forecast_created_utc"], cap_pp=artifact["leg_cap_pp"],
-                                 binder_verified=True, lineage_hold=lineage_hold)
-        candidate, hit = prediction["adjusted_prob"], head["resolution"]["hit"]
+        if recorded_shadow:
+            candidate, reason = decision["candidate_prob"], decision["correction"]
+            row["shadow_decision_id"] = decision["decision_id"]
+        else:
+            prediction = _candidate_prediction(receipt, source, artifact, receipt["forecast_created_utc"])
+            candidate, reason = prediction["adjusted_prob"], prediction["reason"]
+        hit = head["resolution"]["hit"]
         incumbent_loss, candidate_loss = _loss(baseline, hit), _loss(candidate, hit)
-        row.update(served_prob=baseline, candidate_prob=candidate, hit=hit, correction=prediction["reason"])
+        row.update(served_prob=baseline, candidate_prob=candidate, hit=hit, correction=reason)
         scored.append({**row, "incumbent_loss": incumbent_loss, "candidate_loss": candidate_loss,
                        "base_loss": _loss(receipt["base_prob"], hit),
                        "delta_loss": candidate_loss - incumbent_loss,
@@ -276,8 +332,17 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
                         registration_source="local_sqlite_journal")
         if evidence["status"] == "retrospective_policy_met":
             evidence["status"] = "registered_policy_met"
+    if recorded_shadow:
+        evidence.update(verified_shadow_decision_count=verified_decisions,
+                        missing_shadow_decision_count=len(members) - verified_decisions)
+        if verified_decisions < len(members):
+            evidence["failures"].append("incomplete_recorded_shadow_coverage")
+            evidence["status"] = "held"
+        elif evidence["status"] == "registered_policy_met":
+            evidence["status"] = "recorded_shadow_policy_met"
     body = {
-        "version": 1, "basis": "retrospective_fixed_correction_kernel",
+        "version": 1, "basis": ("recorded_pre_kickoff_shadow_decisions" if recorded_shadow
+                                else "retrospective_fixed_correction_kernel"),
         "holdout_id": holdout["holdout_id"], "artifact_id": artifact["artifact_id"],
         "as_of_utc": as_of_utc, "snapshot_watermark": snapshot["watermark"],
         "forecast_count": len(members), "scored_count": len(scored),

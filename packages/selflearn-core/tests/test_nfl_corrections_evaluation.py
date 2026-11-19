@@ -90,7 +90,8 @@ def test_registration_written_before_start_but_observed_at_start_is_refused(tmp_
 
 
 def test_fixed_kernel_replay_keeps_original_members_and_excludes_late_labels(tmp_path, monkeypatch):
-    with NFLPublicationJournal(tmp_path / "journal.sqlite") as journal:
+    database = tmp_path / "journal.sqlite"
+    with NFLPublicationJournal(database) as journal:
         seeded = seed_publication_journal(journal)
         snapshot = journal.read_publication_fit_snapshot()
     receipt = seeded["receipts"][0]
@@ -161,6 +162,45 @@ def test_fixed_kernel_replay_keeps_original_members_and_excludes_late_labels(tmp
     tampered["members"].pop()
     with pytest.raises(CorrectionsError, match="frozen_holdout_membership_mismatch"):
         evaluation.evaluate_correction_holdout(reader, artifact, tampered, as_of_utc="2026-09-02T05:00:01Z")
+
+    options = {"start_utc": holdout["start_utc"], "end_utc": holdout["end_utc"]}
+    with NFLPublicationJournal(database) as journal:
+        monkeypatch.setattr(journal, "read_publication_fit_snapshot", lambda: snapshot)
+        clock = "2026-08-31T12:00:00Z"
+        monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: clock)
+        registration = evaluation.register_correction_holdout(journal, artifact, **options,
+                                                               policy=evaluation_policy())
+        rid = registration["registration_id"]
+        clock = "2026-09-01T14:01:55Z"
+        assert evaluation.record_correction_shadow(journal, artifact, registration_id=rid,
+                                                    **options)["durable_decision_count"] == 0
+        clock = "2026-09-01T14:03:00Z"
+        captured = evaluation.record_correction_shadow(journal, artifact, registration_id=rid, **options)
+        assert captured["durable_decision_count"] == 3
+        clock = "2026-09-01T14:04:00Z"
+        assert evaluation.record_correction_shadow(journal, artifact, registration_id=rid, **options) == captured
+    with NFLPublicationJournal(database, read_only=True) as journal:
+        clock = "2026-09-02T05:00:01Z"
+        monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: clock)
+        monkeypatch.setattr(journal, "read_publication_fit_snapshot", lambda: snapshot)
+        registered = evaluation.freeze_correction_holdout(journal, artifact, **options, registration_id=rid)
+        observed = evaluation.evaluate_correction_holdout(journal, artifact, registered, as_of_utc=clock,
+                                                           recorded_shadow=True)
+        assert observed["basis"] == "recorded_pre_kickoff_shadow_decisions"
+        assert observed["scored_count"] == observed["evidence"]["verified_shadow_decision_count"] == 3
+        assert {row["shadow_decision_id"] for row in observed["rows"]} == set(captured["decision_ids"])
+        assert observed["evidence"]["status"] == "held"
+        assert observed["adoption_approved"] is False
+        decisions = journal.correction_shadow_decisions(rid)
+        edited = [decisions[2], {**decisions[0], "candidate_prob": 0.001},
+                  {**decisions[1], "durable_observed_utc": decisions[1]["event_start_utc"]}]
+        monkeypatch.setattr(journal, "correction_shadow_decisions", lambda _: edited)
+        incomplete = evaluation.evaluate_correction_holdout(journal, artifact, registered, as_of_utc=clock,
+                                                             recorded_shadow=True)
+        assert incomplete["scored_count"] == 1
+        assert incomplete["exclusions"] == {"shadow_decision_missing_or_invalid": 2}
+        assert "incomplete_recorded_shadow_coverage" in incomplete["evidence"]["failures"]
+
 
 def test_pooled_improvement_cannot_hide_a_position_regression():
     def result(receiving_candidate):

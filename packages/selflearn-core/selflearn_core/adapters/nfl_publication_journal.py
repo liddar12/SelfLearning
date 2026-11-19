@@ -48,6 +48,27 @@ CREATE TRIGGER IF NOT EXISTS nfl_correction_observations_no_update
 BEFORE UPDATE ON nfl_correction_registration_observations BEGIN SELECT RAISE(ABORT, 'immutable correction observation'); END;
 CREATE TRIGGER IF NOT EXISTS nfl_correction_observations_no_delete
 BEFORE DELETE ON nfl_correction_registration_observations BEGIN SELECT RAISE(ABORT, 'immutable correction observation'); END;
+CREATE TABLE IF NOT EXISTS nfl_shadow_decisions (
+    registration_id TEXT NOT NULL REFERENCES nfl_correction_registrations(registration_id),
+    receipt_id TEXT NOT NULL REFERENCES receipt_journal_receipts(receipt_id),
+    payload TEXT NOT NULL,
+    PRIMARY KEY (registration_id, receipt_id)
+);
+CREATE TABLE IF NOT EXISTS nfl_shadow_decision_observations (
+    registration_id TEXT NOT NULL,
+    receipt_id TEXT NOT NULL,
+    observed_utc TEXT NOT NULL,
+    PRIMARY KEY (registration_id, receipt_id),
+    FOREIGN KEY (registration_id, receipt_id) REFERENCES nfl_shadow_decisions(registration_id, receipt_id)
+);
+CREATE TRIGGER IF NOT EXISTS nfl_shadow_decisions_no_update
+BEFORE UPDATE ON nfl_shadow_decisions BEGIN SELECT RAISE(ABORT, 'immutable shadow decision'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_shadow_decisions_no_delete
+BEFORE DELETE ON nfl_shadow_decisions BEGIN SELECT RAISE(ABORT, 'immutable shadow decision'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_shadow_observations_no_update
+BEFORE UPDATE ON nfl_shadow_decision_observations BEGIN SELECT RAISE(ABORT, 'immutable shadow observation'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_shadow_observations_no_delete
+BEFORE DELETE ON nfl_shadow_decision_observations BEGIN SELECT RAISE(ABORT, 'immutable shadow observation'); END;
 """
 
 
@@ -129,6 +150,55 @@ class NFLPublicationJournal(ReceiptJournal):
                 (registration_id, observed),
             )
         return {**registration, "durable_observed_utc": observed}
+
+    def correction_shadow_decisions(self, registration_id):
+        rows = self._db.execute(
+            "SELECT d.payload, o.observed_utc FROM nfl_shadow_decisions d "
+            "JOIN nfl_shadow_decision_observations o USING (registration_id, receipt_id) "
+            "WHERE d.registration_id=? ORDER BY d.receipt_id", (registration_id,),
+        )
+        return [{**json.loads(row["payload"]), "durable_observed_utc": row["observed_utc"]} for row in rows]
+
+    def commit_correction_shadow_decisions(self, registration_id, decisions, *, decided_utc):
+        """Persist the original decision once, then observe its durable commit."""
+        registration = self.get_correction_registration(registration_id)
+        if registration is None:
+            raise ValueError("correction_registration_missing")
+        start, end = (instant(registration["plan"][key]) for key in ("start_utc", "end_utc"))
+        decision_time = instant(decided_utc)
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            recorded = self.correction_evaluation_utc()
+            recorded_time = instant(recorded)
+            if not start <= decision_time <= recorded_time < end:
+                raise ValueError("shadow_decision_outside_registered_window")
+            for decision in decisions:
+                if recorded_time >= instant(decision["event_start_utc"]):
+                    continue
+                body = {**decision, "version": 1, "registration_id": registration_id,
+                        "decided_utc": decided_utc, "recorded_utc": recorded}
+                payload = {**body, "decision_id": fingerprint(body)}
+                self._db.execute(
+                    "INSERT INTO nfl_shadow_decisions VALUES (?,?,?) "
+                    "ON CONFLICT(registration_id, receipt_id) DO NOTHING",
+                    (registration_id, decision["receipt_id"], _json(payload)),
+                )
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            observed = self.correction_evaluation_utc()
+            observed_time = instant(observed)
+            for row in self._db.execute(
+                "SELECT d.payload FROM nfl_shadow_decisions d "
+                "LEFT JOIN nfl_shadow_decision_observations o USING (registration_id, receipt_id) "
+                "WHERE d.registration_id=? AND o.receipt_id IS NULL", (registration_id,),
+            ).fetchall():
+                decision = json.loads(row["payload"])
+                if instant(decision["recorded_utc"]) <= observed_time < min(end, instant(decision["event_start_utc"])):
+                    self._db.execute(
+                        "INSERT INTO nfl_shadow_decision_observations VALUES (?,?,?)",
+                        (registration_id, decision["receipt_id"], observed),
+                    )
+        return self.correction_shadow_decisions(registration_id)
 
     def publication_generation_receipts(self, object_id):
         """One PK join of the frozen generation ACK, never receipt history."""

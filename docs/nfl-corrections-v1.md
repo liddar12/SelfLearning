@@ -123,8 +123,7 @@ python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" register \
   --start "$HOLDOUT_START" --end "$HOLDOUT_END" > registration.json
 ```
 
-`register` is the only command that writes to the local SQLite journal.
-It reserves the window in an append-only transaction, then records when
+`register` reserves the window in an append-only transaction, then records when
 the committed plan was observed. Both times come from SQLite and must
 precede the holdout. Running the same plan again returns the original
 receipt. An overlapping plan, including one with different thresholds,
@@ -135,9 +134,30 @@ After `HOLDOUT_END`, pass the returned `registration_id` to `freeze` with
 `--registration-id`. Run `score` after the sealed outcome cutoff. The report
 checks the registration in the same journal and identifies SQLite as its
 clock authority. This verifies local preregistration of the candidate and
-rules. It still replays candidate probabilities from the frozen inputs.
-Hosted registration, live candidate predictions and approval to serve a
-correction require their own evidence.
+rules. By default it replays candidate probabilities from frozen inputs.
+
+### Score decisions that were recorded before kickoff
+
+During an active registered window, run `capture-shadow` after each
+independent publication observation. It uses only forecasts already known to
+the local journal at decision time. Both the decision and the observation
+of its committed record must precede the relevant game's kickoff. Retrying
+keeps the first decision for each receipt. This command and `register` write
+local evidence. Fit, freeze and score use read-only journal connections.
+
+```sh
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" capture-shadow \
+  --artifact correction.json --registration-id "$REGISTRATION_ID" \
+  --start "$HOLDOUT_START" --end "$HOLDOUT_END"
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" score \
+  --artifact correction.json --holdout holdout.json --as-of "$AS_OF" \
+  --recorded-shadow > shadow-report.json
+```
+
+`--recorded-shadow` scores the recorded decisions matched to original
+publication and outcome receipts. Missing, changed or late evidence holds
+the decision and remains visible in the denominator. Hosted collection
+and approval to serve a correction require separate evidence.
 
 ## Method
 
