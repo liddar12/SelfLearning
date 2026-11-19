@@ -20,7 +20,7 @@ from selflearn_core.evidence_chunks import make_chunk
 from selflearn_core.store.capture_staging import CaptureStagingQuota, staging_namespace
 from selflearn_core.store.supabase_store import StoreError, StoreConflict
 from test_capture_application_adapter import ApplicationBridge, journal, initial, REGISTER, COMMIT
-from test_capture_outcomes_atomic import raw_producer, stage, admit
+from test_capture_outcomes_atomic import roster_producer as raw_producer, stage, admit
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 try:
@@ -49,7 +49,8 @@ class ApplicationAPITransport(ApplicationBridge):
 
 
 @pytest.fixture
-def application_bridge():
+def application_bridge(monkeypatch):
+    monkeypatch.setenv("SELFLEARN_ROSTER_CAPTURE_TEST", "1")
     bridge = ApplicationAPITransport()
     try:
         yield bridge

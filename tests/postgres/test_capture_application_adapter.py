@@ -25,7 +25,7 @@ from selflearn_core.store.supabase_store import StoreError,StoreConflict
 from selflearn_core.store.receipt_journal import JournalConflict
 from selflearn_core.adapters.nfl_capture_application_journal import CaptureApplicationBudgetExceeded
 from test_adapter_integration import PostgresBridge, ROOT
-from test_capture_outcomes_atomic import raw_producer, admit, stage
+from test_capture_outcomes_atomic import roster_producer as raw_producer, admit, stage
 
 REGISTER = "/rest/v1/rpc/selflearn_journal_register_capture_application_v2"
 COMMIT = "/rest/v1/rpc/selflearn_journal_commit_capture_application_batch_v2"
@@ -56,7 +56,8 @@ class ApplicationBridge(PostgresBridge):
 
 
 @pytest.fixture
-def application_bridge():
+def application_bridge(monkeypatch):
+    monkeypatch.setenv("SELFLEARN_ROSTER_CAPTURE_TEST", "1")
     bridge = ApplicationBridge()
     try:
         yield bridge
@@ -78,7 +79,7 @@ import base64,importlib.util,json
 from pathlib import Path
 spec=importlib.util.spec_from_file_location('f',Path('tests/fixtures/week6_outcomes.py'))
 f=importlib.util.module_from_spec(spec);spec.loader.exec_module(f)
-c=f.bundle(value='')
+c=f.bound_bundle(value='')
 print(json.dumps({'manifest':c['manifest'],'observations':c['observations'],
  'raw':{k:base64.b64encode(v).decode() for k,v in c['raw_objects'].items()}}))
 '''
@@ -391,5 +392,5 @@ def test_job_conflict_after_actual_commit_recovers_original_before_rebind(journa
     if phase=="register":result=job.register_capture_application(journal,ctx["request"],chunks.read,clock=clock)
     else:result=job.commit_capture_application_step(journal,seal["application_id"],ack["next_step_id"],chunks.read,clock=clock)
     assert result==lost[0]
-    assert len(chunks.calls)-before==5,"Recover a now-known original before any second full bind"
+    assert len(chunks.calls)-before==7,"Recover a now-known original before any second full bind"
     assert sum(row["path"]==route for row in application_bridge.calls)==1

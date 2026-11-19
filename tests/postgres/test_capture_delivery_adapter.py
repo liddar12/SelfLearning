@@ -4,8 +4,6 @@ No native concurrency, HTTP hosting, scoped producer auth or real Storage.
 Missing local WASM/NFL fixture dependencies fail explicitly, never skip.
 """
 import copy
-import os
-import subprocess
 
 import pytest
 
@@ -18,29 +16,8 @@ from selflearn_core.probability_receipts import fingerprint
 from selflearn_core.store.receipt_journal import JournalConflict
 from selflearn_core.store.supabase_journal import _canonical, _revision_envelope
 from selflearn_core.store.supabase_store import StoreError
-from test_adapter_integration import PostgresBridge, ROOT
-from test_capture_outcomes_atomic import raw_producer, admit, stage, DELIVERED
-
-
-class DeliveryBridge(PostgresBridge):
-    def __init__(self):
-        if not os.environ.get('SELFLEARN_PGLITE_MODULE'):
-            raise RuntimeError('Set SELFLEARN_PGLITE_MODULE to an installed reviewed module')
-        self.process=subprocess.Popen(['node','tests/postgres/capture_delivery_bridge.mjs'],cwd=ROOT,
-            stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',bufsize=1)
-        self.calls,self.counter=[],0
-        try:
-            self.ready=self._read(timeout=30)
-            if self.ready.get('ready') is not True or self.ready.get('engine')!='postgresql-wasm':
-                raise RuntimeError('Actual additive delivery bridge did not initialize')
-        except Exception:
-            self.close()
-            raise
-
-    def _read(self,**kwargs):
-        value=super()._read(**kwargs)
-        self.last_response=value
-        return value
+from test_capture_application_adapter import ApplicationBridge
+from test_capture_outcomes_atomic import roster_producer as raw_producer, admit, stage, DELIVERED
 
 
 def port(bridge):
@@ -48,8 +25,9 @@ def port(bridge):
 
 
 @pytest.fixture
-def journals(raw_producer):
-    bridge=DeliveryBridge()
+def journals(raw_producer, monkeypatch):
+    monkeypatch.setenv("SELFLEARN_ROSTER_CAPTURE_TEST", "1")
+    bridge=ApplicationBridge()
     try:
         journal,other=port(bridge),port(bridge)
         initial=raw_producer['initial']
