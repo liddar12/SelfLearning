@@ -132,21 +132,60 @@ def _membership(snapshot, artifact, start_utc, end_utc):
     return receipts, sources, members
 
 
-def _seal_membership(artifact, start_utc, end_utc, members, policy):
+def _registration_plan(artifact, start_utc, end_utc, policy):
+    if policy is None:
+        raise CorrectionsError("registration_requires_evaluation_policy")
+    _verify_policy(policy, start_utc, end_utc)
+    if not instant(artifact["fitted_at"]) < instant(start_utc) < instant(end_utc) <= instant(artifact["expires_at"]):
+        raise CorrectionsError("registration_window_outside_artifact_lifetime")
+    return {"artifact_id": artifact["artifact_id"], "fitted_at": artifact["fitted_at"],
+            "start_utc": start_utc, "end_utc": end_utc, "policy": policy}
+
+
+def register_correction_holdout(journal, artifact, *, start_utc, end_utc, policy):
+    """Commit the fixed candidate and rules using the local journal clock."""
+    _verify_artifact(journal.read_publication_fit_snapshot(), artifact)
+    return journal.commit_correction_registration(_registration_plan(artifact, start_utc, end_utc, policy))
+
+
+def _read_registration(journal, registration_id, artifact, start, end, policy, ready_at):
+    record = journal.get_correction_registration(registration_id)
+    if not record:
+        raise CorrectionsError("correction_registration_missing")
+    policy = record["plan"]["policy"] if policy is None else policy
+    plan = _registration_plan(artifact, start, end, policy)
+    recorded = record["recorded_utc"]
+    observed = record["durable_observed_utc"]
+    body = {"version": 1, "plan": plan, "recorded_utc": recorded}
+    if (record != {**body, "registration_id": registration_id, "durable_observed_utc": observed}
+            or fingerprint(body) != registration_id
+            or not instant(artifact["fitted_at"]) <= instant(recorded) <= instant(observed) < instant(start)
+            or instant(policy["registered_utc"]) > instant(recorded)):
+        raise CorrectionsError("correction_registration_mismatch")
+    if instant(journal.correction_evaluation_utc()) < instant(ready_at):
+        raise CorrectionsError("registered_evaluation_cutoff_not_reached")
+    return policy
+
+
+def _seal_membership(artifact, start_utc, end_utc, members, policy, registration_id=None):
     body = {"version": 1, "artifact_id": artifact["artifact_id"],
             "start_utc": start_utc, "end_utc": end_utc, "members": members}
     if policy is not None:
         body["policy"] = policy
+    if registration_id is not None:
+        body["registration_id"] = registration_id
     return {**body, "holdout_id": fingerprint(body)}
 
 
-def freeze_correction_holdout(journal, artifact, *, start_utc, end_utc, policy=None):
+def freeze_correction_holdout(journal, artifact, *, start_utc, end_utc, policy=None, registration_id=None):
     """Freeze the first attested forecasts without using their outcome labels."""
+    if registration_id is not None:
+        policy = _read_registration(journal, registration_id, artifact, start_utc, end_utc, policy, end_utc)
     snapshot = journal.read_publication_fit_snapshot()
     _verify_artifact(snapshot, artifact)
     _verify_policy(policy, start_utc, end_utc)
     _, _, members = _membership(snapshot, artifact, start_utc, end_utc)
-    return _seal_membership(artifact, start_utc, end_utc, members, policy)
+    return _seal_membership(artifact, start_utc, end_utc, members, policy, registration_id)
 
 
 def _verify_artifact(snapshot, artifact):
@@ -158,11 +197,12 @@ def _verify_artifact(snapshot, artifact):
 
 def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootstrap_replicates=None):
     """Evaluate one fixed fit. The report carries no serving or adoption authority."""
-    snapshot = journal.read_publication_fit_snapshot()
-    _verify_artifact(snapshot, artifact)
     cutoff = instant(as_of_utc)
     start, end = holdout["start_utc"], holdout["end_utc"]
     policy = holdout.get("policy")
+    registration_id = holdout.get("registration_id")
+    if registration_id is not None:
+        policy = _read_registration(journal, registration_id, artifact, start, end, policy, as_of_utc)
     _verify_policy(policy, start, end)
     if policy is not None and cutoff != instant(policy["outcome_cutoff_utc"]):
         raise CorrectionsError("evaluation_policy_outcome_cutoff_mismatch")
@@ -173,8 +213,10 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
         bootstrap_replicates = locked_replicates
     if cutoff < instant(end):
         raise CorrectionsError("outcome_cutoff_precedes_holdout_end")
+    snapshot = journal.read_publication_fit_snapshot()
+    _verify_artifact(snapshot, artifact)
     receipts, sources, members = _membership(snapshot, artifact, start, end)
-    if holdout != _seal_membership(artifact, start, end, members, policy):
+    if holdout != _seal_membership(artifact, start, end, members, policy, registration_id):
         raise CorrectionsError("frozen_holdout_membership_mismatch")
 
     histories = _revision_histories(snapshot)
@@ -228,6 +270,12 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
                                "week_interval": _week_interval(subset, bootstrap_replicates)}
     weeks = {week: _metrics([row for row in scored if row["week_group"] == week])
              for week in sorted({row["week_group"] for row in results})}
+    evidence = _evidence(scored, len(members), policy, game_interval, week_interval, positions, weeks)
+    if registration_id is not None:
+        evidence.update(prospective_registration_verified=True, registration_id=registration_id,
+                        registration_source="local_sqlite_journal")
+        if evidence["status"] == "retrospective_policy_met":
+            evidence["status"] = "registered_policy_met"
     body = {
         "version": 1, "basis": "retrospective_fixed_correction_kernel",
         "holdout_id": holdout["holdout_id"], "artifact_id": artifact["artifact_id"],
@@ -237,7 +285,7 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
         "metrics": _metrics(scored),
         "positions": positions, "weeks": weeks,
         "game_interval": game_interval, "week_interval": week_interval, "rows": results,
-        "evidence": _evidence(scored, len(members), policy, game_interval, week_interval, positions, weeks),
+        "evidence": evidence,
         "training_approved": False, "adoption_approved": False,
     }
     return {**body, "report_id": fingerprint(body)}

@@ -111,6 +111,34 @@ interpreting a result. This report is retrospective evidence. A local policy
 document carries no independently verified registration time or serving
 authority.
 
+### Register a fixed holdout before kickoff
+
+An existing local publication journal can reserve a holdout for one fitted
+artifact and its sealed evaluation policy. Run `register` before `HOLDOUT_START`.
+The artifact must already be fitted and stay valid through the full window.
+
+```sh
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" register \
+  --artifact correction.json --policy sealed-policy.json \
+  --start "$HOLDOUT_START" --end "$HOLDOUT_END" > registration.json
+```
+
+`register` is the only command that writes to the local SQLite journal.
+It reserves the window in an append-only transaction, then records when
+the committed plan was observed. Both times come from SQLite and must
+precede the holdout. Running the same plan again returns the original
+receipt. An overlapping plan, including one with different thresholds,
+is refused. A registration that was never observed before the start
+cannot be used by replay.
+
+After `HOLDOUT_END`, pass the returned `registration_id` to `freeze` with
+`--registration-id`. Run `score` after the sealed outcome cutoff. The report
+checks the registration in the same journal and identifies SQLite as its
+clock authority. This verifies local preregistration of the candidate and
+rules. It still replays candidate probabilities from the frozen inputs.
+Hosted registration, live candidate predictions and approval to serve a
+correction require their own evidence.
+
 ## Method
 
 Per-**segment** additive bias with empirical-Bayes shrinkage toward zero.

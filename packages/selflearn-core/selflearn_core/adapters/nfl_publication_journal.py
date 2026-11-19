@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import time
 
-from ..probability_receipts import instant, validate_probability_receipt
+from ..probability_receipts import fingerprint, instant, validate_probability_receipt
 from ..store.receipt_journal import ReceiptJournal, _json
 from ..store.supabase_journal import SupabaseReceiptJournal, _canonical, _clock, _decode
 from ..store.supabase_store import StoreError
@@ -31,6 +31,23 @@ CREATE TRIGGER IF NOT EXISTS receipt_journal_publication_evidence_no_update
 BEFORE UPDATE ON receipt_journal_publication_evidence BEGIN SELECT RAISE(ABORT, 'immutable publication evidence'); END;
 CREATE TRIGGER IF NOT EXISTS receipt_journal_publication_evidence_no_delete
 BEFORE DELETE ON receipt_journal_publication_evidence BEGIN SELECT RAISE(ABORT, 'immutable publication evidence'); END;
+CREATE TABLE IF NOT EXISTS nfl_correction_registrations (
+    registration_id TEXT PRIMARY KEY,
+    plan_id TEXT NOT NULL UNIQUE,
+    payload TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS nfl_correction_registrations_no_update
+BEFORE UPDATE ON nfl_correction_registrations BEGIN SELECT RAISE(ABORT, 'immutable correction registration'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_correction_registrations_no_delete
+BEFORE DELETE ON nfl_correction_registrations BEGIN SELECT RAISE(ABORT, 'immutable correction registration'); END;
+CREATE TABLE IF NOT EXISTS nfl_correction_registration_observations (
+    registration_id TEXT PRIMARY KEY REFERENCES nfl_correction_registrations(registration_id),
+    observed_utc TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS nfl_correction_observations_no_update
+BEFORE UPDATE ON nfl_correction_registration_observations BEGIN SELECT RAISE(ABORT, 'immutable correction observation'); END;
+CREATE TRIGGER IF NOT EXISTS nfl_correction_observations_no_delete
+BEFORE DELETE ON nfl_correction_registration_observations BEGIN SELECT RAISE(ABORT, 'immutable correction observation'); END;
 """
 
 
@@ -53,6 +70,65 @@ class NFLPublicationJournal(ReceiptJournal):
         a claim that the eventual transaction commit completed at this time.
         """
         return self._db.execute("SELECT strftime('%Y-%m-%dT%H:%M:%fZ','now')").fetchone()[0]
+
+    def correction_evaluation_utc(self):
+        return self._publication_recorded_utc()
+
+    def get_correction_registration(self, registration_id):
+        row = self._db.execute(
+            "SELECT r.payload, o.observed_utc FROM nfl_correction_registrations r "
+            "JOIN nfl_correction_registration_observations o USING (registration_id) "
+            "WHERE r.registration_id=?", (registration_id,),
+        ).fetchone()
+        return {**json.loads(row["payload"]), "durable_observed_utc": row["observed_utc"]} if row else None
+
+    def commit_correction_registration(self, plan):
+        """Reserve an evaluation window for a validated artifact and policy."""
+        plan = json.loads(_json(plan))
+        plan_id = fingerprint(plan)
+        start, end = instant(plan["start_utc"]), instant(plan["end_utc"])
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            existing = self._db.execute(
+                "SELECT payload FROM nfl_correction_registrations WHERE plan_id=?", (plan_id,),
+            ).fetchone()
+            if existing is None:
+                recorded = self.correction_evaluation_utc()
+                now = instant(recorded)
+                if not (instant(plan["fitted_at"]) <= now < start < end
+                        and instant(plan["policy"]["registered_utc"]) <= now):
+                    raise ValueError("registration_must_follow_fit_and_precede_holdout")
+                for row in self._db.execute("SELECT payload FROM nfl_correction_registrations"):
+                    other = json.loads(row[0])["plan"]
+                    if start < instant(other["end_utc"]) and instant(other["start_utc"]) < end:
+                        raise ValueError("overlapping_correction_registration")
+                body = {"version": 1, "plan": plan, "recorded_utc": recorded}
+                registration = {**body, "registration_id": fingerprint(body)}
+                self._db.execute(
+                    "INSERT INTO nfl_correction_registrations VALUES (?,?,?)",
+                    (registration["registration_id"], plan_id, _json(registration)),
+                )
+            else:
+                registration = json.loads(existing[0])
+        return self._observe_correction_registration(registration, start)
+
+    def _observe_correction_registration(self, registration, start):
+        registration_id = registration["registration_id"]
+        with self._db:
+            self._db.execute("BEGIN IMMEDIATE")
+            existing = self.get_correction_registration(registration_id)
+            if existing is not None:
+                return existing
+            # The prior transaction has committed. Its insertion time alone
+            # cannot establish that the plan became durable before the window.
+            observed = self.correction_evaluation_utc()
+            if not instant(registration["recorded_utc"]) <= instant(observed) < start:
+                raise ValueError("durable_registration_not_observed_before_holdout")
+            self._db.execute(
+                "INSERT INTO nfl_correction_registration_observations VALUES (?,?)",
+                (registration_id, observed),
+            )
+        return {**registration, "durable_observed_utc": observed}
 
     def publication_generation_receipts(self, object_id):
         """One PK join of the frozen generation ACK, never receipt history."""

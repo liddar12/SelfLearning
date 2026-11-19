@@ -1,11 +1,13 @@
 """Exercise publication membership and outcome cutoffs on the real journal."""
 import copy
+import sqlite3
 from types import SimpleNamespace
 
 import pytest
 
 from publication_fit_fixture import seed_publication_journal
 from selflearn_core.adapters import nfl_corrections_evaluation as evaluation
+from selflearn_core.adapters.nfl_corrections_fit import fit_corrections_from_journal
 from selflearn_core.adapters.nfl_corrections_policy import (
     LINEAGE_ARTIFACT_SOURCE,
     CorrectionsError,
@@ -22,6 +24,69 @@ def evaluation_policy(**changes):
                 "rationale": "Synthetic control thresholds for four independent week blocks."}
     return evaluation.seal_evaluation_policy(**{**settings, **changes})
 
+
+def test_registration_reserves_one_candidate_using_the_database_clock(tmp_path, monkeypatch):
+    fit_time = "2090-01-01T00:00:00Z"
+    start = "2090-01-02T00:00:00Z"
+    end = "2090-01-20T00:00:00Z"
+    score_at = "2090-01-22T00:00:00Z"
+    policy = evaluation_policy(registered_utc=fit_time, outcome_cutoff_utc=score_at)
+    path = tmp_path / "registration.sqlite"
+    with NFLPublicationJournal(path) as journal:
+        seed_publication_journal(journal)
+        artifact = fit_corrections_from_journal(
+            journal, trained_through=fit_time, fitted_at=fit_time, expires_at=end, artifact_version=2,
+        )
+        monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: fit_time)
+        options = {"start_utc": start, "end_utc": end}
+        claim = evaluation.register_correction_holdout(journal, artifact, **options, policy=policy)
+        rid = claim["registration_id"]
+        assert claim["recorded_utc"] == claim["durable_observed_utc"] == fit_time
+        assert journal.get_correction_registration(rid) == claim
+        other_policy = evaluation_policy(registered_utc=fit_time, outcome_cutoff_utc=score_at, minimum_games=8)
+        with pytest.raises(ValueError, match="overlapping_correction_registration"):
+            evaluation.register_correction_holdout(journal, artifact, **options, policy=other_policy)
+        with pytest.raises(CorrectionsError, match="registered_evaluation_cutoff_not_reached"):
+            evaluation.freeze_correction_holdout(journal, artifact, **options, registration_id=rid)
+        with pytest.raises(sqlite3.IntegrityError, match="immutable correction registration"):
+            journal._db.execute("UPDATE nfl_correction_registrations SET payload='{}'")
+        journal._db.rollback()
+
+    with NFLPublicationJournal(path) as journal:
+        monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: end)
+        assert evaluation.register_correction_holdout(journal, artifact, **options, policy=policy) == claim
+        with pytest.raises(ValueError, match="registration_must_follow_fit_and_precede_holdout"):
+            evaluation.register_correction_holdout(journal, artifact, **options, policy=other_policy)
+        with pytest.raises(CorrectionsError, match="correction_registration_mismatch"):
+            evaluation.freeze_correction_holdout(journal, artifact, **options,
+                                                 registration_id=rid, policy=other_policy)
+        holdout = evaluation.freeze_correction_holdout(journal, artifact, **options, registration_id=rid)
+        with pytest.raises(CorrectionsError, match="registered_evaluation_cutoff_not_reached"):
+            evaluation.evaluate_correction_holdout(journal, artifact, holdout, as_of_utc=score_at)
+    with NFLPublicationJournal(path, read_only=True) as journal:
+        monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: score_at)
+        report = evaluation.evaluate_correction_holdout(journal, artifact, holdout, as_of_utc=score_at)
+        assert report["evidence"]["prospective_registration_verified"] is True
+        assert report["evidence"]["registration_source"] == "local_sqlite_journal"
+        assert report["evidence"]["status"] == "held"
+        assert report["adoption_approved"] is False
+
+
+def test_registration_written_before_start_but_observed_at_start_is_refused(tmp_path, monkeypatch):
+    start = "2090-01-02T00:00:00Z"
+    before = "2090-01-01T23:59:59Z"
+    plan = dict(artifact_id="fixture", fitted_at=before, start_utc=start, end_utc="2090-01-04T00:00:00Z",
+                policy={"registered_utc": before})
+    with NFLPublicationJournal(tmp_path / "registration.sqlite") as journal:
+        clocks = iter([before, start])
+        monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: next(clocks))
+        with pytest.raises(ValueError, match="durable_registration_not_observed_before_holdout"):
+            journal.commit_correction_registration(plan)
+        rid = journal._db.execute("SELECT registration_id FROM nfl_correction_registrations").fetchone()[0]
+        assert journal.get_correction_registration(rid) is None
+        monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: start)
+        with pytest.raises(ValueError, match="durable_registration_not_observed_before_holdout"):
+            journal.commit_correction_registration(plan)
 
 
 def test_fixed_kernel_replay_keeps_original_members_and_excludes_late_labels(tmp_path, monkeypatch):
