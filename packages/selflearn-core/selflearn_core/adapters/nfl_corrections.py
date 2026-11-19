@@ -1,4 +1,4 @@
-"""NFL v1 learned-corrections planner. Fail closed to the submitted baseline.
+"""NFL learned-corrections planner. Fail closed to the submitted baseline.
 
 Method: per-segment (market|selection) additive probability bias with
 empirical-Bayes shrinkage toward zero (see ``nfl_corrections_fit``). Segments
@@ -28,14 +28,21 @@ from .nfl_corrections_policy import (
     HARD_PARLAY_CAP_PP,
     HARD_PARLAY_CAP_REL,
     KIND,
-    SCHEMA_VERSION,
+    LINEAGE_ARTIFACT_SOURCE,
+    LINEAGE_KIND,
+    LINEAGE_KEYS,
+    LINEAGE_MODEL_VERSION,
+    LINEAGE_POLICY,
+    LINEAGE_VERSION,
     _cap_pp,
     _text,
     artifact_source_trusted,
     corrections_mode,
+    lineage_pair,
     segment_key,
 )
 from .nfl_corrections_request import validate_request
+from .nfl_corrections_lineage import authorize_serving_baselines
 
 LOG = logging.getLogger(__name__)
 
@@ -53,9 +60,16 @@ __all__ = [
 
 
 def validate_artifact(artifact):
-    if not isinstance(artifact, dict) or artifact.get("kind") != KIND:
+    if not isinstance(artifact, dict) or type(artifact.get("version")) is not int:
         raise CorrectionsError("invalid_artifact")
-    if type(artifact.get("version")) is not int or artifact["version"] != 1:
+    if artifact["version"] == LINEAGE_VERSION:
+        lineage = artifact.get("lineage")
+        if (artifact.get("kind") != LINEAGE_KIND or artifact.get("source") != LINEAGE_ARTIFACT_SOURCE
+                or artifact.get("model_version") != LINEAGE_MODEL_VERSION or artifact.get("lineage_policy") != LINEAGE_POLICY
+                or type(lineage) is not dict or set(lineage) != set(LINEAGE_KEYS)):
+            raise CorrectionsError("invalid_artifact_lineage")
+        lineage_pair(lineage)
+    elif artifact["version"] != 1 or artifact.get("kind") != KIND or artifact.get("source") == LINEAGE_ARTIFACT_SOURCE:
         raise CorrectionsError("invalid_artifact")
     for key in ("artifact_id", "model_version", "method", "trained_through",
                 "fitted_at", "expires_at", "source", "fit_inputs_hash"):
@@ -105,7 +119,10 @@ def public_artifact(artifact):
     if artifact is None:
         return None
     validate_artifact(artifact)
-    return {key: artifact[key] for key in ARTIFACT_PUBLIC_KEYS}
+    keys = ARTIFACT_PUBLIC_KEYS
+    if artifact["version"] == LINEAGE_VERSION:
+        keys += ("version", "lineage_policy", "lineage")
+    return {key: artifact[key] for key in keys}
 
 
 def _echo_leg(leg, *, reason, cap_pp):
@@ -153,7 +170,7 @@ def _apply_leg_delta(baseline, delta, *, cap_pp):
     return adjusted, applied_delta
 
 
-def _leg_result(leg, *, mode, artifact, now, cap_pp, binder_verified):
+def _leg_result(leg, *, mode, artifact, now, cap_pp, binder_verified, lineage_hold=None):
     if mode == "off":
         return _echo_leg(leg, reason="corrections_off", cap_pp=cap_pp)
     if leg["duplicate"]:
@@ -166,6 +183,8 @@ def _leg_result(leg, *, mode, artifact, now, cap_pp, binder_verified):
             return _echo_leg(leg, reason="stale_artifact", cap_pp=cap_pp)
         if not artifact_source_trusted(artifact.get("source")):
             return _echo_leg(leg, reason="untrusted_artifact_source", cap_pp=cap_pp)
+        if lineage_hold is not None:
+            return _echo_leg(leg, reason=lineage_hold, cap_pp=cap_pp)
         # Trusted label alone is forgeable; apply only after journal recompute auth.
         if binder_verified is not True:
             return _echo_leg(leg, reason="unverified_binder_origin", cap_pp=cap_pp)
@@ -201,7 +220,7 @@ def _leg_result(leg, *, mode, artifact, now, cap_pp, binder_verified):
     }
 
 
-def _parlay_result(parlay, *, legs_by_id, mode, cap_pp):
+def _parlay_result(parlay, *, legs_by_id, mode, cap_pp, baseline_verified):
     if mode == "off":
         return _echo_parlay(parlay, reason="corrections_off", cap_pp=cap_pp)
     baseline = parlay["baseline_prob"]
@@ -215,6 +234,8 @@ def _parlay_result(parlay, *, legs_by_id, mode, cap_pp):
             reasons.append(row["reason"])
             continue
         ratios.append(row["adjusted_prob"] / row["baseline_prob"])
+    if not baseline_verified:
+        return _echo_parlay(parlay, reason=reasons[0] if reasons else "unverified_parlay_baseline", cap_pp=cap_pp)
     if mode == "shadow":
         if not reasons and len(ratios) == len(parlay["leg_ids"]):
             product = 1.0
@@ -260,21 +281,20 @@ def _parlay_result(parlay, *, legs_by_id, mode, cap_pp):
     }
 
 
-def plan_corrections(request, *, mode="off", artifact=None, now=None,
-                     binder_verified=False):
+def plan_corrections(request, *, mode="off", artifact=None, now=None, binder_verified=False,
+                     journal=None, collection=None, repository=None):
     """Plan corrections. Invalid requests raise; serving faults echo baseline.
 
-    ``binder_verified=True`` only after ``authorize_corrections_artifact`` (or
-    equivalent journal recompute match). A trusted ``source`` string alone
-    never authorizes ``applied=true``.
+    The v2 path independently reauthorizes the artifact and the serving
+    generation through trusted storage ports. A legacy binder boolean is
+    accepted for callers of v1 and cannot authorize application.
     """
     mode = corrections_mode(mode)
     parsed = validate_request(request)
-    now = now or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    verified = binder_verified is True
+    read_clock = (lambda: now) if now is not None else (lambda: datetime.now(timezone.utc).isoformat())
     if mode == "off":
         return {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": parsed["schema_version"],
             "request_id": parsed["request_id"],
             "corrections_mode": "off",
             "artifact": None,
@@ -286,22 +306,46 @@ def plan_corrections(request, *, mode="off", artifact=None, now=None,
     try:
         if artifact is not None:
             validate_artifact(artifact)
+        starts, holds, fence = {}, {}, None
+        verified = False
+        global_hold = ("unverified_binder_origin" if parsed["schema_version"] == 1 and binder_verified is not True
+                       else "missing_baseline_lineage")
+        if (artifact is not None and artifact["version"] == LINEAGE_VERSION
+                and parsed["schema_version"] == LINEAGE_VERSION):
+            try:
+                starts, holds, fence = authorize_serving_baselines(parsed, artifact, journal, collection, repository, read_clock)
+                global_hold = None
+                verified = True
+            except CorrectionsError as error:
+                allowed_holds = {"missing_baseline_lineage", "unverified_serving_lineage", "mixed_serving_lineage",
+                                 "incompatible_baseline_lineage", "late_baseline_generation", "duplicate_baseline_receipt"}
+                global_hold = str(error) if str(error) in allowed_holds else "unverified_serving_lineage"
+            except (ValueError, TypeError, KeyError, OverflowError, OSError):
+                global_hold = "unverified_serving_lineage"
         leg_cap = HARD_LEG_CAP_PP if artifact is None else _cap_pp(
             artifact["leg_cap_pp"], hard=HARD_LEG_CAP_PP)
-        legs = [_leg_result(leg, mode=mode, artifact=artifact, now=now, cap_pp=leg_cap,
-                            binder_verified=verified)
-                for leg in parsed["legs"]]
+        decision_utc = read_clock()
+        decision = instant(decision_utc)
+        if fence is not None and decision < fence:
+            global_hold = "unverified_serving_lineage"
+        legs = []
+        for leg in parsed["legs"]:
+            hold = global_hold or holds.get(leg["leg_id"])
+            if hold is None and decision >= starts[leg["leg_id"]]:
+                hold = "late_baseline_receipt"
+            legs.append(_leg_result(leg, mode=mode, artifact=artifact, now=decision_utc, cap_pp=leg_cap,
+                                    binder_verified=verified or binder_verified is True, lineage_hold=hold))
         by_id = {}
         for row in legs:
             by_id.setdefault(row["leg_id"], row)
-        parlays = [_parlay_result(row, legs_by_id=by_id, mode=mode, cap_pp=HARD_PARLAY_CAP_PP)
+        parlays = [_parlay_result(row, legs_by_id=by_id, mode=mode, cap_pp=HARD_PARLAY_CAP_PP, baseline_verified=False)
                    for row in parsed["parlays"]]
         try:
             art = public_artifact(artifact)
         except CorrectionsError:
             art = None
         return {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": parsed["schema_version"],
             "request_id": parsed["request_id"],
             "corrections_mode": mode,
             "artifact": art,
@@ -311,7 +355,7 @@ def plan_corrections(request, *, mode="off", artifact=None, now=None,
     except Exception:
         LOG.exception("corrections_plan_fallback")
         return {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": parsed["schema_version"],
             "request_id": parsed["request_id"],
             "corrections_mode": mode,
             "artifact": None,

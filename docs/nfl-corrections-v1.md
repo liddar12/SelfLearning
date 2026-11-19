@@ -40,8 +40,8 @@ Values: `off` | `shadow` | `on`. Unset or invalid → **`off`**.
 | Mode | Served values | `applied` | Notes |
 |------|---------------|-----------|-------|
 | `off` | Exact submitted baselines | `false` | Kill switch. Artifact ignored. |
-| `shadow` | Exact submitted baselines | `false` | Computes would-be adjustments and logs them. |
-| `on` | Adjusted when learned rules pass | `true` only for learned fits | Still fails closed to baseline on any fault. |
+| `shadow` | Exact submitted baselines | `false` | Logs would-be adjustments for qualified v2 legs. |
+| `on` | Qualified v2 legs may be adjusted | `true` only for matched, eligible legs | V1 and parlay probabilities echo baseline. |
 
 ### How the flag is read / redeploy (not rapid)
 
@@ -63,11 +63,14 @@ Fit offline with `tools/fit_nfl_corrections.py` or
 Caller-supplied grade lists are integrity-hashed only — **not** authenticated
 provenance. Default `source` is `graded_caller_list_untrusted` and **cannot**
 set `applied=true`. The caller-list fitter and CLI **refuse** to seal
-`source=receipt_journal_publication_as_of_v2`. Trusted fits come only from
-`fit_corrections_from_journal`. At serve time, a trusted label is accepted for
-`applied=true` only after `authorize_corrections_artifact` recomputes the binder
-fit from the live journal and matches `artifact_id`. Digests detect mutation;
-they are **not** signatures.
+the trusted v2 artifact kind. Journal fits come from `fit_corrections_from_journal`.
+The default v1 keeps its existing hashes and historical recomputation.
+`artifact_version=2` seals `nfl.corrections_artifact.v2` with
+`lineage_policy=exact_frozen_base_calibrator_v1` and the one verified
+`base_model_version`/`calibrator_version` pair shared by every admitted graded
+receipt. Missing or mixed training lineage prevents a v2 fit. The pair and
+policy participate in both hashes. `authorize_corrections_artifact` independently
+recomputes the artifact by version from the journal and compares the full result.
 
 Store the sealed artifact **body** (all fields except nested `artifact_id`)
 as an existing receipt-journal **`source_snapshot`** object whose
@@ -107,8 +110,9 @@ then capped at ±`leg_cap_pp` (hard ceiling 3pp).
 ## Caps
 
 - Leg: ±3 percentage points (configurable, never above hard ceiling).
-- Parlay: `baseline_parlay * Π(adj_leg / base_leg)`, then tighter of ±3pp
-  absolute and 15% relative.
+- The parlay math kernel caps the product of leg ratios at the tighter of ±3pp
+  absolute and 15% relative. The endpoint holds joint probability until the
+  original joint price has a trusted binding.
 - Clamp `[0.01, 0.99]` applies **only** when `applied=true`. If clamping would
   exceed the cap or flip direction, refuse (`applied=false`, echo baseline).
 - When `applied=false`, `adjusted_prob` equals the submitted `baseline_prob`
@@ -116,7 +120,7 @@ then capped at ±`leg_cap_pp` (hard ceiling 3pp).
 
 ## Request / response
 
-Request:
+Historical v1 request:
 
 ```json
 {
@@ -176,12 +180,12 @@ Response `artifact` (when present) includes full public provenance:
   },
   "legs": [
     {"leg_id": "L1", "baseline_prob": 0.55, "adjusted_prob": 0.55,
-     "delta": 0.0, "applied": false, "reason": "insufficient_graded_data",
+     "delta": 0.0, "applied": false, "reason": "untrusted_artifact_source",
      "cap_pp": 0.03}
   ],
   "parlays": [
     {"parlay_id": "P1", "baseline_prob": 0.55, "adjusted_prob": 0.55,
-     "delta": 0.0, "applied": false, "reason": "insufficient_graded_data",
+     "delta": 0.0, "applied": false, "reason": "untrusted_artifact_source",
      "cap_pp": 0.03}
   ]
 }
@@ -190,6 +194,28 @@ Response `artifact` (when present) includes full public provenance:
 Duplicate or missing `leg_id` references force affected legs/parlays to
 `applied=false` with exact baseline echoes. `request_id` and all baseline
 fields are echoed exactly.
+
+### Lineage-bound v2 requests
+
+V2 uses `schema_version: 2` on the same route. Add `calibrator_version` and a
+`baseline_generation` object containing `workflow`, `run_id`, `run_attempt`,
+`intent_id`, `generation_object_id` and `generation_id`. Each leg carries its
+`contract_id` and `source_receipt_id`. Use the original pool `generated_at`.
+The declaration and receipt references are checked against the server's
+collection repository, immutable intent, durably finalized generation and exact
+frozen source objects. The generation commit must precede kickoff. A leg's
+decision must also precede kickoff. An apply-eligible leg must have a known,
+matching pair and the original receipt's exact market, direction, game,
+contract and `served_prob`. The response echoes schema version 2 and includes
+the artifact lineage when available.
+
+V1 keeps the request and response shape for inspection. A trusted v1 fit in
+on mode returns `missing_baseline_lineage` with baseline probabilities. Missing
+or incompatible v2 lineage also leaves baseline intact. A selected parlay
+echoes `unverified_parlay_baseline` when its legs qualify, or the applicable
+leg refusal if a leg is held. A valid v2 binding qualifies the request for
+the configured calculation. Prospective policy evaluation and serving approval
+are separate decisions.
 
 ## NFL owner relay — minimum evidence gaps (read-only)
 

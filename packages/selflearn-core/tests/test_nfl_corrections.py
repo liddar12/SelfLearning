@@ -9,10 +9,13 @@ import pytest
 
 from selflearn_core.adapters.nfl_corrections import (
     CorrectionsError,
+    _leg_result,
+    _parlay_result,
     corrections_mode,
     fit_corrections_artifact,
     plan_corrections,
     validate_artifact,
+    validate_request,
 )
 from selflearn_core.adapters.nfl_corrections_policy import (
     HARD_CLAMP,
@@ -77,8 +80,15 @@ def make_artifact(**kwargs):
 
 
 def plan_on(request, artifact, **kwargs):
-    return plan_corrections(request, mode="on", artifact=artifact,
-                            binder_verified=True, **kwargs)
+    """Test the adjustment kernels after the production binder boundary."""
+    parsed = validate_request(request)
+    validate_artifact(artifact)
+    legs = [_leg_result(leg, mode="on", artifact=artifact, cap_pp=artifact["leg_cap_pp"],
+                        binder_verified=True, **kwargs) for leg in parsed["legs"]]
+    by_id = {leg["leg_id"]: leg for leg in legs}
+    return {"corrections_mode": "on", "legs": legs,
+            "parlays": [_parlay_result(parlay, legs_by_id=by_id, mode="on", cap_pp=HARD_PARLAY_CAP_PP,
+                                       baseline_verified=True) for parlay in parsed["parlays"]]}
 
 
 def make_request(*, legs=None, parlays=None, request_id="req-1"):
@@ -190,6 +200,17 @@ def test_on_applies_within_caps_and_clamp():
             bound = min(HARD_PARLAY_CAP_PP, abs(row["baseline_prob"]) * HARD_PARLAY_CAP_REL)
             assert abs(row["delta"]) <= bound + 1e-12
             assert HARD_CLAMP[0] <= row["adjusted_prob"] <= HARD_CLAMP[1]
+
+
+def test_v1_verified_artifact_remains_read_only():
+    artifact = make_artifact()
+    result = plan_corrections(make_request(), mode="on", artifact=artifact,
+                              now="2026-11-02T00:00:00Z", binder_verified=True)
+    assert result["schema_version"] == 1
+    assert result["artifact"]["artifact_id"] == artifact["artifact_id"]
+    for row in result["legs"] + result["parlays"]:
+        assert row["reason"] == "missing_baseline_lineage"
+        assert row["applied"] is False and row["adjusted_prob"] == row["baseline_prob"]
 
 
 def test_insufficient_total_graded_blocks_everything():

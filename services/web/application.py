@@ -466,7 +466,8 @@ def create_app(*, store=None, env=None, journal_factory=None, capture_factory=No
     register_collection_routes(app, collection_repository, collection_factory, body)
     register_capture_routes(app, capture_factory, body)
     register_application_routes(app, capture_factory, body)
-    register_corrections_routes(app, journal_factory, body, env=env)
+    register_corrections_routes(app, journal_factory, body, env=env,
+                                collection_factory=collection_factory, collection_repository=collection_repository)
     register_publication_routes(app, journal_factory, body, publication_verifier)
     register_worker_routes(app, publication_job_factory, body, publication_verifier)
     # Explicit trusted server injection only. Environment/store credentials do

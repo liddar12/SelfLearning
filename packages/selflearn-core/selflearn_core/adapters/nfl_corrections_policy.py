@@ -1,5 +1,7 @@
-"""Shared constants and tiny validators for NFL corrections v1."""
+"""Shared constants and validators for NFL corrections."""
 from __future__ import annotations
+
+import re
 
 from ..probability_receipts import finite_number
 
@@ -7,6 +9,11 @@ KIND = "nfl.corrections_artifact.v1"
 METHOD = "market_bias_shrinkage_v1"
 MODEL_VERSION = "corrections_v1"
 SCHEMA_VERSION = 1
+LINEAGE_VERSION = 2
+LINEAGE_KIND = "nfl.corrections_artifact.v2"
+LINEAGE_MODEL_VERSION = "corrections_v2"
+LINEAGE_POLICY = "exact_frozen_base_calibrator_v1"
+LINEAGE_KEYS = ("base_model_version", "calibrator_version")
 HARD_LEG_CAP_PP = 0.03
 HARD_PARLAY_CAP_PP = 0.03
 HARD_PARLAY_CAP_REL = 0.15
@@ -31,14 +38,17 @@ VOID_STATUSES = frozenset({"push", "void"})
 # are never runtime trust. Publication must be independently attested without
 # changing the original capture receipt. Enum-only v1 artifacts are untrusted.
 TRUSTED_ARTIFACT_SOURCE = "receipt_journal_publication_as_of_v2"
+LINEAGE_ARTIFACT_SOURCE = "receipt_journal_publication_as_of_lineage_v1"
 UNTRUSTED_ARTIFACT_SOURCE = "graded_caller_list_untrusted"
-TRUSTED_ARTIFACT_SOURCES = frozenset({TRUSTED_ARTIFACT_SOURCE})
+TRUSTED_ARTIFACT_SOURCES = frozenset({TRUSTED_ARTIFACT_SOURCE, LINEAGE_ARTIFACT_SOURCE})
 REQUEST_KEYS = frozenset({
     "schema_version", "request_id", "season", "week", "baseline_model_version",
     "generated_at", "legs", "parlays",
 })
 LEG_KEYS = frozenset({"leg_id", "game_id", "market", "selection", "baseline_prob"})
 PARLAY_KEYS = frozenset({"parlay_id", "leg_ids", "baseline_prob"})
+BASELINE_GENERATION_KEYS = frozenset({"workflow", "run_id", "run_attempt", "intent_id",
+                                      "generation_object_id", "generation_id"})
 # Consumer-visible provenance (breaking additive expansion vs first draft response).
 ARTIFACT_PUBLIC_KEYS = (
     "artifact_id", "model_version", "method", "trained_through", "fitted_at",
@@ -50,6 +60,17 @@ ARTIFACT_PUBLIC_KEYS = (
 
 def artifact_source_trusted(source):
     return isinstance(source, str) and source in TRUSTED_ARTIFACT_SOURCES
+
+
+def is_digest(value):
+    return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value) is not None
+
+
+def lineage_pair(value):
+    pair = tuple(value.get(key) for key in LINEAGE_KEYS)
+    if not all(is_digest(item) for item in pair):
+        raise CorrectionsError("missing_baseline_lineage")
+    return pair
 
 
 class CorrectionsError(ValueError):
