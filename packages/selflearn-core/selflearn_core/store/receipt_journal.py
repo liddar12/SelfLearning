@@ -85,17 +85,25 @@ class ReceiptJournal:
     fields cannot replace the journal's database-owned insertion timestamps.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, *, read_only=False):
         self.path = str(path)
-        if self.path != ":memory:":
-            Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(self.path, timeout=30)
-        self._db.row_factory = sqlite3.Row
-        self._db.execute("PRAGMA foreign_keys = ON")
-        self._db.executescript(_SCHEMA)
-        if [r[0] for r in self._db.execute("SELECT version FROM receipt_journal_meta")] != [1]:
+        if read_only:
+            uri = Path(self.path).resolve().as_uri() + "?mode=ro"
+            self._db = sqlite3.connect(uri, uri=True, timeout=30)
+        else:
+            if self.path != ":memory:":
+                Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+            self._db = sqlite3.connect(self.path, timeout=30)
+        try:
+            self._db.row_factory = sqlite3.Row
+            self._db.execute("PRAGMA foreign_keys = ON")
+            if not read_only:
+                self._db.executescript(_SCHEMA)
+            if [r[0] for r in self._db.execute("SELECT version FROM receipt_journal_meta")] != [1]:
+                raise ValueError("unsupported_journal_schema")
+        except Exception:
             self._db.close()
-            raise ValueError("unsupported_journal_schema")
+            raise
 
     def close(self):
         self._db.close()

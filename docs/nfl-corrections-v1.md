@@ -83,6 +83,34 @@ Artifact storage itself needs no new table. Publication-aware fitting requires
 the separate publication-attestation migration and an explicitly composed NFL
 publication journal; neither is deployed by this local checkpoint.
 
+### Offline replay from a publication journal
+
+Use an existing SQLite NFL publication journal, such as a local rehearsal
+journal. Supply explicit UTC cutoffs and save the three JSON results locally.
+`HOLDOUT_START` must follow `FITTED_AT`, and `AS_OF` must be at or after
+`HOLDOUT_END`. The optional `--policy` on `freeze` accepts a document from
+`seal_evaluation_policy`. With a policy, `AS_OF` must equal its sealed outcome
+cutoff.
+
+```sh
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" fit \
+  --trained-through "$TRAINED_THROUGH" --fitted-at "$FITTED_AT" \
+  --expires-at "$EXPIRES_AT" > correction.json
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" freeze \
+  --artifact correction.json --start "$HOLDOUT_START" --end "$HOLDOUT_END" > holdout.json
+python3 tools/replay_nfl_corrections.py --journal "$NFL_JOURNAL" score \
+  --artifact correction.json --holdout holdout.json --as-of "$AS_OF" > report.json
+```
+
+Each command uses a read-only journal connection. The fit verifies publication,
+label and lineage evidence and emits a version 2 artifact. Freeze records the
+original forecast cohort, and score revalidates that membership, uses labels
+known by the cutoff and reports paired log loss with game- and week-clustered
+intervals. Inspect the forecast and scored counts and the hold reasons before
+interpreting a result. This report is retrospective evidence. A local policy
+document carries no independently verified registration time or serving
+authority.
+
 ## Method
 
 Per-**segment** additive bias with empirical-Bayes shrinkage toward zero.

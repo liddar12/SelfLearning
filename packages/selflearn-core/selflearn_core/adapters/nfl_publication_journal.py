@@ -37,13 +37,14 @@ BEFORE DELETE ON receipt_journal_publication_evidence BEGIN SELECT RAISE(ABORT, 
 class NFLPublicationJournal(ReceiptJournal):
     """Opt-in SQLite publication policy and evidence, preserving original IDs."""
 
-    def __init__(self, path):
-        super().__init__(path)
-        try:
-            self._db.executescript(_PUBLICATION_SCHEMA)
-        except Exception:
-            self.close()
-            raise
+    def __init__(self, path, *, read_only=False):
+        super().__init__(path, read_only=read_only)
+        if not read_only:
+            try:
+                self._db.executescript(_PUBLICATION_SCHEMA)
+            except Exception:
+                self.close()
+                raise
 
     def _publication_recorded_utc(self):
         """Database insertion clock, taken after acquiring the writer lock.
