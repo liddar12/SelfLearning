@@ -102,6 +102,7 @@ then capped at ±`leg_cap_pp` (hard ceiling 3pp).
 - Eligibility: `served_at` before kickoff, binary outcome, exclude push/void
   (casefold), `graded_at <= trained_through`, required `selection`.
 - Expired `expires_at` → `stale_artifact`.
+- An authorized artifact with `fitted_at` after the server decision clock → `artifact_not_yet_fitted`.
 
 ## Caps
 

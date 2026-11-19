@@ -236,6 +236,28 @@ def test_stale_artifact_refuses_application():
     assert all(row["applied"] is False for row in response["legs"])
 
 
+@pytest.mark.parametrize(("now", "reason"), [
+    ("2026-11-01T00:59:59.999999Z", "artifact_not_yet_fitted"),
+    ("2026-11-01T01:00:00Z", None),
+    ("2026-12-01T00:00:00Z", None),
+    ("2026-12-01T00:00:00.000001Z", "stale_artifact"),
+])
+def test_corrections_apply_only_in_inclusive_artifact_window(now, reason):
+    artifact = make_artifact()
+    result = plan_on(make_request(), artifact, now=now)
+    for row in result["legs"] + result["parlays"]:
+        assert row["applied"] is (reason is None)
+        if reason is not None:
+            assert row["reason"] == reason
+            assert row["adjusted_prob"] == row["baseline_prob"]
+            assert row["delta"] == 0
+    shadow = plan_corrections(make_request(), mode="shadow", artifact=artifact, now=now,
+                              binder_verified=True)
+    for row in shadow["legs"] + shadow["parlays"]:
+        assert row["applied"] is False
+        assert row["adjusted_prob"] == row["baseline_prob"]
+
+
 def test_push_void_and_post_cutoff_excluded_from_fit():
     rows = make_graded(n_per_market=60)
     rows.append(graded_row(status="PUSH", hit=True))

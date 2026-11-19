@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import runpy
 
@@ -108,13 +109,14 @@ def populate_verified_journal(journal, n_per=60):
     return seed(journal, n_per=n_per)
 
 
-def binder_artifact(journal):
+def binder_artifact(journal, *, fit_delay=timedelta()):
     # trained_through must be after DB recorded_utc of revisions (wall clock).
+    cutoff = datetime.now(timezone.utc)
     return fit_corrections_from_journal(
         journal,
-        trained_through="2099-01-01T00:00:00Z",
-        expires_at="2099-02-01T00:00:00Z",
-        fitted_at="2099-01-01T01:00:00Z",
+        trained_through=cutoff.isoformat(),
+        expires_at=(cutoff + timedelta(days=1)).isoformat(),
+        fitted_at=(cutoff + fit_delay).isoformat(),
         min_graded_total=150,
         min_graded_per_market=50,
     )
@@ -266,7 +268,7 @@ def test_forged_trusted_label_plant_cannot_apply(tmp_path):
 def test_legitimate_journal_binder_artifact_can_apply(tmp_path):
     path = tmp_path / "binder.sqlite"
     with ReceiptJournal(path) as journal:
-        populate_verified_journal(journal, n_per=60)
+        seeded = populate_verified_journal(journal, n_per=60)
         art = binder_artifact(journal)
         assert art["source"] == TRUSTED_ARTIFACT_SOURCE
         assert art["n_graded"] >= 150
@@ -282,8 +284,8 @@ def test_legitimate_journal_binder_artifact_can_apply(tmp_path):
                      env=env_for("on", artifact_id=art["artifact_id"]),
                      journal_factory=factory)
     with TestClient(app) as client:
-        # now must be before expires_at for apply
         body = request_body()
+        body["baseline_model_version"] = seeded["receipts"][0]["base_model_version"]
         response = post(client, body)
         assert response.status_code == 200, response.text
         value = response.json()
@@ -294,6 +296,29 @@ def test_legitimate_journal_binder_artifact_can_apply(tmp_path):
                 assert row["reason"] == "learned_segment_bias"
             else:
                 assert row["adjusted_prob"] == row["baseline_prob"]
+
+
+def test_authorized_future_fit_echoes_baseline(tmp_path):
+    path = tmp_path / "future.sqlite"
+    with ReceiptJournal(path) as journal:
+        seeded = populate_verified_journal(journal, n_per=50)
+        art = binder_artifact(journal, fit_delay=timedelta(hours=2))
+        assert art["n_graded"] == 150
+
+    body = request_body()
+    body["baseline_model_version"] = seeded["receipts"][0]["base_model_version"]
+    for mode in ("on", "shadow"):
+        client, _ = client_for(path, mode=mode, art=art)
+        with client:
+            response = post(client, body)
+        assert response.status_code == 200
+        value = response.json()
+        assert value["artifact"]["artifact_id"] == art["artifact_id"]
+        assert all(row["reason"] == "artifact_not_yet_fitted" for row in value["legs"])
+        for row in value["legs"] + value["parlays"]:
+            assert row["applied"] is False
+            assert row["adjusted_prob"] == row["baseline_prob"]
+            assert row["delta"] == 0
 
 
 def test_invalid_body_is_422(tmp_path):

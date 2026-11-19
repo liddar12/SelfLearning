@@ -161,13 +161,16 @@ def _leg_result(leg, *, mode, artifact, now, cap_pp, binder_verified):
     if artifact is None:
         return _echo_leg(leg, reason="missing_artifact", cap_pp=cap_pp)
     try:
-        if instant(now) > instant(artifact["expires_at"]):
+        decision = instant(now)
+        if decision > instant(artifact["expires_at"]):
             return _echo_leg(leg, reason="stale_artifact", cap_pp=cap_pp)
         if not artifact_source_trusted(artifact.get("source")):
             return _echo_leg(leg, reason="untrusted_artifact_source", cap_pp=cap_pp)
         # Trusted label alone is forgeable; apply only after journal recompute auth.
         if binder_verified is not True:
             return _echo_leg(leg, reason="unverified_binder_origin", cap_pp=cap_pp)
+        if decision < instant(artifact["fitted_at"]):
+            return _echo_leg(leg, reason="artifact_not_yet_fitted", cap_pp=cap_pp)
         if (not artifact.get("sufficient_total")
                 or artifact["n_graded"] < artifact["min_graded_total"]):
             return _echo_leg(leg, reason="insufficient_graded_data", cap_pp=cap_pp)
