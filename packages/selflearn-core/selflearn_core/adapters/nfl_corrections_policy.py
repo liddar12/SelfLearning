@@ -10,6 +10,7 @@ METHOD = "market_bias_shrinkage_v1"
 MODEL_VERSION = "corrections_v1"
 SCHEMA_VERSION = 1
 LINEAGE_VERSION = 2
+FIRST_DURABLE_PUBLICATION = "first_durable_publication_v2"
 LINEAGE_KIND = "nfl.corrections_artifact.v2"
 LINEAGE_MODEL_VERSION = "corrections_v2"
 LINEAGE_POLICY = "exact_frozen_base_calibrator_v1"

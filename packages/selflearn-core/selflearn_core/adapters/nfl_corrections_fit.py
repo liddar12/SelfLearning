@@ -18,6 +18,7 @@ from .nfl_corrections_policy import (
     DEFAULT_MIN_GRADED_TOTAL,
     DEFAULT_PRIOR_STRENGTH,
     ELIGIBILITY_RULES,
+    FIRST_DURABLE_PUBLICATION,
     HARD_CLAMP,
     HARD_LEG_CAP_PP,
     HARD_PARLAY_CAP_PP,
@@ -193,10 +194,8 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
     return _fit_snapshot(reader(), trained_through=trained_through, expires_at=expires_at, fitted_at=fitted_at,
                          prior_strength=prior_strength, min_graded_total=min_graded_total,
                          min_graded_per_market=min_graded_per_market, leg_cap_pp=leg_cap_pp,
-                         artifact_version=artifact_version)
-
-
-FIRST_DURABLE_PUBLICATION = "first_durable_publication_v2"
+                         artifact_version=artifact_version,
+                         cohort_policy=FIRST_DURABLE_PUBLICATION if artifact_version == LINEAGE_VERSION else None)
 
 
 def _select_publication_cohort(snapshot, as_of, *, cohort_policy=None):
@@ -334,13 +333,16 @@ def _revision_histories(snapshot):
 
 
 def _fit_snapshot(snapshot, *, trained_through, expires_at, fitted_at, prior_strength,
-                  min_graded_total, min_graded_per_market, leg_cap_pp, artifact_version):
+                  min_graded_total, min_graded_per_market, leg_cap_pp, artifact_version, cohort_policy=None):
     from .nfl_calibration import _latest_as_of
 
     if type(artifact_version) is not int or artifact_version not in (1, LINEAGE_VERSION):
         raise CorrectionsError("unsupported_corrections_artifact_version")
     cutoff = instant(trained_through)
-    receipts, selected = _select_publication_cohort(snapshot, trained_through)
+    if cohort_policy is not None and (artifact_version != LINEAGE_VERSION
+                                      or cohort_policy != FIRST_DURABLE_PUBLICATION):
+        raise CorrectionsError("unsupported_training_cohort_policy")
+    receipts, selected = _select_publication_cohort(snapshot, trained_through, cohort_policy=cohort_policy)
     cohort = [{"contract_id":receipts[rid]["contract_id"], "event_id":receipts[rid]["event_id"],
         "receipt_id":rid, "source_receipt_id":receipts[rid]["source_receipt_id"],
         "generation_object_id":proof["object_id"], "generation_id":proof["generation_id"],
@@ -399,9 +401,11 @@ def _fit_snapshot(snapshot, *, trained_through, expires_at, fitted_at, prior_str
              "forecast_cohort_count": len(cohort), "graded_count": len(graded),
              "excluded_count": len(excluded),
              "exclusion_reasons": dict(sorted(Counter(row["reason"] for row in excluded).items()))}
+    if cohort_policy is not None:
+        body["training_cohort_policy"] = cohort_policy
     body["fit_audit"] = audit
     body["fit_inputs_hash"] = fingerprint({"version": 3, "source": TRUSTED_ARTIFACT_SOURCE,
-        "cohort_policy":"first_independently_attested_contract_event_v1", "forecast_cohort":cohort,
+        "cohort_policy":cohort_policy or "first_independently_attested_contract_event_v1", "forecast_cohort":cohort,
         "graded_inputs_hash": artifact["fit_inputs_hash"], "publication_provenance": provenance,
         "fit_audit": audit, "label_exclusions": excluded})
     if artifact_version == LINEAGE_VERSION:
@@ -437,6 +441,8 @@ def _authorize_snapshot(snapshot, artifact):
     if ((version, artifact.get("source")) not in ((1, TRUSTED_ARTIFACT_SOURCE),
                                                    (LINEAGE_VERSION, LINEAGE_ARTIFACT_SOURCE))):
         raise CorrectionsError("trusted_source_required_for_authorization")
+    if "training_cohort_policy" in artifact and artifact["training_cohort_policy"] != FIRST_DURABLE_PUBLICATION:
+        raise CorrectionsError("unsupported_training_cohort_policy")
     recomputed = _fit_snapshot(
         snapshot,
         trained_through=artifact["trained_through"],
@@ -447,6 +453,7 @@ def _authorize_snapshot(snapshot, artifact):
         min_graded_per_market=artifact["min_graded_per_market"],
         leg_cap_pp=artifact["leg_cap_pp"],
         artifact_version=version,
+        cohort_policy=artifact.get("training_cohort_policy"),
     )
     if recomputed != artifact:
         raise CorrectionsError("trusted_artifact_journal_mismatch")

@@ -23,6 +23,7 @@ from .nfl_corrections_policy import (
     ARTIFACT_PUBLIC_KEYS,
     CorrectionsError,
     ELIGIBILITY_RULES,
+    FIRST_DURABLE_PUBLICATION,
     HARD_CLAMP,
     HARD_LEG_CAP_PP,
     HARD_PARLAY_CAP_PP,
@@ -71,6 +72,10 @@ def validate_artifact(artifact):
         lineage_pair(lineage)
     elif artifact["version"] != 1 or artifact.get("kind") != KIND or artifact.get("source") == LINEAGE_ARTIFACT_SOURCE:
         raise CorrectionsError("invalid_artifact")
+    if "training_cohort_policy" in artifact and (
+            artifact["version"] != LINEAGE_VERSION
+            or artifact["training_cohort_policy"] != FIRST_DURABLE_PUBLICATION):
+        raise CorrectionsError("unsupported_training_cohort_policy")
     for key in ("artifact_id", "model_version", "method", "trained_through",
                 "fitted_at", "expires_at", "source", "fit_inputs_hash"):
         _text(artifact.get(key), name=key)
@@ -122,6 +127,8 @@ def public_artifact(artifact):
     keys = ARTIFACT_PUBLIC_KEYS
     if artifact["version"] == LINEAGE_VERSION:
         keys += ("version", "lineage_policy", "lineage")
+    if "training_cohort_policy" in artifact:
+        keys += ("training_cohort_policy",)
     return {key: artifact[key] for key in keys}
 
 

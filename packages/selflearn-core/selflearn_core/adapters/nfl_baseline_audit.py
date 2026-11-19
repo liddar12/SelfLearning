@@ -9,6 +9,7 @@ from .nfl_corrections_policy import (
     DEFAULT_MIN_GRADED_PER_MARKET,
     DEFAULT_MIN_GRADED_TOTAL,
     CorrectionsError,
+    FIRST_DURABLE_PUBLICATION,
     lineage_pair,
     segment_key,
 )
@@ -35,7 +36,7 @@ def audit_baseline(journal, *, as_of_utc, bootstrap_replicates=2000):
     """Score the raw and served probabilities against the same qualified results."""
     cutoff = instant(as_of_utc)
     snapshot = journal.read_publication_fit_snapshot()
-    receipts, members = _select_publication_cohort(snapshot, as_of_utc)
+    receipts, members = _select_publication_cohort(snapshot, as_of_utc, cohort_policy=FIRST_DURABLE_PUBLICATION)
     histories = _revision_histories(snapshot)
     rows, by_market, by_week = [], defaultdict(list), defaultdict(list)
     by_lineage = defaultdict(list)
@@ -62,6 +63,7 @@ def audit_baseline(journal, *, as_of_utc, bootstrap_replicates=2000):
             "market": market, "week": week, "segment": segment,
             "correlation_group": receipt["event_id"], "exclusion": exclusion, "lineage": lineage,
             "base_and_served_differ": base != served,
+            "fit_probability_interior": 0 < served < 1,
             "calibrator_configured": source.get("calibrator") is not None,
         }
         if exclusion is None:
@@ -75,10 +77,11 @@ def audit_baseline(journal, *, as_of_utc, bootstrap_replicates=2000):
         by_lineage[lineage].append(row)
 
     graded = [row for row in rows if row["exclusion"] is None]
-    graded_lineages = {row["lineage"] for row in graded}
-    segment_counts = Counter(row["segment"] for row in graded)
+    fit_eligible = [row for row in graded if row["fit_probability_interior"]]
+    graded_lineages = {row["lineage"] for row in fit_eligible}
+    segment_counts = Counter(row["segment"] for row in fit_eligible)
     fit_reasons = []
-    if len(graded) < DEFAULT_MIN_GRADED_TOTAL:
+    if len(fit_eligible) < DEFAULT_MIN_GRADED_TOTAL:
         fit_reasons.append("insufficient_graded_total")
     if (None, None) in graded_lineages or not graded_lineages:
         fit_reasons.append("missing_graded_baseline_lineage")
@@ -95,6 +98,7 @@ def audit_baseline(journal, *, as_of_utc, bootstrap_replicates=2000):
         game_interval["scope"] = "paired on identical attested forecasts and qualified outcomes"
     report = {
         "version": 1, "basis": "publicly_attested_baseline", "as_of_utc": as_of_utc,
+        "training_cohort_policy": FIRST_DURABLE_PUBLICATION,
         "snapshot_watermark": snapshot["watermark"],
         "membership_id": fingerprint([[r["receipt_id"], r["attestation_id"], r["revision_id"]] for r in rows]),
         "total": _summarize(rows),
@@ -109,6 +113,8 @@ def audit_baseline(journal, *, as_of_utc, bootstrap_replicates=2000):
         "served_minus_base_game_interval": game_interval,
         "correction_fit_support": {"minimum_graded_total": DEFAULT_MIN_GRADED_TOTAL,
                                    "minimum_graded_per_segment": DEFAULT_MIN_GRADED_PER_MARKET,
+                                   "fit_eligible_graded_count": len(fit_eligible),
+                                   "probability_boundary_count": len(graded) - len(fit_eligible),
                                    "segments": segments, "hold_reasons": fit_reasons},
         "adoption_approved": False,
     }

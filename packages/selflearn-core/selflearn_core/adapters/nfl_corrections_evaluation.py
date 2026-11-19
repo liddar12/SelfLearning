@@ -5,12 +5,11 @@ from ..probability_receipts import finite_number, fingerprint, instant
 from .nfl_calibration import _cluster_interval, _latest_as_of, _loss, _metrics
 from .nfl_corrections import _leg_result, validate_artifact
 from .nfl_corrections_fit import (
-    FIRST_DURABLE_PUBLICATION,
     _authorize_snapshot,
     _revision_histories,
     _select_publication_cohort,
 )
-from .nfl_corrections_policy import CorrectionsError, LINEAGE_VERSION, lineage_pair
+from .nfl_corrections_policy import CorrectionsError, FIRST_DURABLE_PUBLICATION, LINEAGE_VERSION, lineage_pair
 from .nfl_label_qualification import label_exclusion_reason
 
 POSITIONS = {"qb_pass_yds": "QB", "rb_rush_yds": "RB", "wr_rec_yds": "WR"}
@@ -114,7 +113,8 @@ def _membership(snapshot, artifact, start_utc, end_utc, *, known_at=None, cohort
     start, end = instant(start_utc), instant(end_utc)
     if start >= end or instant(artifact["fitted_at"]) >= start:
         raise CorrectionsError("holdout_must_follow_fit")
-    training_receipts, training = _select_publication_cohort(snapshot, artifact["trained_through"])
+    training_receipts, training = _select_publication_cohort(
+        snapshot, artifact["trained_through"], cohort_policy=artifact.get("training_cohort_policy"))
     training_events = {training_receipts[rid]["event_id"] for rid, *_ in training}
     receipts, selected = _select_publication_cohort(snapshot, known_at or end_utc, cohort_policy=cohort_policy)
     members, sources = [], {}
@@ -349,6 +349,8 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
     weeks = {week: _metrics([row for row in scored if row["week_group"] == week])
              for week in sorted({row["week_group"] for row in results})}
     evidence = _evidence(scored, len(members), policy, game_interval, week_interval, positions, weeks)
+    if "training_cohort_policy" in artifact:
+        evidence["training_cohort_policy"] = artifact["training_cohort_policy"]
     if registration_id is not None:
         evidence.update(prospective_registration_verified=True, registration_id=registration_id,
                         registration_source="local_sqlite_journal")
