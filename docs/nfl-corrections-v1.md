@@ -178,6 +178,26 @@ retry creates no duplicate grades, and a newer verified correction
 extends the original revision chain. Games without a verified final and
 complete scores remain unresolved.
 
+### Retain a public forecast before kickoff
+
+Use the approved site origin, the exact Git commit whose generated data the
+site serves, and a clean local checkout of the producer code. The two Git
+commits can differ. Reuse a private local workspace across refreshes.
+
+```sh
+python3 tools/observe_local_nfl_forecast.py --origin "$NFL_ORIGIN" \
+  --workspace "$NFL_EVIDENCE" --nfl-checkout "$NFL_CHECKOUT" \
+  --nfl-commit "$NFL_COMMIT" --published-commit "$NFL_PUBLISHED_COMMIT"
+```
+
+The observer checks the pool, schedule and calibration bytes against Git,
+validates the frozen forecast, then independently retrieves the pool again
+before recording its publication. If those bytes change, rerun against the
+actual new public commit. Retrying identical inputs recovers the original
+attestation and clock. Use `$NFL_EVIDENCE/journal.sqlite` for the local
+grading command when outcomes are available. The attestation covers public
+retrievability of the yardage pool and supplies no serving approval.
+
 ## Method
 
 Per-**segment** additive bias with empirical-Bayes shrinkage toward zero.
