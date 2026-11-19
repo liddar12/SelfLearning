@@ -44,20 +44,42 @@ explicit test injection.
 rows, where `limit` is between 1 and 50 and defaults to 16. It reports unexpired
 attempt locators with all expected object kinds present. A page can be empty
 with a non-null `next_after`. Continue with `after=next_after` until the cursor
-is null. Scans intentionally include already-finalized attempts so a restart
-can find their original ACK and publisher receipt. A later queue integration
-can add publication-terminal linkage. The deadline and presence checks in
-this list are hints. Recovery independently verifies the actual graph.
+is null. Scans include already-finalized attempts so a restart can find their
+original ACK and publisher receipt. When the publication route is configured,
+the scan reads the pinned job's latest durable event and omits completed or
+failed jobs. An unregistered stage falls out at kickoff. Registered jobs fall
+out at their original job deadline. The list is a recovery hint. The individual
+routes independently validate their exact records.
 
 Status shows pending or held states explicitly. `publication_ready` requires
 an exhaustive successful intake ACK and a matching fresh publisher receipt
 before the latest staged receipt kickoff. It means eligible for the existing
 publication job enqueue. The response always reports `publication_verified`
-and `training_approved` false. The handoff does not enqueue, invoke a worker,
-fetch public data, fit, or adopt anything. If receipt delivery fails before the
-server writes, the attempt stays awaiting publisher. A durable receipt whose
-reply was lost can be read back by run and attempt. Reuse of a recorded attempt
-or publisher receipt with different content returns 409.
+and `training_approved` false. If receipt delivery fails before the server
+writes, the attempt stays awaiting publisher. A durable receipt whose reply
+was lost can be read back by run and attempt. Reuse of a recorded attempt or
+publisher receipt with different content returns 409.
+
+## Publication job handoff
+
+Use `GET` or `POST` on the attempt URL plus `/publication` with the collection
+credential and the existing verified publication configuration. `GET` reads
+only. `POST` takes `version: 1` and the original `intent_id`. For a new eligible
+attempt the server first commits the matching publisher receipt identity,
+original v2 declaration, and full job definition. It then enqueues that job
+through the existing pinned registration. The database derives the cutoff
+from the immutable intent. If the database stamps a fresh registration at or
+after kickoff, the registration rolls back and the prepared definition remains.
+
+If preparation or registration replies are lost, repeat using the same run
+and attempt. An unregistered original declaration is held when code, policy
+or authority changes. A previously registered job remains readable under its
+original authority using the stored association. No new job identity replaces
+it. A read can return awaiting publication, prepared, registered, a terminal
+job, or a hold. Only the existing worker can observe the actual public pool.
+The publication handoff reports verification only for successful jobs with
+validated pre-kickoff proof. Collection and recording carry no authorization
+to fit, adopt, or serve a correction. No schedule is installed.
 
 Adding these routes changes the deployed publication worker's declared code
 identity because that identity includes the web service sources. Release work
@@ -70,5 +92,6 @@ change job discovery, reassign old jobs, or authorize a new declaration.
 The ASGI tests open the same SQLite database through independent application
 instances. The native PostgreSQL test uses a fresh disposable loopback PG17
 `selflearn_collection_test` database and the optional Psycopg driver. It runs the
-production Supabase adapter through a local RPC transport to real SQL. Hosted
+production Supabase adapter through a local RPC transport to real SQL, including
+rollback of a new registration whose actual DB clock crossed kickoff. Hosted
 PostgREST routing, hosted timings and deployed credentials remain unverified.
