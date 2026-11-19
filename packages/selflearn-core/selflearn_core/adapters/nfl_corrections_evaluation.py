@@ -4,7 +4,12 @@ from collections import Counter
 from ..probability_receipts import finite_number, fingerprint, instant
 from .nfl_calibration import _cluster_interval, _latest_as_of, _loss, _metrics
 from .nfl_corrections import _leg_result, validate_artifact
-from .nfl_corrections_fit import _authorize_snapshot, _revision_histories, _select_publication_cohort
+from .nfl_corrections_fit import (
+    FIRST_DURABLE_PUBLICATION,
+    _authorize_snapshot,
+    _revision_histories,
+    _select_publication_cohort,
+)
 from .nfl_corrections_policy import CorrectionsError, LINEAGE_VERSION, lineage_pair
 from .nfl_label_qualification import label_exclusion_reason
 
@@ -105,13 +110,13 @@ def _evidence(rows, forecast_count, policy, game_interval, week_interval, positi
     }
 
 
-def _membership(snapshot, artifact, start_utc, end_utc, *, known_at=None):
+def _membership(snapshot, artifact, start_utc, end_utc, *, known_at=None, cohort_policy=None):
     start, end = instant(start_utc), instant(end_utc)
     if start >= end or instant(artifact["fitted_at"]) >= start:
         raise CorrectionsError("holdout_must_follow_fit")
     training_receipts, training = _select_publication_cohort(snapshot, artifact["trained_through"])
     training_events = {training_receipts[rid]["event_id"] for rid, *_ in training}
-    receipts, selected = _select_publication_cohort(snapshot, known_at or end_utc)
+    receipts, selected = _select_publication_cohort(snapshot, known_at or end_utc, cohort_policy=cohort_policy)
     members, sources = [], {}
     for rid, proof, source, completed in selected:
         receipt = receipts[rid]
@@ -132,20 +137,26 @@ def _membership(snapshot, artifact, start_utc, end_utc, *, known_at=None):
     return receipts, sources, members
 
 
-def _registration_plan(artifact, start_utc, end_utc, policy):
+def _registration_plan(artifact, start_utc, end_utc, policy, cohort_policy):
     if policy is None:
         raise CorrectionsError("registration_requires_evaluation_policy")
     _verify_policy(policy, start_utc, end_utc)
     if not instant(artifact["fitted_at"]) < instant(start_utc) < instant(end_utc) <= instant(artifact["expires_at"]):
         raise CorrectionsError("registration_window_outside_artifact_lifetime")
-    return {"artifact_id": artifact["artifact_id"], "fitted_at": artifact["fitted_at"],
+    plan = {"artifact_id": artifact["artifact_id"], "fitted_at": artifact["fitted_at"],
             "start_utc": start_utc, "end_utc": end_utc, "policy": policy}
+    if cohort_policy is not None:
+        if cohort_policy != FIRST_DURABLE_PUBLICATION:
+            raise CorrectionsError("unsupported_publication_cohort_policy")
+        plan["cohort_policy"] = cohort_policy
+    return plan
 
 
 def register_correction_holdout(journal, artifact, *, start_utc, end_utc, policy):
     """Commit the fixed candidate and rules using the local journal clock."""
     _verify_artifact(journal.read_publication_fit_snapshot(), artifact)
-    return journal.commit_correction_registration(_registration_plan(artifact, start_utc, end_utc, policy))
+    plan = _registration_plan(artifact, start_utc, end_utc, policy, FIRST_DURABLE_PUBLICATION)
+    return journal.commit_correction_registration(plan)
 
 
 def _read_registration(journal, registration_id, artifact, start, end, policy, ready_at):
@@ -153,7 +164,8 @@ def _read_registration(journal, registration_id, artifact, start, end, policy, r
     if not record:
         raise CorrectionsError("correction_registration_missing")
     policy = record["plan"]["policy"] if policy is None else policy
-    plan = _registration_plan(artifact, start, end, policy)
+    cohort_policy = record["plan"].get("cohort_policy")
+    plan = _registration_plan(artifact, start, end, policy, cohort_policy)
     recorded = record["recorded_utc"]
     observed = record["durable_observed_utc"]
     body = {"version": 1, "plan": plan, "recorded_utc": recorded}
@@ -164,28 +176,32 @@ def _read_registration(journal, registration_id, artifact, start, end, policy, r
         raise CorrectionsError("correction_registration_mismatch")
     if instant(journal.correction_evaluation_utc()) < instant(ready_at):
         raise CorrectionsError("registered_evaluation_cutoff_not_reached")
-    return policy
+    return policy, cohort_policy
 
 
-def _seal_membership(artifact, start_utc, end_utc, members, policy, registration_id=None):
+def _seal_membership(artifact, start_utc, end_utc, members, policy, registration_id, cohort_policy):
     body = {"version": 1, "artifact_id": artifact["artifact_id"],
             "start_utc": start_utc, "end_utc": end_utc, "members": members}
     if policy is not None:
         body["policy"] = policy
     if registration_id is not None:
         body["registration_id"] = registration_id
+    if cohort_policy is not None:
+        body.update(version=2, cohort_policy=cohort_policy)
     return {**body, "holdout_id": fingerprint(body)}
 
 
 def freeze_correction_holdout(journal, artifact, *, start_utc, end_utc, policy=None, registration_id=None):
     """Freeze the first attested forecasts without using their outcome labels."""
+    cohort_policy = FIRST_DURABLE_PUBLICATION
     if registration_id is not None:
-        policy = _read_registration(journal, registration_id, artifact, start_utc, end_utc, policy, end_utc)
+        policy, cohort_policy = _read_registration(journal, registration_id, artifact, start_utc, end_utc,
+                                                   policy, end_utc)
     snapshot = journal.read_publication_fit_snapshot()
     _verify_artifact(snapshot, artifact)
     _verify_policy(policy, start_utc, end_utc)
-    _, _, members = _membership(snapshot, artifact, start_utc, end_utc)
-    return _seal_membership(artifact, start_utc, end_utc, members, policy, registration_id)
+    _, _, members = _membership(snapshot, artifact, start_utc, end_utc, cohort_policy=cohort_policy)
+    return _seal_membership(artifact, start_utc, end_utc, members, policy, registration_id, cohort_policy)
 
 
 def _verify_artifact(snapshot, artifact):
@@ -217,13 +233,15 @@ def _shadow_terms(receipt, source, member, artifact, decision_utc):
 
 def record_correction_shadow(journal, artifact, *, registration_id, start_utc, end_utc):
     """Compute shadow decisions from forecasts independently observed so far."""
-    _read_registration(journal, registration_id, artifact, start_utc, end_utc, None, start_utc)
+    _, cohort_policy = _read_registration(journal, registration_id, artifact, start_utc, end_utc,
+                                          None, start_utc)
     now = journal.correction_evaluation_utc()
     if not instant(start_utc) <= instant(now) < instant(end_utc):
         raise CorrectionsError("shadow_decision_outside_registered_window")
     snapshot = journal.read_publication_fit_snapshot()
     _verify_artifact(snapshot, artifact)
-    receipts, sources, members = _membership(snapshot, artifact, start_utc, end_utc, known_at=now)
+    receipts, sources, members = _membership(snapshot, artifact, start_utc, end_utc,
+                                             known_at=now, cohort_policy=cohort_policy)
     decisions = []
     for member in members:
         rid = member["receipt_id"]
@@ -252,10 +270,14 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
     start, end = holdout["start_utc"], holdout["end_utc"]
     policy = holdout.get("policy")
     registration_id = holdout.get("registration_id")
+    cohort_policy = holdout.get("cohort_policy")
     if recorded_shadow and registration_id is None:
         raise CorrectionsError("recorded_shadow_requires_registration")
     if registration_id is not None:
-        policy = _read_registration(journal, registration_id, artifact, start, end, policy, as_of_utc)
+        policy, registered_cohort = _read_registration(journal, registration_id, artifact, start, end,
+                                                        policy, as_of_utc)
+        if registered_cohort != cohort_policy:
+            raise CorrectionsError("registered_cohort_policy_mismatch")
     _verify_policy(policy, start, end)
     if policy is not None and cutoff != instant(policy["outcome_cutoff_utc"]):
         raise CorrectionsError("evaluation_policy_outcome_cutoff_mismatch")
@@ -268,8 +290,8 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
         raise CorrectionsError("outcome_cutoff_precedes_holdout_end")
     snapshot = journal.read_publication_fit_snapshot()
     _verify_artifact(snapshot, artifact)
-    receipts, sources, members = _membership(snapshot, artifact, start, end)
-    if holdout != _seal_membership(artifact, start, end, members, policy, registration_id):
+    receipts, sources, members = _membership(snapshot, artifact, start, end, cohort_policy=cohort_policy)
+    if holdout != _seal_membership(artifact, start, end, members, policy, registration_id, cohort_policy):
         raise CorrectionsError("frozen_holdout_membership_mismatch")
 
     histories = _revision_histories(snapshot)
@@ -340,6 +362,8 @@ def evaluate_correction_holdout(journal, artifact, holdout, *, as_of_utc, bootst
             evidence["status"] = "held"
         elif evidence["status"] == "registered_policy_met":
             evidence["status"] = "recorded_shadow_policy_met"
+    if cohort_policy is not None:
+        evidence["cohort_policy"] = cohort_policy
     body = {
         "version": 1, "basis": ("recorded_pre_kickoff_shadow_decisions" if recorded_shadow
                                 else "retrospective_fixed_correction_kernel"),

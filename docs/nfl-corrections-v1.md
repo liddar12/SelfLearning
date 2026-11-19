@@ -144,6 +144,14 @@ checks the registration in the same journal and identifies SQLite as its
 clock authority. This verifies local preregistration of the candidate and
 rules. By default it replays candidate probabilities from frozen inputs.
 
+New holdouts pin the first independently verified publication that the
+journal durably recorded for each contract and game. A delayed refresh
+can carry an older generation timestamp. That timestamp cannot replace
+the first recorded publication in an active evaluation. Existing
+registrations and their original holdouts retain their sealed membership
+rule, and previously fitted artifacts retain their exact training
+cohort for reproducibility.
+
 ### Score decisions that were recorded before kickoff
 
 During an active registered window, run `capture-shadow` after each

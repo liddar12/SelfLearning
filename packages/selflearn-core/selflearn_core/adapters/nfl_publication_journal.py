@@ -113,6 +113,11 @@ class NFLPublicationJournal(ReceiptJournal):
             existing = self._db.execute(
                 "SELECT payload FROM nfl_correction_registrations WHERE plan_id=?", (plan_id,),
             ).fetchone()
+            if existing is None and "cohort_policy" in plan:
+                legacy = {key: value for key, value in plan.items() if key != "cohort_policy"}
+                existing = self._db.execute(
+                    "SELECT payload FROM nfl_correction_registrations WHERE plan_id=?", (fingerprint(legacy),),
+                ).fetchone()
             if existing is None:
                 recorded = self.correction_evaluation_utc()
                 now = instant(recorded)

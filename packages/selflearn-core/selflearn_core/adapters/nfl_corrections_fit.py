@@ -196,11 +196,16 @@ def fit_corrections_from_journal(journal, *, trained_through, expires_at, fitted
                          artifact_version=artifact_version)
 
 
-def _select_publication_cohort(snapshot, as_of):
+FIRST_DURABLE_PUBLICATION = "first_durable_publication_v2"
+
+
+def _select_publication_cohort(snapshot, as_of, *, cohort_policy=None):
     """Select the first attested forecast per contract/event before reading outcomes."""
     from .nfl_publication import validate_publication_attestation
 
     cutoff = instant(as_of)
+    if cohort_policy not in (None, FIRST_DURABLE_PUBLICATION):
+        raise CorrectionsError("unsupported_publication_cohort_policy")
     if (type(snapshot) is not dict or type(snapshot.get("version")) is not int or snapshot["version"] != 1
             or type(snapshot.get("watermark")) is not str or not snapshot["watermark"].isdigit()
             or any(type(snapshot.get(k)) is not list for k in
@@ -307,11 +312,14 @@ def _select_publication_cohort(snapshot, as_of):
         proof, source, completed = min(publications, key=lambda p:
             (instant(p[0]["recorded_utc"]), p[0]["attestation_id"]))
         contracts[(receipt["contract_id"], receipt["event_id"])].append((rid, proof, source, completed))
-    selected = []
-    for _, vintages in sorted(contracts.items()):
-        selected.append(min(vintages, key=lambda v:
-            (instant(receipts[v[0]]["forecast_created_utc"]),
-             instant(receipts[v[0]]["first_seen_utc"]), v[0])))
+    def vintage_order(vintage):
+        rid, proof, _, completed = vintage
+        if cohort_policy == FIRST_DURABLE_PUBLICATION:
+            return instant(proof["recorded_utc"]), instant(completed), proof["attestation_id"], rid
+        # Preserve the exact training population for previously sealed fits.
+        return instant(receipts[rid]["forecast_created_utc"]), instant(receipts[rid]["first_seen_utc"]), rid
+
+    selected = [min(vintages, key=vintage_order) for _, vintages in sorted(contracts.items())]
     return receipts, selected
 
 

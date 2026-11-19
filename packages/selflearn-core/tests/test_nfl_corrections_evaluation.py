@@ -25,7 +25,8 @@ def evaluation_policy(**changes):
     return evaluation.seal_evaluation_policy(**{**settings, **changes})
 
 
-def test_registration_reserves_one_candidate_using_the_database_clock(tmp_path, monkeypatch):
+@pytest.mark.parametrize("legacy", [False, True])
+def test_registration_reserves_one_candidate_using_the_database_clock(tmp_path, monkeypatch, legacy):
     fit_time = "2090-01-01T00:00:00Z"
     start = "2090-01-02T00:00:00Z"
     end = "2090-01-20T00:00:00Z"
@@ -39,7 +40,16 @@ def test_registration_reserves_one_candidate_using_the_database_clock(tmp_path, 
         )
         monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: fit_time)
         options = {"start_utc": start, "end_utc": end}
+        original = None
+        if legacy:
+            original = journal.commit_correction_registration(
+                {**options, "artifact_id": artifact["artifact_id"], "fitted_at": fit_time, "policy": policy},
+            )
         claim = evaluation.register_correction_holdout(journal, artifact, **options, policy=policy)
+        if legacy:
+            assert claim == original
+        else:
+            assert claim["plan"]["cohort_policy"] == evaluation.FIRST_DURABLE_PUBLICATION
         rid = claim["registration_id"]
         assert claim["recorded_utc"] == claim["durable_observed_utc"] == fit_time
         assert journal.get_correction_registration(rid) == claim
@@ -61,11 +71,13 @@ def test_registration_reserves_one_candidate_using_the_database_clock(tmp_path, 
             evaluation.freeze_correction_holdout(journal, artifact, **options,
                                                  registration_id=rid, policy=other_policy)
         holdout = evaluation.freeze_correction_holdout(journal, artifact, **options, registration_id=rid)
+        assert holdout["version"] == (1 if legacy else 2)
         with pytest.raises(CorrectionsError, match="registered_evaluation_cutoff_not_reached"):
             evaluation.evaluate_correction_holdout(journal, artifact, holdout, as_of_utc=score_at)
     with NFLPublicationJournal(path, read_only=True) as journal:
         monkeypatch.setattr(journal, "correction_evaluation_utc", lambda: score_at)
         report = evaluation.evaluate_correction_holdout(journal, artifact, holdout, as_of_utc=score_at)
+        assert report["evidence"].get("cohort_policy") == (None if legacy else evaluation.FIRST_DURABLE_PUBLICATION)
         assert report["evidence"]["prospective_registration_verified"] is True
         assert report["evidence"]["registration_source"] == "local_sqlite_journal"
         assert report["evidence"]["status"] == "held"

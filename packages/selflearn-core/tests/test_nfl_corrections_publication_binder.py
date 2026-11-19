@@ -11,6 +11,7 @@ from publication_fit_fixture import FIXTURES, PUBLICATION_TIME, observed_revisio
 from selflearn_core.adapters.nfl import adapt_prospective
 from selflearn_core.adapters.nfl_generation import MANIFEST_KEYS
 from selflearn_core.adapters.nfl_corrections_fit import (
+    FIRST_DURABLE_PUBLICATION, _select_publication_cohort,
     authorize_corrections_artifact, fit_corrections_from_journal,
 )
 from selflearn_core.adapters.nfl_corrections_policy import CorrectionsError, TRUSTED_ARTIFACT_SOURCE
@@ -402,6 +403,23 @@ def refresh_vintage(original, seconds):
 def append_vintage(snapshot, vintage):
     for key, rows in vintage.items():
         snapshot[key].extend(rows)
+
+
+def test_delayed_older_forecast_cannot_displace_first_durable_publication(snapshot):
+    newest = refresh_vintage(snapshot, 60)
+    older_proof = snapshot["publication_attestations"][0]
+    older_proof["observation"].update(
+        observed_started_utc="2026-09-01T14:09:00Z", observed_completed_utc="2026-09-01T14:09:01Z",
+    )
+    older_proof["recorded_utc"] = "2026-09-01T14:09:02Z"
+    reseal(older_proof)
+    append_vintage(snapshot, newest)
+    expected = {r["receipt_id"] for r in newest["receipts"]}
+    for cutoff in ("2026-09-01T14:05:00Z", CUTOFF):
+        _, wanted = _select_publication_cohort(snapshot, cutoff, cohort_policy=FIRST_DURABLE_PUBLICATION)
+        assert {rid for rid, *_ in wanted} == expected
+    _, legacy = _select_publication_cohort(snapshot, CUTOFF)
+    assert {rid for rid, *_ in legacy} == {r["receipt_id"] for r in snapshot["receipts"]} - expected
 
 
 def test_refresh_vintages_cannot_satisfy_sample_floors(snapshot):
