@@ -272,18 +272,24 @@ class NFLPublicationJournal(ReceiptJournal):
         """
         with self._db:
             self._db.execute("BEGIN")
-            watermark = str(sum(self._db.execute("SELECT count(*) FROM " + table).fetchone()[0]
-                for table in ("receipt_journal_receipts", "receipt_journal_objects", "receipt_journal_generation_commits",
-                              "receipt_journal_revisions", "receipt_journal_publication_attestations")))
-            receipts = self.receipts()
-            records = self.generations()
-            revisions = [row for receipt in receipts for row in self.resolution_history(receipt["receipt_id"])]
-            attested = [row[0] for row in self._db.execute(
-                "SELECT object_id FROM receipt_journal_publication_attestations ORDER BY object_id")]
-            publications = [self.get_publication_attestation(oid) for oid in attested]
-            return {"version": 1, "watermark": watermark, "receipts": receipts,
-                    "generation_records": records, "revisions": revisions,
-                    "publication_attestations": publications}
+            return self._publication_fit_snapshot()
+
+    def _publication_watermark(self):
+        return sum(self._db.execute("SELECT count(*) FROM " + table).fetchone()[0]
+                   for table in ("receipt_journal_receipts", "receipt_journal_objects", "receipt_journal_generation_commits",
+                                 "receipt_journal_revisions", "receipt_journal_publication_attestations"))
+
+    def _publication_fit_snapshot(self):
+        watermark = str(self._publication_watermark())
+        receipts = self.receipts()
+        records = self.generations()
+        revisions = [row for receipt in receipts for row in self.resolution_history(receipt["receipt_id"])]
+        attested = [row[0] for row in self._db.execute(
+            "SELECT object_id FROM receipt_journal_publication_attestations ORDER BY object_id")]
+        publications = [self.get_publication_attestation(oid) for oid in attested]
+        return {"version": 1, "watermark": watermark, "receipts": receipts,
+                "generation_records": records, "revisions": revisions,
+                "publication_attestations": publications}
 
 
 class NFLSupabasePublicationJournal(SupabaseReceiptJournal):

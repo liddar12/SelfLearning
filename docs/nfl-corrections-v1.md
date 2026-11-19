@@ -159,6 +159,25 @@ publication and outcome receipts. Missing, changed or late evidence holds
 the decision and remains visible in the denominator. Hosted collection
 and approval to serve a correction require separate evidence.
 
+### Grade a retained local forecast
+
+Capture official scoreboard, weekly stats, snaps and roster evidence with
+the NFL2026 producer and retain the original manifest and raw objects. The
+default command verifies and binds a capture without modifying the journal.
+
+```sh
+python3 tools/apply_local_nfl_outcomes.py --journal "$NFL_JOURNAL" \
+  --nfl-checkout "$NFL_CHECKOUT" --nfl-commit "$NFL_COMMIT" \
+  --capture "$OUTCOME_CAPTURE"
+```
+
+Add `--apply` to append observations and outcome revisions to that local
+SQLite journal. A change to the journal after binding refuses the whole
+write. Rerun the command to bind against the new membership. An exact
+retry creates no duplicate grades, and a newer verified correction
+extends the original revision chain. Games without a verified final and
+complete scores remain unresolved.
+
 ## Method
 
 Per-**segment** additive bias with empirical-Bayes shrinkage toward zero.
