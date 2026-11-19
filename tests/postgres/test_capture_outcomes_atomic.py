@@ -8,6 +8,7 @@ missing local dependencies fail rather than becoming skipped acceptance.
 from __future__ import annotations
 
 import base64
+from collections import Counter
 import copy
 import io
 import json
@@ -23,7 +24,6 @@ from selflearn_core.adapters.nfl_capture_job import verify_and_commit_capture
 from selflearn_core.adapters.nfl_observed_journal import NFLObservedJournal
 from selflearn_core.evidence_chunks import chunk_stream, encode_chunk_request, verify_chunk
 from selflearn_core.scoring.binary_receipts import score_binary_receipts
-from test_adapter_integration import PostgresBridge
 
 DELIVERED = "2026-10-10T10:00:00Z"
 
@@ -53,42 +53,60 @@ class FakePrivateChunks:
             yield raw
 
 
-@pytest.fixture(scope="module")
-def raw_producer():
+def produce_raw_capture(*, roster_bound):
     checkout = os.environ.get("NFL2026_CHECKOUT")
     if not checkout or not (Path(checkout) / "tests/fixtures/week6_outcomes.py").is_file():
         raise RuntimeError("Set NFL2026_CHECKOUT to the reviewed local real NFL fixture checkout")
     # No producer-normalized outcome is returned or accepted. This calls only
     # the actual original forecast producer and raw capture fixture helpers.
     script = r'''
-import base64, copy, importlib.util, json, tempfile
+import base64, copy, importlib.util, json, sys, tempfile
 from pathlib import Path
 spec=importlib.util.spec_from_file_location('fixture',Path('tests/fixtures/week6_outcomes.py'))
 f=importlib.util.module_from_spec(spec);spec.loader.exec_module(f)
+bound = sys.argv[1] == 'bound'
+generate = f.bound_generation if bound else f.generation
+bundle = f.bound_bundle if bound else f.bundle
+other = (
+  {'stats_rows':[f.bound_stats_row('5',player_index=2,player_display_name='Other Receiver')],
+   'snap_rows':[f.bound_snap_row(player_index=2,player='Other Receiver'),
+                f.bound_snap_row(player_index=1,player='Away Starter',team='LAR',opponent='SEA')]}
+  if bound else
+  {'stats_rows':[f.stats_row('5',player_display_name='Other Receiver')],
+   'snap_rows':[f.snap_row(player='Other Receiver')]})
 with tempfile.TemporaryDirectory() as directory:
  root=Path(directory)
- f.generation(root)
- f.generation(root,'2026-09-01T13:00:00Z')
+ generate(root)
+ generate(root,'2026-09-01T13:00:00Z')
  initial=copy.deepcopy(f.plan(root))
- extra,_,_=f.generation(root,'2026-09-01T14:00:00Z')
+ extra,_,_=generate(root,'2026-09-01T14:00:00Z')
  complete=f.plan(root)
  captures=[
-  f.bundle(value='80',observed='2026-09-03T12:00:00Z'),
-  f.bundle(value='80',observed='2026-09-04T12:00:00Z'),
-  f.bundle(value='30',observed='2026-09-05T12:00:00Z'),
-  f.bundle(value='80',observed='2026-09-06T12:00:00Z'),
-  f.bundle(stats_rows=[f.stats_row('5',player_display_name='Other Receiver')],
-    snap_rows=[f.snap_row(player='Other Receiver')],observed='2026-09-07T12:00:00Z')]
+  bundle(value='80',observed='2026-09-03T12:00:00Z'),
+  bundle(value='80',observed='2026-09-04T12:00:00Z'),
+  bundle(value='30',observed='2026-09-05T12:00:00Z'),
+  bundle(value='80',observed='2026-09-06T12:00:00Z'),
+  bundle(**other,observed='2026-09-07T12:00:00Z')]
  out=[]
  for bundle in captures:
   out.append({'manifest':bundle['manifest'],'observations':bundle['observations'],
     'raw':{key:base64.b64encode(raw).decode() for key,raw in bundle['raw_objects'].items()}})
  print(json.dumps({'initial':initial,'complete':complete,'extra':extra,'captures':out}))
 '''
-    run = subprocess.run([sys.executable, "-c", script], cwd=checkout, capture_output=True, text=True, timeout=30)
+    run = subprocess.run([sys.executable, "-c", script, "bound" if roster_bound else "legacy"], cwd=checkout, capture_output=True, text=True, timeout=30)
     if run.returncode:
         raise RuntimeError("Actual local NFL raw capture/forecast fixture did not complete")
     return json.loads(run.stdout)
+
+
+@pytest.fixture(scope="module")
+def raw_producer():
+    return produce_raw_capture(roster_bound=False)
+
+
+@pytest.fixture(scope="module")
+def roster_producer():
+    return produce_raw_capture(roster_bound=True)
 
 
 def port(bridge):
@@ -111,12 +129,14 @@ def admit(journal, source_objects, documents):
 
 
 @pytest.fixture
-def journals(monkeypatch, raw_producer):
-    monkeypatch.setenv("SELFLEARN_OBSERVED_JOURNAL_TEST", "1")
-    bridge = PostgresBridge()
+def journals(monkeypatch, roster_producer):
+    from test_capture_application_adapter import ApplicationBridge
+
+    monkeypatch.setenv("SELFLEARN_ROSTER_CAPTURE_TEST", "1")
+    bridge = ApplicationBridge()
     try:
         journal, other = port(bridge), port(bridge)
-        plan = raw_producer["initial"]
+        plan = roster_producer["initial"]
         documents = [item["request"]["payload"] for item in plan["generations"]]
         admit(journal, plan["source_objects"], documents)
         assert len(journal.receipts()) == 4
@@ -138,16 +158,26 @@ def deliver(journal, capture):
     return verify_and_commit_capture(journal, envelope, storage.read, clock=lambda: DELIVERED), storage
 
 
-def test_actual_raw_capture_cycles_commit_both_streams_and_preserve_original_forecasts(journals, raw_producer):
+def assert_integrity_reads(capture, storage, attempts):
+    # The scoreboard is read once per attempt. The independent label binder
+    # rereads statistics, participation and the complete roster crosswalk.
+    expected = Counter()
+    for source in capture["manifest"]["sources"]:
+        raw_id = capture["observations"][source["observation_id"]]["raw_sha256"]
+        expected[raw_id] += attempts * (1 if source["profile"] == "espn_scoreboard_v1" else 2)
+    assert Counter(storage.calls) == expected
+
+
+def test_actual_raw_capture_cycles_commit_both_streams_and_preserve_original_forecasts(journals, roster_producer):
     journal, _, _ = journals
     receipts = copy.deepcopy(journal.receipts())
-    initial, unchanged, correction, restored, void = raw_producer["captures"]
+    initial, unchanged, correction, restored, void = roster_producer["captures"]
     first, storage = deliver(journal, initial)
     assert first["status"] == "observations_persisted"
     assert first["durable_ack"] is False and first["source_authentication"] == "not_performed"
     assert first["persistence"]["commit"]["added_observations"] == first["persistence"]["commit"]["added_revisions"] == 4
     assert len(first["staged"]["groups"]) == 1 and len(first["staged"]["groups"][0]["receipt_ids"]) == 4
-    assert len(storage.calls) == 5, "scoreboard once plus stats/snaps independently rehashed"
+    assert_integrity_reads(initial, storage, 1)
     original = journal.read_observed_snapshot()
     pinned = original["watermark"]
     stable, _ = deliver(journal, unchanged)
@@ -177,9 +207,9 @@ def test_actual_raw_capture_cycles_commit_both_streams_and_preserve_original_for
     assert historical["revisions"] == original["revisions"]
 
 
-def test_true_global_cas_conflict_rebinds_new_accepted_vintage_before_any_ack(journals, raw_producer):
+def test_true_global_cas_conflict_rebinds_new_accepted_vintage_before_any_ack(journals, roster_producer):
     journal, competing, _ = journals
-    envelope, storage = stage(raw_producer["captures"][0])
+    envelope, storage = stage(roster_producer["captures"][0])
     before = journal.read_observed_snapshot()
     original_commit, attempts = journal.commit_observed, []
 
@@ -189,7 +219,7 @@ def test_true_global_cas_conflict_rebinds_new_accepted_vintage_before_any_ack(jo
         if len(attempts) == 1:
             # Separate adapter, same actual PostgreSQL authority. This changes
             # real accepted membership, not a fabricated JournalConflict.
-            admit(competing, raw_producer["complete"]["source_objects"], [raw_producer["extra"]])
+            admit(competing, roster_producer["complete"]["source_objects"], [roster_producer["extra"]])
         return original_commit(observations, proposals, watermark=watermark)
 
     journal.commit_observed = race
@@ -201,7 +231,7 @@ def test_true_global_cas_conflict_rebinds_new_accepted_vintage_before_any_ack(jo
     assert result["staged"]["membership_watermark"] == attempts[1]["watermark"]
     assert len(result["staged"]["groups"][0]["receipt_ids"]) == 6
     assert result["persistence"]["commit"]["added_observations"] == result["persistence"]["commit"]["added_revisions"] == 6
-    assert len(storage.calls) == 10, "CAS retry must perform fresh raw integrity AND raw-label rereads"
+    assert_integrity_reads(roster_producer["captures"][0], storage, 2)
     current = journal.read_observed_snapshot()
     assert len(current["receipts"]) == len(current["observations"]) == len(current["revisions"]) == 6
     assert sorted(row["receipt_id"] for row in current["receipts"]) == attempts[1]["receipt_ids"]
@@ -209,9 +239,9 @@ def test_true_global_cas_conflict_rebinds_new_accepted_vintage_before_any_ack(jo
     assert len(pinned["receipts"]) == 4 and pinned["observations"] == [] and pinned["revisions"] == []
 
 
-def test_tampered_staged_chunk_never_reaches_an_observation_commit(journals, raw_producer):
+def test_tampered_staged_chunk_never_reaches_an_observation_commit(journals, roster_producer):
     journal, _, bridge = journals
-    envelope, storage = stage(raw_producer["captures"][0])
+    envelope, storage = stage(roster_producer["captures"][0])
     key = next(iter(storage.chunks))
     storage.chunks[key]["data"] = "x" + storage.chunks[key]["data"][1:]
     before = journal.read_observed_snapshot()

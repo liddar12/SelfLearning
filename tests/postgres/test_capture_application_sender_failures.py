@@ -53,7 +53,7 @@ for vintage in range(2):
  pool=f.cards._fixture_pool(created);pool.update(week=6,base_model_version='fixture-base')
  prototype=copy.deepcopy(pool['players'][0]);players=[]
  for index in range(3):
-  player=copy.deepcopy(prototype);player.update(player=f'Receiver {index}',team='SEA',gsis_id=f'espn-{index}')
+  player=copy.deepcopy(prototype);player.update(player=f'Receiver {index}',team='SEA',gsis_id=f.player_ids(index)[0])
   for rung in player['rungs']:
    z=(player['mu']-rung['line'])/30;coef={'a':math.log(rung['model_prob']/(1-rung['model_prob'])),'b':0,'c':0}
    features={'market':player['market'],'line':rung['line'],'mu':player['mu'],'sd':30,'z':z,
@@ -69,8 +69,11 @@ for vintage in range(2):
   'status':'STATUS_SCHEDULED','kickoff_utc':f.KICKOFF}]}
  recorded=(f.lr.instant(created)+dt.timedelta(minutes=1)).isoformat().replace('+00:00','Z')
  f.learning_journal.record(pool,schedule,None,[],recorded,str(journal))
-bundle=f.bundle(stats_rows=[f.stats_row('80',player_display_name=f'Receiver {i}') for i in range(3)],
- snap_rows=[f.snap_row(player=f'Receiver {i}') for i in range(3)])
+bundle=f.bound_bundle(
+ stats_rows=[f.bound_stats_row('80',player_index=i,player_display_name=f'Receiver {i}') for i in range(3)],
+ snap_rows=[f.bound_snap_row(player_index=i,player=f'Receiver {i}') for i in range(3)] +
+           [f.bound_snap_row(player_index=3,player='Away Starter',team='LAR',opponent='SEA')],
+ roster_rows=[f.bound_roster_row(i) for i in range(4)])
 path=f.capture.save_capture(bundle,root/'raw-authority')
 print(json.dumps({'journal':f.plan(journal),'sender':sender.plan(path,sender.ORIGIN)}))
 '''
@@ -99,7 +102,8 @@ class SmallBatchReceiver(CaptureApplicationReceiver):
 
 
 @contextmanager
-def real_context(produced):
+def real_context(produced, monkeypatch):
+    monkeypatch.setenv("SELFLEARN_ROSTER_CAPTURE_TEST", "1")
     bridge = ApplicationAPITransport()
     try:
         journal = NFLCaptureApplicationJournal("https://offline.supabase.invalid",
@@ -141,9 +145,9 @@ class InProcessTransport:
 
 
 def test_actual_lost_middle_batch_stays_pending_then_recovers_without_duplicate_or_partial_success(
-        bounded_producer, tmp_path):
+        bounded_producer, tmp_path, monkeypatch):
     produced, sender = bounded_producer
-    with real_context(produced) as (journal, storage, client):
+    with real_context(produced, monkeypatch) as (journal, storage, client):
         original = copy.deepcopy(journal.receipts())
         assert len(original) == 12
         transport = InProcessTransport(client)
@@ -174,14 +178,14 @@ def test_actual_lost_middle_batch_stays_pending_then_recovers_without_duplicate_
         assert len(posts) == len(set(posts)) == 3, "Lost original must not send another batch/duplicate command"
         durable = journal.read_observed_snapshot()
         assert durable["receipts"] == original and len(durable["observations"]) == len(durable["revisions"]) == 12
-        assert len(storage.objects) == 3
+        assert len(storage.objects) == 4
 
 
 @pytest.mark.parametrize("fault", ["omit_complete_group", "reseal_wrong_terminal_count"])
 def test_actual_sender_refuses_partial_or_resealed_wrong_report_and_recovers_true_original(
-        bounded_producer, tmp_path, fault):
+        bounded_producer, tmp_path, fault, monkeypatch):
     produced, sender = bounded_producer
-    with real_context(produced) as (journal, storage, client):
+    with real_context(produced, monkeypatch) as (journal, storage, client):
         transport = InProcessTransport(client); outbox = tmp_path / "separate-outbox"
         final = sender.send(produced["sender"], outbox, OUTCOME, transport=transport,
             attempts=1, max_steps=3, sleep=lambda _: None)

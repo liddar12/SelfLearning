@@ -1,5 +1,6 @@
 // Fixed-allowlist TEST ONLY PostgreSQL-WASM pipe; no sockets/admin/SQL input.
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
 import { openCaptureApplicationDatabase } from './capture_application_harness.mjs';
 import { asRole } from './harness.mjs';
@@ -25,6 +26,10 @@ const db=await openCaptureApplicationDatabase();
 const lines=createInterface({input:process.stdin,crlfDelay:Infinity});
 const write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 try {
+  if (process.env.SELFLEARN_ROSTER_CAPTURE_TEST === '1') {
+    const rosterMigration = new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql', import.meta.url);
+    await db.exec(await readFile(rosterMigration, 'utf8'));
+  }
   write({ready:true,engine:'postgresql-wasm',version:(await db.query('SELECT version() AS value')).rows[0].value});
   for await(const line of lines) {
     let request;
