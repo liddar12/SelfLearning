@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections import defaultdict
 import copy
 import csv
+from dataclasses import dataclass
 import hashlib
 import io
 import math
@@ -28,10 +29,12 @@ from ..probability_receipts import fingerprint, instant, validate_probability_re
 
 POLICY = "nfl.capture_labels_v1"
 JOIN_POLICY = "stable_player_ids_exact_fixture_v2"
+GAME_SCOPE_POLICY = "nfl.capture_game_scope_v1"
 MAX_PROVENANCE_BYTES = 64 * 1024 * 1024
 _HASH = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _SEQ = re.compile(r"(?:0|[1-9][0-9]{0,18})\Z")
 _EVENT = re.compile(r"nfl:(\d{4}):game:(.+)\Z")
+_GAME_ID = re.compile(r"[A-Za-z0-9_-]{1,200}\Z")
 _REASON = re.compile(r"[a-z][a-z0-9_]{0,99}\Z")
 _MARKETS = {"qb_pass_yds": ("QB", "passing_yards"), "rb_rush_yds": ("RB", "rushing_yards"),
             "wr_rec_yds": ("WR", "receiving_yards")}
@@ -51,6 +54,25 @@ class CaptureBindingError(ValueError):
 
 def _fail(code):
     raise CaptureBindingError(code)
+
+
+@dataclass(frozen=True)
+class CaptureGameScope:
+    """Exact event selected by trusted orchestration, never a receipt list."""
+
+    season: int
+    week: int
+    game_id: str
+
+    def __post_init__(self):
+        if (type(self.season) is not int or not 2000 <= self.season <= 2100
+                or type(self.week) is not int or not 1 <= self.week <= 18
+                or type(self.game_id) is not str or not _GAME_ID.fullmatch(self.game_id)):
+            _fail("invalid_capture_game_scope")
+
+    def document(self):
+        return {"policy": GAME_SCOPE_POLICY, "season": self.season, "week": self.week,
+                "game_id": self.game_id}
 
 
 def _same(left, right):
@@ -144,7 +166,7 @@ def _ack(record, receipt_map):
     return indexed, accepted
 
 
-def _frozen_entries(journal, season, weeks):
+def _frozen_entries(journal, season, weeks, game_scope=None):
     snapshot = copy.deepcopy(journal.read_observed_snapshot())
     if (type(snapshot) is not dict or type(snapshot.get("version")) is not int or snapshot["version"] != 1
             or type(snapshot.get("watermark")) is not str or not _SEQ.fullmatch(snapshot["watermark"])
@@ -160,7 +182,7 @@ def _frozen_entries(journal, season, weeks):
         if receipt["domain"] == "nfl" and receipt["task"] == "nfl.parlay_leg":
             if event is None:
                 _fail("unlocatable_nfl_membership")
-            if int(event[1]) == season:
+            if int(event[1]) == season and (game_scope is None or event[2] == game_scope.game_id):
                 if receipt["source_receipt_id"] in original_ids:
                     _fail("duplicate_persisted_source_receipt")
                 original_ids.add(receipt["source_receipt_id"])
@@ -209,6 +231,8 @@ def _frozen_entries(journal, season, weeks):
             if (type(doc.get("season")) is not int or doc["season"] != season
                     or type(doc.get("week")) is not int or doc["week"] != source["week"]):
                 _fail("unlocatable_generation_period")
+            if game_scope is not None and source["week"] != game_scope.week:
+                _fail("capture_game_scope_week_mismatch")
             if source["week"] not in weeks:
                 continue
             scope = _scope(source)
@@ -619,13 +643,40 @@ def bind_capture_labels(journal, capture_envelope, raw_chunks, *, max_total_byte
     Immutable source getters and the entire cohort are frozen before raw reads.
     CAS orchestration MUST call this again on every changed journal watermark.
     """
+    return _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes)
+
+
+def bind_game_capture_labels(journal, capture_envelope, raw_chunks, game_scope, *,
+                             max_total_bytes=capture.DEFAULT_MAX_TOTAL_BYTES):
+    """Stage every eligible member of one final event from trusted journal authority.
+
+    The scope cannot select players, markets, lines, or vintages. This local
+    operation does not create an application, persist outcomes, or adopt learning.
+    """
+    if type(game_scope) is not CaptureGameScope:
+        _fail("invalid_capture_game_scope")
+    return _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes, game_scope)
+
+
+def _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes, game_scope=None):
     if (type(max_total_bytes) is not int or not 0 <= max_total_bytes <= capture.DEFAULT_MAX_TOTAL_BYTES
             or not callable(raw_chunks)):
         _fail("invalid_capture_limit_or_source")
     envelope = capture._snapshot(capture_envelope)
     manifest, sources, _ = capture._preflight(envelope, max_total_bytes)
-    watermark, entries = _frozen_entries(journal, manifest["season"], set(manifest["weeks"]))
+    weeks = set(manifest["weeks"])
+    if game_scope is None:
+        # Whole-capture callers historically freeze the journal before raw I/O.
+        watermark, entries = _frozen_entries(journal, manifest["season"], weeks)
+    elif game_scope.season != manifest["season"] or game_scope.week not in weeks:
+        _fail("capture_game_scope_outside_envelope")
     integrity = capture.verify_capture_envelope(envelope, raw_chunks, max_total_bytes=max_total_bytes)
+    if game_scope is not None:
+        fixtures = [row for row in integrity["scoreboard_rows"] if row["game_id"] == game_scope.game_id]
+        if (len(fixtures) != 1 or fixtures[0]["season"] != game_scope.season
+                or fixtures[0]["week"] != game_scope.week or fixtures[0]["final"] is not True):
+            _fail("capture_game_scope_requires_exact_final")
+        watermark, entries = _frozen_entries(journal, game_scope.season, {game_scope.week}, game_scope)
     observations = {observation["profile"]: {"observation_id": oid, **observation} for oid, observation in sources
                     if observation["profile"] in (capture.STATS_PROFILE, capture.SNAPS_PROFILE, capture.ROSTERS_PROFILE)}
     grouped = defaultdict(list)
@@ -667,9 +718,15 @@ def bind_capture_labels(journal, capture_envelope, raw_chunks, *, max_total_byte
                 games[game["game_id"]] = game
         groups.append({"group_id": fingerprint(list(scope)), **{key: value for key, value in membership.items() if key != "binding_policy"},
                        "membership_id": fingerprint(membership), "status": "withheld" if reasons else "staged", "reason_codes": sorted(reasons)})
+    membership_identity = {"binding_policy": POLICY, "groups": [group["membership_id"] for group in groups]}
+    scope_fields = {}
+    if game_scope is not None:
+        scope = game_scope.document()
+        scope_fields = {"game_scope": scope, "game_scope_id": fingerprint(scope)}
+        membership_identity["game_scope_id"] = scope_fields["game_scope_id"]
     return {"version": 1, "kind": "nfl.capture_labels.v1", "binding_policy": POLICY, "capture_id": manifest["capture_id"],
         "season": manifest["season"], "weeks": manifest["weeks"], "membership_watermark": watermark,
-        "membership_id": fingerprint({"binding_policy": POLICY, "groups": [group["membership_id"] for group in groups]}),
+        **scope_fields, "membership_id": fingerprint(membership_identity),
         "groups": groups, "source_receipts": [entries[sid]["source"] for sid in sorted(entries)],
         "observed_legs": sorted(legs, key=lambda leg: leg["source_receipt_id"]), "game_observations": games,
         "rejections": sorted(rejections, key=lambda row: (row["source_receipt_id"], row["reason"])), "capture_integrity": integrity,
