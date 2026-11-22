@@ -166,6 +166,46 @@ def _ack(record, receipt_map):
     return indexed, accepted
 
 
+def _index_frozen_generation(doc, indexed, season, week, recorded_utc, get_object):
+    """Validate and index immutable source objects once for this generation."""
+    if type(doc.get("version")) is not int or doc["version"] != 1 or len(doc.get("generations", [])) != 1:
+        _fail("invalid_generation_document")
+    generation = doc["generations"][0]
+    if (type(generation) is not dict or type(generation.get("version")) is not int or generation["version"] != 1
+            or type(generation.get("season")) is not int or generation["season"] != season
+            or type(generation.get("week")) is not int or generation["week"] != week
+            or generation.get("publication_status") != "generated_unverified"
+            or generation.get("population") != "eligible_pool_prop_rungs_before_display_dedupe"
+            or generation.get("generation_id") != fingerprint({k: generation[k] for k in _MANIFEST_KEYS})
+            or generation.get("receipt_ids") != sorted(indexed)):
+        _fail("invalid_generation_manifest")
+    refs = generation["source_snapshots"]
+    if type(refs) is not dict or set(refs) != {"leg_pool", "schedule", "parlay_calibration"}:
+        _fail("invalid_generation_source_references")
+    payloads = {name: get_object(value, recorded_utc) for name, value in refs.items()}
+    pool, schedule = payloads["leg_pool"], payloads["schedule"]
+    if (type(pool) is not dict or type(pool.get("players")) is not list or type(schedule) is not dict
+            or type(schedule.get("games")) is not list or pool.get("season") != season
+            or pool.get("week") != week or schedule.get("season", season) != season
+            or pool.get("generated_utc") != generation.get("pool_generated_utc")):
+        _fail("source_generation_period_mismatch")
+    candidates = defaultdict(list)
+    for player in pool["players"]:
+        if type(player) is not dict:
+            continue
+        for rung in player.get("rungs", []):
+            if type(rung) is not dict or type(rung.get("learning_receipt")) is not dict:
+                continue
+            source_id = rung["learning_receipt"].get("receipt_id")
+            if type(source_id) is str:
+                candidates[source_id].append((player, rung))
+    games = defaultdict(list)
+    for game in schedule["games"]:
+        if type(game) is dict:
+            games[str(game.get("game_id"))].append(game)
+    return generation, refs, pool, candidates, games
+
+
 def _frozen_entries(journal, season, weeks, game_scope=None):
     snapshot = copy.deepcopy(journal.read_observed_snapshot())
     if (type(snapshot) is not dict or type(snapshot.get("version")) is not int or snapshot["version"] != 1
@@ -215,6 +255,7 @@ def _frozen_entries(journal, season, weeks, game_scope=None):
         indexed, accepted = _ack(record, receipt_map)
         relevant = {sid: stored for sid, stored in accepted.items() if stored["receipt_id"] in scoped_receipts}
         seen.update(stored["receipt_id"] for stored in relevant.values())
+        context = None
         for sid, stored in relevant.items():
             row = indexed[sid]
             source = row.get("learning_receipt")
@@ -239,30 +280,11 @@ def _frozen_entries(journal, season, weeks, game_scope=None):
             entry = {"source": source, "stored": stored, "scope": scope, "identity": None, "game": None,
                      "pool_snapshot_ids": [], "generation_ids": [], "generation_object_ids": [oid], "reasons": []}
             try:
-                if type(doc.get("version")) is not int or doc["version"] != 1 or len(doc.get("generations", [])) != 1:
-                    _fail("invalid_generation_document")
-                generation = doc["generations"][0]
-                if (type(generation) is not dict or type(generation.get("version")) is not int or generation["version"] != 1
-                        or type(generation.get("season")) is not int or generation["season"] != season
-                        or type(generation.get("week")) is not int or generation["week"] != source["week"]
-                        or generation.get("publication_status") != "generated_unverified"
-                        or generation.get("population") != "eligible_pool_prop_rungs_before_display_dedupe"
-                        or generation.get("generation_id") != fingerprint({k: generation[k] for k in _MANIFEST_KEYS})
-                        or generation.get("receipt_ids") != sorted(indexed)):
-                    _fail("invalid_generation_manifest")
-                refs = generation["source_snapshots"]
-                if type(refs) is not dict or set(refs) != {"leg_pool", "schedule", "parlay_calibration"}:
-                    _fail("invalid_generation_source_references")
-                payloads = {name: get_object(value, record["recorded_utc"]) for name, value in refs.items()}
-                pool, schedule = payloads["leg_pool"], payloads["schedule"]
-                if (type(pool) is not dict or type(pool.get("players")) is not list or type(schedule) is not dict
-                        or type(schedule.get("games")) is not list or pool.get("season") != season
-                        or pool.get("week") != source["week"] or schedule.get("season", season) != season
-                        or pool.get("generated_utc") != generation.get("pool_generated_utc")):
-                    _fail("source_generation_period_mismatch")
-                candidates = [(player, rung) for player in pool["players"] if type(player) is dict
-                    for rung in player.get("rungs", []) if type(rung) is dict and type(rung.get("learning_receipt")) is dict
-                    and rung["learning_receipt"].get("receipt_id") == sid]
+                if context is None:
+                    context = _index_frozen_generation(doc, indexed, season, source["week"],
+                                                       record["recorded_utc"], get_object)
+                generation, refs, pool, candidates_by_id, games_by_id = context
+                candidates = candidates_by_id.get(sid, [])
                 if len(candidates) != 1:
                     _fail("missing_or_ambiguous_frozen_player")
                 player, rung = candidates[0]
@@ -284,7 +306,7 @@ def _frozen_entries(journal, season, weeks, game_scope=None):
                 position = _MARKETS[source["market"]][0]
                 if player.get("position") != position or not _name(player.get("player")):
                     _fail("invalid_frozen_player_identity")
-                games = [game for game in schedule["games"] if type(game) is dict and str(game.get("game_id")) == source["game_id"]]
+                games = games_by_id.get(source["game_id"], [])
                 if len(games) != 1:
                     _fail("missing_or_ambiguous_frozen_game")
                 game, team = games[0], capture._team(player.get("team"))

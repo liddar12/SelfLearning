@@ -265,6 +265,23 @@ class CaptureLabelBindingTests(unittest.TestCase):
             B.bind_game_capture_labels(journal, envelope, lambda key: E.stream(objects[key]), scope)
         self.assertEqual(journal.reads, 1)
 
+    def test_frozen_generation_indexes_once_and_preserves_duplicate_rung_refusal(self):
+        journal = journal_fixture(vintages=3, lines=(19.5, 39.5, 59.5, 79.5))
+        envelope, objects = good_capture()
+        with mock.patch.object(B, "_index_frozen_generation", wraps=B._index_frozen_generation) as index:
+            output = bind(journal, envelope, objects)
+        self.assertEqual(index.call_count, 3)
+        self.assertEqual(len(output["observed_legs"]), 12)
+
+        record = journal.snapshot["generation_records"][0]
+        pool_id = record["payload"]["generations"][0]["source_snapshots"]["leg_pool"]
+        rungs = journal.objects[pool_id]["payload"]["players"][0]["rungs"]
+        change_frozen_player(journal, 0, rungs=[*rungs, rungs[0]])
+        withheld = bind(journal, envelope, objects)
+        self.assertEqual(withheld["observed_legs"], [])
+        self.assertEqual(len(withheld["source_receipts"]), 12)
+        self.assertEqual(withheld["groups"][0]["reason_codes"], ["missing_or_ambiguous_frozen_player"])
+
     def test_legacy_three_source_capture_is_valid_and_cannot_label(self):
         envelope, objects = E.fixture(stats=E.STATS.replace(b",,,NA", b",,,80"))
         self.assertEqual(len(E.verify(envelope, objects)["source_audits"]), 3)
