@@ -36,7 +36,10 @@ class _NoRedirect(HTTPRedirectHandler):
 
 
 _MAX_RESPONSE_BYTES = 8 * 1024 * 1024
-_SCOPED_MEMBERSHIP_PREPARE = "/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3"
+_SCOPED_VERIFICATION_RPCS = frozenset({
+    "/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3",
+    "/rest/v1/rpc/selflearn_journal_register_capture_application_v3",
+})
 _COMPRESSED_SCOPED_READS = frozenset({
     "/rest/v1/rpc/selflearn_journal_read_observed_game_v1",
     "/rest/v1/rpc/selflearn_journal_read_objects_v1",
@@ -114,9 +117,9 @@ class SupabaseStore(StorageBackend):
             headers["Prefer"] = "return=minimal"
         url = self._url + path + ("?" + urlencode(query) if query else "")
         req = Request(url, data=body, headers=headers, method=method)
-        # Cold preparation verifies one game's immutable originals in the
-        # database. Leave room for the dedicated 18s SQL deadline and reply.
-        timeout = 22 if method == "POST" and path == _SCOPED_MEMBERSHIP_PREPARE and not binary else 12
+        # Scoped certification and registration have their own bounded
+        # 18s database deadline. Allow time to return each verified reply.
+        timeout = 22 if method == "POST" and path in _SCOPED_VERIFICATION_RPCS and not binary else 12
         try:
             with self._opener.open(req, timeout=timeout) as response:
                 if scoped_compression:

@@ -34,10 +34,10 @@ class Opener:
         self.response = None
 
     def open(self, request, timeout):
-        scope_prepare = request.get_method() == "POST" and request.full_url.endswith(
-            "/selflearn_journal_prepare_capture_membership_v3"
-        )
-        assert timeout == (22 if scope_prepare else 12)
+        scoped_verification = request.get_method() == "POST" and request.full_url.endswith((
+            "/selflearn_journal_prepare_capture_membership_v3", "/selflearn_journal_register_capture_application_v3",
+        ))
+        assert timeout == (22 if scoped_verification else 12)
         self.requests.append(request)
         self.response = Response(self.payload, self.encoding)
         return self.response
@@ -74,6 +74,8 @@ def test_server_may_decline_compression_without_changing_results(encoding):
     ("/rest/v1/rpc/selflearn_journal_read_observed_v1", "POST", False),
     ("/rest/v1/rpc/selflearn_journal_commit_capture_application_batch_v2", "POST", False),
     ("/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3", "POST", False),
+    ("/rest/v1/rpc/selflearn_journal_register_capture_application_v3", "POST", False),
+    ("/rest/v1/rpc/selflearn_journal_register_capture_application_v2", "POST", False),
     (GAME, "GET", False), (GAME, "POST", True), ("/storage/v1/object/private/x", "GET", True),
 ])
 def test_legacy_writes_and_binary_storage_keep_existing_wire_behavior(path, method, binary):
