@@ -23,6 +23,7 @@ const params=Object.freeze({
   selflearn_journal_prepare_capture_membership_v3:['p_season','p_weeks_json','p_game_scope_json'],
   selflearn_journal_register_capture_application_v3:['p_request_json','p_seal_json','p_watermark'],
   selflearn_journal_read_observed_game_v1:['p_view','p_key','p_after','p_limit','p_watermark'],
+  selflearn_journal_read_objects_v1:['p_view','p_key','p_after','p_limit','p_watermark'],
   selflearn_reserve_capture_stage_v1:['p_namespace_id','p_chunk_id','p_raw_bytes'],
 });
 const db=await openCaptureApplicationDatabase();

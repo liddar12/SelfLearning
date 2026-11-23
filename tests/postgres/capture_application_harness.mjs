@@ -6,6 +6,7 @@ import { canonical, digest, receipt, appendGeneration, commitGeneration, asRole 
 const RPCS = new Set(['selflearn_journal_register_capture_application_v2','selflearn_journal_commit_capture_application_batch_v2',
   'selflearn_journal_register_capture_application_v3','selflearn_journal_prepare_capture_membership_v3',
   'selflearn_journal_read_observed_game_v1',
+  'selflearn_journal_read_objects_v1',
   'selflearn_journal_stop_capture_application_v2','selflearn_journal_read_capture_application_v2','selflearn_journal_prepare_capture_membership_v2']);
 export async function rpcV2(db,name,args=[]) {
   if (!RPCS.has(name)) throw new Error('Unsupported v2 test RPC');
@@ -34,6 +35,7 @@ export async function openGameCaptureApplicationDatabase() {
     await db.exec(await readFile(new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123184027_nfl_game_scoped_capture_journal_v1.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261123190345_journal_batched_objects_v1.sql', import.meta.url), 'utf8'));
     return db;
   } catch (error) { await db.close(); throw error; }
 }

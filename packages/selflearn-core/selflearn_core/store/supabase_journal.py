@@ -24,6 +24,7 @@ _RPC = {
     "generation": "selflearn_journal_commit_generation_v1",
     "revision": "selflearn_journal_append_resolution_v1",
     "read": "selflearn_journal_read_v1",
+    "objects": "selflearn_journal_read_objects_v1",
     "publication": "selflearn_journal_commit_publication_v1",
     "publication_read": "selflearn_journal_read_publication_v1",
 }
@@ -184,7 +185,8 @@ class SupabaseReceiptJournal:
             raise StoreError(502)
         return int(value)
 
-    def _read(self, view, *, key=None, watermark=None, rpc_operation="read", max_rows=None, max_bytes=None):
+    def _read(self, view, *, key=None, watermark=None, rpc_operation="read", max_rows=None, max_bytes=None,
+              row_decoder=None, max_page_bytes=None):
         """Read an entire bounded-keyset view at one server-pinned watermark."""
         if key is not None and not isinstance(key, str):
             raise ValueError("journal_read_key_must_be_text")
@@ -202,6 +204,8 @@ class SupabaseReceiptJournal:
                 "p_limit": limit, "p_watermark": watermark,
             })
             if set(response) != {"version", "rows", "next_after", "watermark"}:
+                raise StoreError(502)
+            if max_page_bytes is not None and len(_canonical(response).encode("utf-8")) > max_page_bytes:
                 raise StoreError(502)
             high = self._sequence(response["watermark"])
             if watermark is not None and response["watermark"] != watermark:
@@ -223,13 +227,15 @@ class SupabaseReceiptJournal:
                 self._sequence(next_after)
                 if not page or next_after != page[-1]["journal_seq"]:
                     raise StoreError(502)
-            rows.extend(page)
-            if max_rows is not None and len(rows) > max_rows:
+            if max_rows is not None and len(rows) + len(page) > max_rows:
                 raise StoreError(502)
             if max_bytes is not None:
                 total_bytes += len(_canonical(page).encode("utf-8"))
                 if total_bytes > max_bytes:
                     raise StoreError(502)
+            # Decode bounded object pages immediately instead of retaining a
+            # second full copy of every original payload string across pages.
+            rows.extend(page if row_decoder is None else (row_decoder(row) for row in page))
             if next_after is None:
                 return rows, watermark
             after = next_after
@@ -325,6 +331,36 @@ class SupabaseReceiptJournal:
         if result["object_id"] != object_id:
             raise StoreError(502)
         return result
+
+    def get_objects(self, object_ids, *, watermark=None):
+        """Read exactly these immutable objects at one fence, in bounded pages.
+
+        No missing-ID or unscoped fallback is allowed. Existing single-object
+        reads retain their original behavior. Returned wrappers retain the
+        canonical payload identity and database-owned received timestamp.
+        """
+        if (type(object_ids) is not list or len(object_ids) > 256
+                or any(not _hash(oid) for oid in object_ids)
+                or len(set(object_ids)) != len(object_ids)):
+            raise ValueError("invalid_journal_object_id_set")
+        if watermark is not None:
+            self._sequence(watermark)
+        if not object_ids:
+            return []
+        wanted, seen = set(object_ids), set()
+        def decode(row):
+            if row.get("object_id") not in wanted or row.get("object_id") in seen:
+                raise StoreError(502)
+            result = self._object_row(row)
+            seen.add(result["object_id"])
+            return result
+        rows, _ = self._read("objects", key=_canonical(sorted(wanted)), watermark=watermark,
+                             rpc_operation="objects", max_rows=len(wanted),
+                             max_bytes=128 * 1024 * 1024, row_decoder=decode, max_page_bytes=6 * 1024 * 1024)
+        if seen != wanted:
+            raise StoreError(502)
+        return sorted(rows, key=lambda row: row["object_id"])
+
 
     def get_receipt(self, receipt_id):
         rows, _ = self._read("receipt", key=receipt_id)
