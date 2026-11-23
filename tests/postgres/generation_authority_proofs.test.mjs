@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {canonical,asRole,appendGeneration,commitGeneration,digest} from './harness.mjs';
+import {canonical,asRole,appendGeneration,commitGeneration,digest,digestText,serviceRpc} from './harness.mjs';
 import {openGameCaptureApplicationDatabase,openProvenGameCaptureApplicationDatabase,
-  generationProofMigration,indexedScopeMigration,addMembers,serviceV2} from './capture_application_harness.mjs';
+  generationProofMigration,indexedScopeMigration,certifiedSourceBytesMigration,addMembers,serviceV2} from './capture_application_harness.mjs';
 const scope=game_id=>({policy:'nfl.capture_game_scope_v1',season:2026,week:6,game_id});
 const warm=(db,game='G1')=>serviceV2(db,'selflearn_journal_prepare_capture_generation_proofs_v1',[canonical(scope(game))]);
 const prepare=(db,game='G1')=>serviceV2(db,'selflearn_journal_prepare_capture_membership_v3',[2026,'[6]',canonical(scope(game))]);
@@ -104,4 +104,42 @@ test('envelope certificates do not bypass selected source hash, parity or duplic
     const map=(await duplicateDb.query('select selflearn_private.capture_game_members_v1($1::json) value',[canonical(scope('G1'))])).rows[0].value;
     assert.ok(Object.values(map).every(row=>row.generation_object_ids.length===2));
   } finally {await duplicateDb.close();}
+});
+
+
+test('proven source hashing preserves numeric lexemes, Unicode and nested receipt IDs',async()=>{
+  const db=await openGameCaptureApplicationDatabase();
+  try {
+    const [member]=await addMembers(db,1,{line:40,sourceExtra:{detail:{receipt_id:'inner-marker',text:'ñ𝄞'}}});
+    const {receipt_id:originalId,...sourceUnsigned}=member.source;
+    const encodeSource=value=>canonical(value).replace('"line":40,','"line":40.0,');
+    const sourceId=digestText(encodeSource(sourceUnsigned));
+    assert.notEqual(sourceId,originalId);
+    const source=encodeSource({...sourceUnsigned,receipt_id:sourceId});
+    const {receipt_id:oldGenericId,...genericUnsigned}=member.generic;
+    genericUnsigned.source_receipt_id=sourceId;
+    const generic={...genericUnsigned,receipt_id:digest(genericUnsigned)};
+    const addOriginal=async raw=>{
+      const unsigned={version:1,season:2026,week:6,receipts:[{receipt_id:sourceId,learning_receipt:'SOURCE_JSON'}],generations:[]};
+      const encode=value=>canonical(value).replace('"SOURCE_JSON"',raw);
+      const unsignedText=encode(unsigned),objectId=digestText(unsignedText);
+      await serviceRpc(db,'selflearn_journal_append_object_v1',['generation',objectId,encode({...unsigned,envelope_id:objectId}),unsignedText]);
+      await commitGeneration(db,objectId,[generic],[]);
+    };
+    await addOriginal(source);
+    await db.exec(await readFile(generationProofMigration,'utf8'));
+    await db.exec(await readFile(indexedScopeMigration,'utf8'));
+    await warm(db);await warm(db);
+    const before=await prepare(db);
+    await db.exec(await readFile(certifiedSourceBytesMigration,'utf8'));
+    const after=await prepare(db);
+    assert.equal(after.membership_id,before.membership_id);
+    assert.notEqual(after.policy_id,before.policy_id);
+    const raw=(await db.query(`select source_index->($1::text)->>'source_json' value
+      from selflearn_private.capture_game_membership_cache_v1 where cache_id=$2`,[generic.receipt_id,after.cache_id])).rows[0].value;
+    assert.equal(raw,source);
+    await addOriginal(source.replace('inner-marker','changed-nested-id'));
+    await warm(db);
+    await assert.rejects(prepare(db),e=>e.code==='PT422'&&e.message==='unlocatable_original_capture_member');
+  } finally {await db.close();}
 });
