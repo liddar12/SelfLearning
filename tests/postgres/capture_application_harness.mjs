@@ -29,13 +29,14 @@ export async function openCaptureApplicationDatabase() {
   }
 }
 
-export async function openGameCaptureApplicationDatabase() {
+export async function openGameCaptureApplicationDatabase({fastBatch=true}={}) {
   const db = await openCaptureApplicationDatabase();
   try {
     await db.exec(await readFile(new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123184027_nfl_game_scoped_capture_journal_v1.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123190345_journal_batched_objects_v1.sql', import.meta.url), 'utf8'));
+    if (fastBatch) await db.exec(await readFile(new URL('../../supabase/migrations/20261123191308_scoped_capture_batch_commit.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123191600_nfl_game_source_index_equality.sql', import.meta.url), 'utf8'));
     return db;
   } catch (error) { await db.close(); throw error; }

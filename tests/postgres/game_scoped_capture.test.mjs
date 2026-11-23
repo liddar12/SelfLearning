@@ -176,3 +176,56 @@ test('scoped membership CAS notices selected-game additions and leaves other gam
     assert.equal((await readApplication(changed,app.request.application_id,'terminal')).records[0].status,'incomplete_membership_changed');
   } finally {await changed.close();}
 });
+
+
+test('350 scoped observations and revisions commit atomically and replay exact original proof',async()=>{
+  const profile=process.env.SELFLEARN_SCOPED_BATCH_PROFILE==='1';
+  const db=await openCaptureApplicationDatabase({fastBatch:!profile});
+  try {
+    const source=captureRequest();
+    const members=await addMembers(db,350,{player:i=>'selected-'+(i%8),line:i=>i+40});
+    const proofs=members.map(member=>memberProof(member,source));
+    const facts=Object.fromEntries(proofs.map(proof=>[
+      proof.observation.measurement.canonical_contract[2],commonFact(proof)]));
+    const payloadFor=async()=>{
+      const app=await prepare(db,'G1',{facts});
+      assert.equal(app.seal.batches[0].member_count,350);
+      assert.equal(app.seal.groups.length,8);
+      await register(db,app);
+      return [app,stepPayload(app.seal,0,proofs)];
+    };
+    const profileCommit=async(app,payload)=>{
+      const started=performance.now();
+      const result=await commitStep(db,app.request,app.seal,0,payload,app.seal.source_watermark);
+      assert.equal(result.added_observations,350);assert.equal(result.added_revisions,350);
+      return {result,milliseconds:performance.now()-started};
+    };
+    let baseline_ms=null;
+    if(profile){
+      await db.exec('begin');
+      baseline_ms=(await profileCommit(...await payloadFor())).milliseconds;
+      await db.exec('rollback');
+      await db.exec(await readFile(new URL('../../supabase/migrations/20261123191308_scoped_capture_batch_commit.sql',import.meta.url),'utf8'));
+    }
+    const [app,payload]=await payloadFor();
+    const invalid=(batch)=>serviceV2(db,'selflearn_journal_commit_capture_application_batch_v2',[
+      app.request.application_id,app.seal.batches[0].step_id,canonical(payload.groups),batch,app.seal.source_watermark]);
+    // Preserve all independently verified row hashes while altering nested
+    // property order. The existing insert guard must still refuse this row.
+    const malformed=canonical(payload.batch).replace('"actual":80,"canonical_contract":','"actual": 80,"canonical_contract":');
+    assert.notEqual(malformed,canonical(payload.batch));
+    await assert.rejects(invalid(malformed),e=>e.code==='PT422');
+    // A semantically identical noncanonical outer wrapper is also refused.
+    await assert.rejects(invalid(' '+canonical(payload.batch)),e=>e.code==='PT422');
+    const empty=(await db.query(`select
+      (select count(*) from selflearn_private.journal_observations) as observations,
+      (select count(*) from selflearn_private.journal_revisions) as revisions,
+      (select count(*) from selflearn_private.capture_application_batches_v2) as batches`)).rows[0];
+    assert.deepEqual(Object.values(empty).map(Number),[0,0,0]);
+    const {result,milliseconds}=await profileCommit(app,payload);
+    assert.deepEqual(await commitStep(db,app.request,app.seal,0,payload,app.seal.source_watermark),result);
+    assert.equal((await readApplication(db,app.request.application_id,'terminal')).records[0].counts.accepted_members,350);
+    console.log('SCOPED_BATCH_SQL_SCALE '+JSON.stringify({receipts:350,groups:8,baseline_ms,commit_ms:milliseconds,
+      scope:'local_postgresql_wasm_not_hosted_latency'}));
+  } finally {await db.close();}
+});
