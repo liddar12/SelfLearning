@@ -182,10 +182,12 @@ create index capture_application_game_v1 on selflearn_private.capture_applicatio
 create function selflearn_private.capture_game_members_v1(game_scope json) returns jsonb
 language plpgsql security invoker set search_path = '' as $$
 declare
-  rec record; binding record; forecast record; doc json; item json; source json; sourceb jsonb;
+  rec record; binding record; forecast record; doc json; item json; source json; sourceb jsonb; generic json;
+  generation_season json; generation_week json;
   accepted jsonb; scoped text[] := array[]::text[]; seen text[] := array[]::text[];
   rid text; sid text; player text; k text; key json; scope jsonb; member jsonb;
   members jsonb := '{}'::jsonb; all_ids text[]; partition_ids text[];
+  member_rows jsonb[]:=array[]::jsonb[];
   selected_season integer; weeks jsonb; selected_event text;
 begin
   game_scope:=selflearn_private.capture_game_scope_v1(game_scope);
@@ -225,6 +227,7 @@ begin
     if all_ids is distinct from partition_ids or pg_catalog.cardinality(all_ids)<>(select pg_catalog.count(distinct x) from pg_catalog.unnest(all_ids) x) then
       raise sqlstate 'PT422' using message='invalid_capture_generation_partition';
     end if;
+    generation_season:=doc->'season'; generation_week:=doc->'week';
     for binding in
       with originals as materialized (
         select value->>'receipt_id' source_id,value->'learning_receipt' source
@@ -243,6 +246,7 @@ begin
       end if;
       source:=binding.source;
       sourceb := source::jsonb;
+      generic:=forecast.payload_json::json;
       player := coalesce(nullif(sourceb->>'player_id',''),nullif(sourceb->>'gsis_id',''));
       if pg_catalog.json_typeof(source) is distinct from 'object'
          or pg_catalog.jsonb_typeof(sourceb->'version') is distinct from 'number' or sourceb->>'version' is distinct from '1'
@@ -251,8 +255,8 @@ begin
          or pg_catalog.jsonb_typeof(sourceb->'season') is distinct from 'number' or sourceb->>'season' is distinct from selected_season::text
          or pg_catalog.jsonb_typeof(sourceb->'week') is distinct from 'number' or not (sourceb->>'week' ~ '^[1-9][0-9]?$')
          or (sourceb->>'week')::integer not between 1 and 18
-         or doc->>'season' is distinct from sourceb->>'season' or pg_catalog.json_typeof(doc->'season') is distinct from 'number'
-         or doc->>'week' is distinct from sourceb->>'week' or pg_catalog.json_typeof(doc->'week') is distinct from 'number'
+         or generation_season::text is distinct from sourceb->>'season' or pg_catalog.json_typeof(generation_season) is distinct from 'number'
+         or generation_week::text is distinct from sourceb->>'week' or pg_catalog.json_typeof(generation_week) is distinct from 'number'
          or pg_catalog.jsonb_typeof(sourceb->'game_id') is distinct from 'string' or pg_catalog.btrim(sourceb->>'game_id')=''
          or player is null or (sourceb ? 'player_id' and pg_catalog.jsonb_typeof(sourceb->'player_id') is distinct from 'string')
          or (sourceb ? 'gsis_id' and pg_catalog.jsonb_typeof(sourceb->'gsis_id') is distinct from 'string')
@@ -267,13 +271,14 @@ begin
       key := pg_catalog.json_build_array(selected_season,sourceb->>'game_id',player,sourceb->>'market',
                selflearn_private.nfl_line_token_v1(sourceb->>'line'),sourceb->>'side','over','gte');
       if selflearn_private.digest_json_v1(key) is distinct from sourceb->>'contract_id'
-         or sourceb->>'contract_id' is distinct from forecast.payload_json::jsonb->>'contract_id'
-         or forecast.payload_json::jsonb->>'event_id' is distinct from 'nfl:'||selected_season::text||':game:'||(sourceb->>'game_id') then
+         or sourceb->>'contract_id' is distinct from generic->>'contract_id'
+         or generic->>'event_id' is distinct from 'nfl:'||selected_season::text||':game:'||(sourceb->>'game_id') then
         raise sqlstate 'PT422' using message='capture_member_contract_mismatch';
       end if;
       foreach k in array array['base_prob','served_prob','base_model_version','calibrator_version','forecast_created_utc',
           'source_snapshot_id','source_timestamps','features','publication_status'] loop
-        if selflearn_private.canonical_json_v1(source->k) is distinct from selflearn_private.canonical_json_v1(forecast.payload_json::json->k) then
+        if (source->k)::text is distinct from (generic->k)::text
+           and selflearn_private.canonical_json_v1(source->k) is distinct from selflearn_private.canonical_json_v1(generic->k) then
           raise sqlstate 'PT422' using message='capture_member_original_parity_mismatch';
         end if;
       end loop;
@@ -282,30 +287,96 @@ begin
         raise sqlstate 'PT422' using message='capture_game_week_mismatch';
       end if;
       scope := pg_catalog.jsonb_build_array(selected_season,sourceb->>'game_id',player,sourceb->>'market',sourceb->>'side');
-      if members ? rid then
-        member := members->rid;
-        if member->'scope' is distinct from scope or member->>'source_receipt_id' is distinct from sid then
-          raise sqlstate 'PT422' using message='conflicting_capture_member_identity';
-        end if;
-        member := pg_catalog.jsonb_set(member,'{generation_object_ids}',
-          (select pg_catalog.jsonb_agg(v order by v) from (select distinct value v from pg_catalog.jsonb_array_elements_text(
-             member->'generation_object_ids'||pg_catalog.jsonb_build_array(rec.object_id))) ids));
-      else
-        member := pg_catalog.jsonb_build_object('receipt_id',rid,'source_receipt_id',sid,'scope',scope,
-                    'generation_object_ids',pg_catalog.jsonb_build_array(rec.object_id));
-      end if;
-      members := pg_catalog.jsonb_set(members,array[rid],member);
+      member_rows:=pg_catalog.array_append(member_rows,pg_catalog.jsonb_build_object(
+        'receipt_id',rid,'source_receipt_id',sid,'scope',scope,'generation_object_id',rec.object_id));
     end loop;
   end loop;
   if exists(select 1 from pg_catalog.unnest(scoped) x where not (x=any(seen))) then
     raise sqlstate 'PT422' using message='unlocatable_missing_capture_generation';
   end if;
+  -- Build the map once instead of copying the growing JSONB object for every
+  -- receipt. Duplicate originals must still prove exactly one source/scope.
+  if exists(select 1 from pg_catalog.unnest(member_rows) value group by value->>'receipt_id'
+      having pg_catalog.count(distinct value->'scope')<>1 or pg_catalog.count(distinct value->>'source_receipt_id')<>1) then
+    raise sqlstate 'PT422' using message='conflicting_capture_member_identity';
+  end if;
+  select coalesce(pg_catalog.jsonb_object_agg(receipt_id,pg_catalog.jsonb_build_object(
+    'receipt_id',receipt_id,'source_receipt_id',source_receipt_id,'scope',member_scope,'generation_object_ids',generation_ids)),'{}'::jsonb)
+    into members from (
+      select value->>'receipt_id' receipt_id,value->>'source_receipt_id' source_receipt_id,value->'scope' member_scope,
+        pg_catalog.jsonb_agg(distinct value->>'generation_object_id' order by value->>'generation_object_id') generation_ids
+        from pg_catalog.unnest(member_rows) value group by value->>'receipt_id',value->>'source_receipt_id',value->'scope'
+    ) grouped;
   if (select pg_catalog.count(*) from pg_catalog.jsonb_object_keys(members))>10000 then
     raise sqlstate 'PT422' using message='complete_capture_exceeds_member_limit';
   end if;
   return members;
 exception when data_exception then raise sqlstate 'PT422' using message='invalid_capture_membership';
 end $$;
+
+
+-- Scoped builders aggregate each frozen member/source once. The v2 builders
+-- remain available unchanged for legacy requests.
+create function selflearn_private.capture_game_groups_v1(members jsonb) returns json
+language plpgsql security invoker set search_path = '' as $$
+declare answer json;
+begin
+  if (select pg_catalog.count(distinct value->'scope') from pg_catalog.jsonb_each(members))>2000 then
+    raise sqlstate 'PT422' using message='invalid_capture_application';
+  end if;
+  with expanded as materialized (
+    select key receipt_id,value->>'source_receipt_id' source_receipt_id,value->'scope' scope,
+      value->'generation_object_ids' generation_object_ids from pg_catalog.jsonb_each(members)
+  ), grouped as (
+    select scope,pg_catalog.jsonb_agg(receipt_id order by receipt_id) receipt_ids,
+      pg_catalog.jsonb_agg(source_receipt_id order by source_receipt_id) source_receipt_ids
+      from expanded group by scope
+  ), generation_ids as (
+    select scope,pg_catalog.jsonb_agg(id order by id) ids from (
+      select distinct scope,id from expanded cross join lateral pg_catalog.jsonb_array_elements_text(generation_object_ids) g(id)
+    ) unique_ids group by scope
+  ), groups as (
+    select selflearn_private.digest_json_v1(g.scope::json) group_id,g.scope,g.receipt_ids,g.source_receipt_ids,ids,
+      selflearn_private.digest_json_v1(pg_catalog.json_build_object('binding_policy','nfl.capture_labels_v1',
+        'scope',g.scope,'receipt_ids',g.receipt_ids,'source_receipt_ids',g.source_receipt_ids,'generation_object_ids',ids)) membership_id
+    from grouped g join generation_ids using(scope)
+  )
+  select coalesce(pg_catalog.json_agg(pg_catalog.json_build_object('group_id',group_id,'scope',scope,
+    'receipt_ids',receipt_ids,'source_receipt_ids',source_receipt_ids,'generation_object_ids',ids,'membership_id',membership_id)
+    order by group_id),'[]'::json) into answer from groups;
+  return answer;
+end $$;
+
+create function selflearn_private.capture_game_source_index_v1(members jsonb) returns jsonb
+language plpgsql security invoker set search_path = '' as $$
+declare answer jsonb; conflicting boolean;
+begin
+  with membership as materialized (
+    select key receipt_id,value->>'source_receipt_id' source_receipt_id,value->'generation_object_ids' object_ids
+    from pg_catalog.jsonb_each(members)
+  ), objects as materialized (
+    select distinct o.object_id,o.payload_json from membership m
+      cross join lateral pg_catalog.jsonb_array_elements_text(m.object_ids) g(id)
+      join selflearn_private.journal_objects o on o.object_id=g.id
+  ), sources as materialized (
+    select o.object_id,s.value->>'receipt_id' source_receipt_id,(s.value->'learning_receipt')::text source_json
+    from objects o cross join lateral pg_catalog.json_array_elements(o.payload_json::json->'receipts') s
+  ), selected as (
+    select m.receipt_id,pg_catalog.min(s.source_json) source_json,pg_catalog.count(distinct s.source_json)>1 conflicting
+    from membership m join sources s on s.source_receipt_id=m.source_receipt_id and m.object_ids ? s.object_id
+    group by m.receipt_id
+  )
+  select coalesce(pg_catalog.jsonb_object_agg(s.receipt_id,pg_catalog.jsonb_build_object(
+      'source_json',s.source_json,'kickoff_utc',r.payload_json::json->>'event_start_utc')),'{}'::jsonb),
+      coalesce(pg_catalog.bool_or(s.conflicting),false)
+    into answer,conflicting from selected s join selflearn_private.journal_receipts r using(receipt_id);
+  if conflicting or (select pg_catalog.count(*) from pg_catalog.jsonb_object_keys(answer))<>
+      (select pg_catalog.count(*) from pg_catalog.jsonb_object_keys(members)) then
+    raise sqlstate 'PT422' using message='invalid_capture_application';
+  end if;
+  return answer;
+end $$;
+
 
 create table selflearn_private.capture_game_membership_cache_v1 (
   like selflearn_private.capture_membership_cache_v2 including defaults including constraints,
@@ -330,6 +401,7 @@ language sql volatile security invoker set search_path = '' as $$
       pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(pg_catalog.pg_get_functiondef(p.oid),'UTF8')),'hex')) order by p.proname)))
   from pg_catalog.pg_proc p where p.pronamespace='selflearn_private'::regnamespace and p.proname=any(array[
     'capture_game_scope_v1','capture_game_members_v1','capture_game_authority_v1','capture_game_membership_id_v1',
+    'capture_game_groups_v1','capture_game_source_index_v1',
     'index_capture_game_generation_v1','guard_capture_game_membership_cache_v1','capture_get_membership_v3'])
 $$;
 
@@ -358,9 +430,9 @@ begin
     from selflearn_private.capture_game_membership_cache_v1;
   if current_rows>=2048 then raise sqlstate 'PT503' using message='capture_membership_cache_capacity_exceeded'; end if;
   new.members:=selflearn_private.capture_game_members_v1(game_scope);
-  new.groups:=selflearn_private.capture_groups_v2(new.members)::jsonb;
+  new.groups:=selflearn_private.capture_game_groups_v1(new.members)::jsonb;
   new.membership_id:=selflearn_private.capture_game_membership_id_v1(new.groups::json,game_scope);
-  new.source_index:=selflearn_private.capture_source_index_v2(new.members);
+  new.source_index:=selflearn_private.capture_game_source_index_v1(new.members);
   new.payload_sha256:=pg_catalog.encode(pg_catalog.sha256(pg_catalog.convert_to(
     pg_catalog.jsonb_build_array(new.members,new.groups,new.source_index)::text,'UTF8')),'hex');
   new.stored_utc:=pg_catalog.clock_timestamp();
@@ -796,7 +868,7 @@ do $$ declare f record; begin
     where p.pronamespace='selflearn_private'::regnamespace and p.proname=any(array[
       'capture_game_scope_v1','capture_game_event_v1','capture_game_authority_v1','capture_game_membership_id_v1',
       'capture_game_members_v1','capture_game_policy_v1','guard_capture_game_membership_cache_v1',
-      'capture_get_membership_v3','capture_source_vector_v3'])
+      'capture_get_membership_v3','capture_source_vector_v3','capture_game_groups_v1','capture_game_source_index_v1'])
   loop
     execute pg_catalog.format('revoke execute on function %s from public,anon,authenticated',f.signature);
     execute pg_catalog.format('grant execute on function %s to service_role',f.signature);

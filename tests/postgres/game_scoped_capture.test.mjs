@@ -1,8 +1,68 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {performance} from 'node:perf_hooks';
 import {canonical,digest,asRole} from './harness.mjs';
-import {openGameCaptureApplicationDatabase as openCaptureApplicationDatabase,addMembers,captureRequest,applicationRequest,serviceV2,
+import {openGameCaptureApplicationDatabase as openCaptureApplicationDatabase,openCaptureApplicationDatabase as openLegacyDatabase,addMembers,captureRequest,applicationRequest,serviceV2,
         memberProof,commonFact,stepPayload,commitStep,readApplication} from './capture_application_harness.mjs';
+
+
+test('28,736-row ledger backfill and reads stay scoped before work limits and network pages',async()=>{
+  const db=await openLegacyDatabase();
+  try {
+    // Administrative load fixture only: 28,232 unrelated rows with large
+    // generation documents stress lookup/backfill. These are not claimed as
+    // authentic producer evidence. The selected 504 receipts use real RPCs.
+    await db.exec(String.raw`
+      alter table selflearn_private.journal_receipts disable trigger journal_stamp;
+      alter table selflearn_private.journal_objects disable trigger journal_stamp;
+      alter table selflearn_private.journal_generation_commits disable trigger journal_stamp;
+      insert into selflearn_private.journal_receipts(receipt_id,domain,task,source_receipt_id,payload_json,journal_seq,stored_utc)
+        select 'sha256:'||lpad(to_hex(i),64,'0'),'nfl','nfl.parlay_leg','sha256:'||lpad(to_hex(i+50000),64,'0'),
+          json_build_object('event_id','nfl:2026:game:UNRELATED','source_receipt_id','sha256:'||lpad(to_hex(i+50000),64,'0'))::text,
+          i,clock_timestamp() from generate_series(1,28232) i;
+      insert into selflearn_private.journal_objects(object_id,kind,payload_json,journal_seq,stored_utc)
+        select 'sha256:'||lpad(to_hex(i+100000),64,'0'),'generation',
+          json_build_object('version',1,'week',6,'padding',repeat('x',1048576))::text,28232+i,clock_timestamp()
+          from generate_series(1,29) i;
+      insert into selflearn_private.journal_generation_commits(object_id,receipts_json,rejections_json,ack_json,journal_seq,stored_utc)
+        select 'sha256:'||lpad(to_hex(((i-1)/1000)+100001),64,'0'),'[]','[]',
+          json_build_object('receipts',json_agg(json_build_object('receipt_id','sha256:'||lpad(to_hex(i),64,'0'),
+            'source_receipt_id','sha256:'||lpad(to_hex(i+50000),64,'0'))))::text,
+          28300+((i-1)/1000),clock_timestamp() from generate_series(1,28232) i group by (i-1)/1000;
+      select setval('selflearn_private.journal_sequence',28400);
+      alter table selflearn_private.journal_receipts enable trigger journal_stamp;
+      alter table selflearn_private.journal_objects enable trigger journal_stamp;
+      alter table selflearn_private.journal_generation_commits enable trigger journal_stamp;
+    `);
+    for(let i=0;i<3;i++)await addMembers(db,168,{vintage:'selected-'+i,player:n=>'p'+(n%28)});
+    const began=performance.now();
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql',import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql',import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261123184027_nfl_game_scoped_capture_journal_v1.sql',import.meta.url),'utf8'));
+    const backfill_ms=performance.now()-began;
+    assert.equal(Number((await db.query('select count(*) n from selflearn_private.capture_game_generation_members_v1')).rows[0].n),28736);
+    await db.exec('analyze selflearn_private.journal_receipts; analyze selflearn_private.capture_game_generation_members_v1;');
+    const plan=await db.query("explain (format json) select * from selflearn_private.journal_receipts where domain='nfl' and task='nfl.parlay_leg' and payload_json::jsonb->>'event_id'='nfl:2026:game:G1'");
+    assert.match(JSON.stringify(plan.rows),/journal_nfl_event_sequence_v1/);
+    let started=performance.now(),page=await gameRead(db,'G1','receipts'),receipt_rpc_count=1;
+    const receipts=[...page.rows],watermark=page.watermark;
+    while(page.next_after){page=await gameRead(db,'G1','receipts',page.next_after,500,watermark);receipts.push(...page.rows);receipt_rpc_count++;}
+    const receipt_read_ms=performance.now()-started;
+    assert.equal(receipts.length,504);assert.equal(receipt_rpc_count,2);
+    started=performance.now();
+    const generations=await gameRead(db,'G1','game_generations',null,500,watermark);
+    const generation_read_ms=performance.now()-started;
+    assert.equal(generations.rows.length,3);assert.equal(generations.next_after,null,'complete originals pack into one bounded page');
+    await assert.rejects(serviceV2(db,'selflearn_journal_prepare_capture_membership_v2',[2026,'[6]']),e=>e.code==='PT422'&&e.message==='capture_membership_exceeds_work_limit');
+    started=performance.now();
+    const scoped=await serviceV2(db,'selflearn_journal_prepare_capture_membership_v3',[2026,'[6]',canonical(scope('G1'))]);
+    const cold_prepare_ms=performance.now()-started;
+    assert.equal(scoped.member_count,504);assert.equal(scoped.group_count,28);
+    console.log('GAME_SCOPED_SQL_SCALE '+JSON.stringify({scope:'synthetic_local_postgresql_wasm_not_hosted_latency',
+      total_receipts:28736,selected_receipts:504,backfill_ms,receipt_read_ms,receipt_rpc_count,generation_read_ms,generation_rpc_count:1,cold_prepare_ms}));
+  } finally {await db.close();}
+});
 
 const scope=game_id=>({policy:'nfl.capture_game_scope_v1',season:2026,week:6,game_id});
 const gameRead=(db,game,view,after=null,limit=500,watermark=null)=>serviceV2(db,'selflearn_journal_read_observed_game_v1',

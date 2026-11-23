@@ -32,6 +32,7 @@ export async function openGameCaptureApplicationDatabase() {
   const db = await openCaptureApplicationDatabase();
   try {
     await db.exec(await readFile(new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123184027_nfl_game_scoped_capture_journal_v1.sql', import.meta.url), 'utf8'));
     return db;
   } catch (error) { await db.close(); throw error; }
