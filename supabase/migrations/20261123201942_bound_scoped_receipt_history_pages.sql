@@ -134,4 +134,8 @@ begin
   return pg_catalog.json_build_object('version',1,'rows',rows,'next_after',case when more then next_id else null end,'watermark',ceiling::text);
 end $$;
 
+-- Preserve the scoped limit installed by the preceding migration.
+alter function public.selflearn_journal_read_observed_game_v1(text,text,text,integer,text)
+  set statement_timeout to '18s';
+notify pgrst,'reload schema';
 commit;
