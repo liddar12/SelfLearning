@@ -64,6 +64,7 @@ jobs:
           tests/postgres/game_scoped_capture.test.mjs
           tests/postgres/batched_objects.test.mjs
           tests/postgres/generation_authority_proofs.test.mjs
+          tests/postgres/game_cache_recycling.test.mjs
       - name: Run Python discovery, object reads and lookup through PostgreSQL-WASM
         run: >-
           python -m pytest
