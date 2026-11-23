@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {performance} from 'node:perf_hooks';
-import {canonical,digest,asRole} from './harness.mjs';
+import {canonical,digest,asRole,appendGeneration,commitGeneration} from './harness.mjs';
 import {openGameCaptureApplicationDatabase as openCaptureApplicationDatabase,openCaptureApplicationDatabase as openLegacyDatabase,addMembers,captureRequest,applicationRequest,serviceV2,
         memberProof,commonFact,stepPayload,commitStep,readApplication} from './capture_application_harness.mjs';
 
@@ -61,6 +61,30 @@ test('28,736-row ledger backfill and reads stay scoped before work limits and ne
     assert.equal(scoped.member_count,504);assert.equal(scoped.group_count,28);
     console.log('GAME_SCOPED_SQL_SCALE '+JSON.stringify({scope:'synthetic_local_postgresql_wasm_not_hosted_latency',
       total_receipts:28736,selected_receipts:504,backfill_ms,receipt_read_ms,receipt_rpc_count,generation_read_ms,generation_rpc_count:1,cold_prepare_ms}));
+  } finally {await db.close();}
+});
+
+
+test('scoped grouped/source builders preserve v2 bytes and all duplicate original-generation proofs',async()=>{
+  const db=await openCaptureApplicationDatabase();
+  try {
+    const members=await addMembers(db,12,{player:i=>'p'+(i%3)});
+    const original=members[0].document,duplicate={...original,fixture:'second immutable envelope'};
+    delete duplicate.envelope_id;duplicate.envelope_id=digest(duplicate);
+    await appendGeneration(db,duplicate);
+    await commitGeneration(db,duplicate.envelope_id,members.map(m=>m.generic),[]);
+    const map=(await db.query('select selflearn_private.capture_game_members_v1($1::json) value',[canonical(scope('G1'))])).rows[0].value;
+    assert.ok(Object.values(map).every(m=>m.generation_object_ids.length===2));
+    const result=(await db.query(String.raw`
+      select selflearn_private.capture_game_groups_v1($1::jsonb)::text fast_groups,
+        selflearn_private.capture_groups_v2($1::jsonb)::text old_groups,
+        selflearn_private.capture_game_source_index_v1($1::jsonb)::text fast_sources,
+        selflearn_private.capture_source_index_v2($1::jsonb)::text old_sources
+    `,[canonical(map)])).rows[0];
+    assert.deepEqual(JSON.parse(result.fast_groups),JSON.parse(result.old_groups));
+    assert.equal(result.fast_sources,result.old_sources,'original source JSON stays exact inside wrappers');
+    const cached=await serviceV2(db,'selflearn_journal_prepare_capture_membership_v3',[2026,'[6]',canonical(scope('G1'))]);
+    assert.equal(cached.member_count,12);assert.equal(cached.group_count,3);
   } finally {await db.close();}
 });
 

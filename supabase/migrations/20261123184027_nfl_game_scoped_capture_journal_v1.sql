@@ -354,9 +354,11 @@ begin
   with membership as materialized (
     select key receipt_id,value->>'source_receipt_id' source_receipt_id,value->'generation_object_ids' object_ids
     from pg_catalog.jsonb_each(members)
-  ), objects as materialized (
-    select distinct o.object_id,o.payload_json from membership m
+  ), object_ids as materialized (
+    select distinct id from membership m
       cross join lateral pg_catalog.jsonb_array_elements_text(m.object_ids) g(id)
+  ), objects as materialized (
+    select o.object_id,o.payload_json from object_ids g
       join selflearn_private.journal_objects o on o.object_id=g.id
   ), sources as materialized (
     select o.object_id,s.value->>'receipt_id' source_receipt_id,(s.value->'learning_receipt')::text source_json

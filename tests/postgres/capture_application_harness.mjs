@@ -44,10 +44,11 @@ export async function addMembers(db, count, { vintage = 'first', player = i => '
   for (let i = 0; i < count; i++) {
     const name = typeof player === 'function' ? player(i) : player;
     const threshold = typeof line === 'function' ? line(i) : line;
-    const key = [2026, gameId, name, 'wr_rec_yds', String(threshold), 'home', 'over', 'gte'];
-    const generic = receipt(vintage + '-' + i, { event_id: 'nfl:2026:game:'+gameId, correlation_group: 'nfl:2026:game:'+gameId,
+    const selectedGame = typeof gameId === 'function' ? gameId(i) : gameId;
+    const key = [2026, selectedGame, name, 'wr_rec_yds', String(threshold), 'home', 'over', 'gte'];
+    const generic = receipt(vintage + '-' + i, { event_id: 'nfl:2026:game:'+selectedGame, correlation_group: 'nfl:2026:game:'+selectedGame,
                                                contract_id: digest(key), ...genericExtra });
-    const source = { version: 1, season: 2026, week, game_id: gameId, player_id: name, market: 'wr_rec_yds',
+    const source = { version: 1, season: 2026, week, game_id: selectedGame, player_id: name, market: 'wr_rec_yds',
       line: threshold, side: 'home', direction: 'over', comparison_operator: 'gte', contract_id: generic.contract_id };
     for (const k of ['base_prob','served_prob','base_model_version','calibrator_version','forecast_created_utc',
       'source_snapshot_id','source_timestamps','features','publication_status']) source[k] = generic[k];
