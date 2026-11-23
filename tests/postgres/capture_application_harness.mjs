@@ -35,17 +35,17 @@ export async function openGameCaptureApplicationDatabase({fastBatch=true}={}) {
   try {
     await db.exec(await readFile(new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql', import.meta.url), 'utf8'));
-    await db.exec(await readFile(new URL('../../supabase/migrations/20261123184027_nfl_game_scoped_capture_journal_v1.sql', import.meta.url), 'utf8'));
-    await db.exec(await readFile(new URL('../../supabase/migrations/20261123190345_journal_batched_objects_v1.sql', import.meta.url), 'utf8'));
-    if (fastBatch) await db.exec(await readFile(new URL('../../supabase/migrations/20261123191308_scoped_capture_batch_commit.sql', import.meta.url), 'utf8'));
-    await db.exec(await readFile(new URL('../../supabase/migrations/20261123191600_nfl_game_source_index_equality.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261123190106_nfl_game_scoped_capture_journal_v1.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261123191101_journal_batched_objects_v1.sql', import.meta.url), 'utf8'));
+    if (fastBatch) await db.exec(await readFile(new URL('../../supabase/migrations/20261123191758_scoped_capture_batch_commit.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261123191542_nfl_game_source_index_equality.sql', import.meta.url), 'utf8'));
     return db;
   } catch (error) { await db.close(); throw error; }
 }
 
-export const generationProofMigration = new URL('../../supabase/migrations/20261123191257_capture_generation_authority_proofs_v1.sql', import.meta.url);
-export const indexedScopeMigration = new URL('../../supabase/migrations/20261123193300_index_scoped_membership_lookups.sql', import.meta.url);
-export const certifiedSourceBytesMigration = new URL('../../supabase/migrations/20261123193813_reuse_certified_source_json_bytes.sql', import.meta.url);
+export const generationProofMigration = new URL('../../supabase/migrations/20261123192721_capture_generation_authority_proofs_v1.sql', import.meta.url);
+export const indexedScopeMigration = new URL('../../supabase/migrations/20261123193507_index_scoped_membership_lookups.sql', import.meta.url);
+export const certifiedSourceBytesMigration = new URL('../../supabase/migrations/20261123194224_reuse_certified_source_json_bytes.sql', import.meta.url);
 export async function openProvenGameCaptureApplicationDatabase() {
   const db = await openGameCaptureApplicationDatabase();
   try {

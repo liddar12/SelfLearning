@@ -4,7 +4,7 @@ import test from 'node:test';
 import {asRole, canonical} from './harness.mjs';
 import {addMembers,openProvenGameCaptureApplicationDatabase,serviceV2} from './capture_application_harness.mjs';
 
-const migration = new URL('../../supabase/migrations/20261123192530_recycle_scoped_membership_cache.sql',import.meta.url);
+const migration = new URL('../../supabase/migrations/20261123193506_recycle_scoped_membership_cache.sql',import.meta.url);
 const table = 'selflearn_private.capture_game_membership_cache_v1';
 const scope = (game_id) => ({policy:'nfl.capture_game_scope_v1',season:2026,week:6,game_id});
 const warm = (db,game) => asRole(db,'service_role',async () => (await db.query(

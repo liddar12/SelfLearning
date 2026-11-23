@@ -1,6 +1,6 @@
 # Scoped generation proof warming
 
-The additive `20261123191257_capture_generation_authority_proofs_v1.sql`
+The additive `20261123192721_capture_generation_authority_proofs_v1.sql`
 migration follows scoped membership and batched-object reads. It does not
 backfill certificates inside the migration transaction or change forecast
 admission, outcome writes, existing v2 behavior, or journal watermarks.
