@@ -61,6 +61,7 @@ jobs:
           tests/postgres/nfl_roster_capture_transport.test.mjs
           tests/postgres/capture_delivery.test.mjs
           tests/postgres/capture_application.test.mjs
+          tests/postgres/game_scoped_capture.test.mjs
       - name: Run Python discovery and lookup adapters through actual PostgreSQL-WASM
         run: python -m pytest tests/postgres/test_learning_job_discovery_adapter.py tests/postgres/test_learning_job_find_adapter.py -q -rs
       - name: Test hosted authorization, persistence contracts and test tooling
