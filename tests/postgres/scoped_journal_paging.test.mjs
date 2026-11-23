@@ -6,7 +6,7 @@ import {asRole,canonical,digestText} from './harness.mjs';
 import {openGameCaptureApplicationDatabase} from './capture_application_harness.mjs';
 
 const fixture = new URL('./scoped_journal_paging_fixture.sql',import.meta.url);
-const migration = new URL('../../supabase/migrations/20261123195500_pack_scoped_journal_pages_incrementally.sql',import.meta.url);
+const migration = new URL('../../supabase/migrations/20261123195835_pack_scoped_journal_pages_incrementally.sql',import.meta.url);
 const scope = (game_id) => canonical({policy:'nfl.capture_game_scope_v1',season:2026,week:11,game_id});
 const ids = (first,last) => canonical(Array.from({length:last-first+1},(_,i)=>'sha256:'+String(first+i).padStart(64,'0')));
 const observed = 'selflearn_journal_read_observed_game_v1';
