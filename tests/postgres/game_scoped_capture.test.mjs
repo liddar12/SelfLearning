@@ -40,6 +40,7 @@ test('28,736-row ledger backfill and reads stay scoped before work limits and ne
     await db.exec(await readFile(new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql',import.meta.url),'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261119195500_journal_ascii_string_fast_path.sql',import.meta.url),'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123184027_nfl_game_scoped_capture_journal_v1.sql',import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261123191600_nfl_game_source_index_equality.sql',import.meta.url),'utf8'));
     const backfill_ms=performance.now()-began;
     assert.equal(Number((await db.query('select count(*) n from selflearn_private.capture_game_generation_members_v1')).rows[0].n),28736);
     await db.exec('analyze selflearn_private.journal_receipts; analyze selflearn_private.capture_game_generation_members_v1;');
