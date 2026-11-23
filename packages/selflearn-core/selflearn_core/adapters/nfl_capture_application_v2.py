@@ -16,6 +16,7 @@ from . import nfl_capture_delivery_journal as delivery
 from .nfl_capture_delivery_job import _pointer_reader
 from .nfl_capture_job import _PinnedJournal
 from .nfl_capture_labels import (GAME_SCOPE_POLICY, POLICY as BINDING_POLICY, CaptureGameScope,
+                                 _OwnedGameSnapshot, _ScopedPinnedJournal,
                                  _bind_capture_labels, _frozen_entries, bind_capture_labels)
 from .nfl_observed_job import _now
 from .nfl_observed_resolution import resolve_observed
@@ -141,6 +142,13 @@ def _snapshot(journal, game_scope=None):
             raise ValueError("invalid_capture_application_boundary")
         snapshot = read()
     else:
+        scope = scope_from_document(game_scope)
+        read_owned = getattr(journal, "_read_owned_observed_game_snapshot", None)
+        if callable(read_owned):
+            owned = read_owned(scope.document())
+            if type(owned) is not _OwnedGameSnapshot or owned.scope != scope:
+                raise ValueError("invalid_owned_capture_game_snapshot")
+            return _checked_snapshot(owned.snapshot, game_scope)
         read_game = getattr(journal, "read_observed_game_snapshot", None)
         if not callable(read_game):
             raise ValueError("capture_game_snapshot_port_unavailable")
@@ -176,7 +184,8 @@ class _GameAuthority:
 
 def _freeze_game_authority(journal, snapshot, game_scope):
     scope = scope_from_document(game_scope)
-    watermark, entries = _frozen_entries(_PinnedJournal(journal, snapshot), scope.season, {scope.week}, scope,
+    pinned = _ScopedPinnedJournal(journal, _OwnedGameSnapshot(snapshot, scope))
+    watermark, entries = _frozen_entries(pinned, scope.season, {scope.week}, scope,
                                          batch_objects=getattr(journal, "get_objects", None))
     if watermark != snapshot["watermark"]:
         raise ValueError("capture_application_binding_fence_mismatch")
@@ -207,8 +216,13 @@ def bind_context(journal, request, raw_chunks, *, clock=_now, max_total_bytes=ca
     elif game_scope is None:
         raise ValueError("capture_application_requires_fresh_snapshot")
     else:
+        # Only same-attempt authority can reuse a supplied owned graph. Other
+        # supplied snapshots retain a defensive copy before any raw callbacks.
+        if _game_authority is None:
+            snapshot = copy.deepcopy(snapshot)
         snapshot = _checked_snapshot(snapshot, game_scope)
-    journal_at_fence = _PinnedJournal(journal, snapshot)
+    journal_at_fence = (_PinnedJournal(journal, snapshot) if game_scope is None else
+                       _ScopedPinnedJournal(journal, _OwnedGameSnapshot(snapshot, scope_from_document(game_scope))))
     envelope, raw_reader = original["envelope"], _pointer_reader(original, raw_chunks)
     if _game_authority is not None:
         frozen = _reuse_game_authority(_game_authority, snapshot, game_scope)

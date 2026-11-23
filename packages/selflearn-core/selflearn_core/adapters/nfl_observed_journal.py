@@ -185,6 +185,10 @@ class NFLObservedJournal(SupabaseReceiptJournal):
         receipt_map = {r["receipt_id"]: r for r in receipts}
         generation_rows, _ = read("generations", watermark=watermark)
         generations = self._generation_rows(generation_rows)
+        if game_scope is not None:
+            # Parsed originals now own their contents. Release the raw JSON
+            # strings before history validation and the commit-cache copy.
+            del generation_rows
         for generation in generations:
             if game_scope is not None:
                 from .nfl_capture_labels import CaptureGameScope, _ack
@@ -229,7 +233,14 @@ class NFLObservedJournal(SupabaseReceiptJournal):
         except (ValueError, TypeError, KeyError, AttributeError, OverflowError):
             raise StoreError(502) from None
         snapshot.update(observations=observations, observation_records=records)
-        self._observed_snapshot = copy.deepcopy(snapshot)
+        if game_scope is None:
+            self._observed_snapshot = copy.deepcopy(snapshot)
+        else:
+            # Commit checks use receipt/outcome history, not generation graphs.
+            # Keep that history isolated from callers without retaining another
+            # complete copy of every (often multi-game) original generation.
+            self._observed_snapshot = copy.deepcopy({key: value for key, value in snapshot.items()
+                                                     if key != "generation_records"})
         return snapshot
 
     def read_observed_snapshot(self):

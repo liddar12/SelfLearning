@@ -254,6 +254,11 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         """Read complete selected-game history at one global fence, in SQL."""
         return self._load_observed_game_snapshot(game_scope)
 
+    def _read_owned_observed_game_snapshot(self, game_scope):
+        """Transfer newly decoded scoped data to one trusted server operation."""
+        scope = V.scope_from_document(game_scope)
+        return V._OwnedGameSnapshot(self._load_observed_game_snapshot(scope.document()), scope)
+
     def prepare_capture_generation_proofs(self, game_scope, *, check=None):
         """Resume DB-verified envelope proofs, one bounded generation per RPC.
 

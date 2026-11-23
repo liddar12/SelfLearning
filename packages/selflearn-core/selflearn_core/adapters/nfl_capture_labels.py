@@ -75,6 +75,41 @@ class CaptureGameScope:
                 "game_id": self.game_id}
 
 
+@dataclass(frozen=True)
+class _OwnedGameSnapshot:
+    """Private handoff of a fresh graph owned by one scoped server operation."""
+
+    snapshot: dict
+    scope: CaptureGameScope
+
+
+class _ScopedPinnedJournal:
+    """Borrow an operation-owned snapshot only inside the scoped binder.
+
+    Public reads still return defensive copies. No authority is inferred from
+    caller flags: the internal wrapper holds the exact owned graph and scope.
+    Every receipt, generation, ACK and source check in the binder still runs.
+    """
+
+    def __init__(self, authority, owned):
+        if type(owned) is not _OwnedGameSnapshot or type(owned.scope) is not CaptureGameScope:
+            _fail("invalid_owned_capture_game_snapshot")
+        self._authority, self._owned = authority, owned
+
+    def _borrow(self, scope):
+        snapshot = self._owned.snapshot
+        if (type(scope) is not CaptureGameScope or scope != self._owned.scope or type(snapshot) is not dict
+                or snapshot.get("game_scope") != scope.document()):
+            _fail("capture_game_snapshot_scope_mismatch")
+        return snapshot
+
+    def read_observed_snapshot(self):
+        return copy.deepcopy(self._owned.snapshot)
+
+    def get_object(self, object_id):
+        return self._authority.get_object(object_id)
+
+
 def _same(left, right):
     return capture._encoded(left) == capture._encoded(right)
 
@@ -243,7 +278,10 @@ def _prefetch_scope_objects(generations, batch_objects, watermark):
 
 
 def _frozen_entries(journal, season, weeks, game_scope=None, *, batch_objects=None):
-    snapshot = copy.deepcopy(journal.read_observed_snapshot())
+    if game_scope is not None and type(journal) is _ScopedPinnedJournal:
+        snapshot = journal._borrow(game_scope)
+    else:
+        snapshot = copy.deepcopy(journal.read_observed_snapshot())
     if (type(snapshot) is not dict or type(snapshot.get("version")) is not int or snapshot["version"] != 1
             or type(snapshot.get("watermark")) is not str or not _SEQ.fullmatch(snapshot["watermark"])
             or type(snapshot.get("receipts")) is not list or type(snapshot.get("generation_records")) is not list):
