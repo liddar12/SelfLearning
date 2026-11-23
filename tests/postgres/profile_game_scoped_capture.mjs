@@ -26,4 +26,3 @@ try {
     selected_groups:cert.group_count,generations:43,fixture_ms,cold_prepare_ms,generation_read_ms:performance.now()-readStarted,
     generation_pages:pages,generation_records:records,generation_wire_bytes:bytes}));
 } finally {await db.close();}
-
