@@ -202,7 +202,7 @@ class ApplicationPortFaultTests(unittest.TestCase):
         scoped = port(fake, max_run_seconds=45, monotonic=lambda: clock[0])
         legacy = port(fake, max_run_seconds=45, monotonic=lambda: clock[0])
         game = {"policy": "nfl.capture_game_scope_v1", "season": 2026, "week": 6, "game_id": "g6"}
-        for scope, seconds in ((None, 90), (game, 91), (game, 45), (game, True)):
+        for scope, seconds in ((None, 90), (game, 121), (game, 45), (game, True)):
             with self.assertRaises(ValueError):
                 scoped.permit_scoped_operation_budget(scope, seconds)
         clock[0] = 130

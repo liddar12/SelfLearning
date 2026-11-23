@@ -19,7 +19,7 @@ from ..store.receipt_journal import JournalConflict
 from ..store.supabase_store import StoreConflict, StoreError
 
 
-SCOPED_CAPTURE_RUN_SECONDS = 90
+SCOPED_CAPTURE_RUN_SECONDS = 120
 
 
 class CaptureApplicationBudgetExceeded(TimeoutError):
