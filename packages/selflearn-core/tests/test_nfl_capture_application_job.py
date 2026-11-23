@@ -146,6 +146,7 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
                 super().__init__()
                 self.request = V.make_request(self.request["capture_request"], game_scope=scope)
                 self.game_reads = []
+                self.permitted = []
 
             def get_capture_application(self, application_id):
                 existing = super().get_capture_application(application_id)
@@ -157,6 +158,9 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
             def read_observed_game_snapshot(self, game_scope):
                 self.game_reads.append(game_scope)
                 return {**self.base.read_observed_snapshot(), "game_scope": scope}
+
+            def permit_scoped_operation_budget(self, game_scope, seconds):
+                self.permitted.append((game_scope, seconds))
 
             def prepare_capture_membership(self, season, weeks, *, game_scope=None):
                 if game_scope != scope:
@@ -190,6 +194,7 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
         elapsed[0] = 0
         second = step(port, scoped_run_seconds=90, monotonic=lambda: elapsed[0])
         self.assertEqual(port.game_reads, [scope] * 5)
+        self.assertEqual(port.permitted, [(scope, 90)] * 4)
         # Registration, two successful steps, and the stale attempt each
         # validate immutable sources once and re-read the original raw bytes.
         self.assertEqual(len(port.base.gets) - previous_object_reads, 4 * objects_per_bind)

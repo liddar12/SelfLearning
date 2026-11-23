@@ -19,6 +19,9 @@ from ..store.receipt_journal import JournalConflict
 from ..store.supabase_store import StoreConflict, StoreError
 
 
+SCOPED_CAPTURE_RUN_SECONDS = 90
+
+
 class CaptureApplicationBudgetExceeded(TimeoutError):
     """Leave active work pending; never terminalize or fabricate a result."""
 
@@ -30,16 +33,27 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                      or not 0 < max_run_seconds <= 45))):
             raise ValueError("invalid_capture_application_operation_budget")
         super().__init__(*args, **kwargs)
+        self._operation_started = None
         if max_run_seconds is not None:
             # Fixed per-instance/per-operation deadline. Never mutate another
             # worker's live port to install a temporary request wrapper.
-            end = monotonic() + max_run_seconds
+            self._operation_started = monotonic()
+            self._operation_deadline = self._operation_started + max_run_seconds
             request = self._request
             def bounded_request(*request_args, **request_kwargs):
-                if monotonic() >= end:
+                if monotonic() >= self._operation_deadline:
                     raise CaptureApplicationBudgetExceeded("capture_application_pending_operation_budget")
                 return request(*request_args, **request_kwargs)
             self._request = bounded_request
+
+    def permit_scoped_operation_budget(self, game_scope, seconds):
+        """Extend this request's existing transport deadline after scope validation."""
+        V.scope_from_document(game_scope)
+        if (type(seconds) not in (int, float) or not math.isfinite(seconds)
+                or not 45 < seconds <= SCOPED_CAPTURE_RUN_SECONDS):
+            raise ValueError("invalid_scoped_capture_operation_budget")
+        if self._operation_started is not None:
+            self._operation_deadline = self._operation_started + seconds
 
     def _application_rpc(self, name, data):
         # This is separate from _observed_rpc, whose strict version=1

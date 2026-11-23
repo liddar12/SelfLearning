@@ -12,7 +12,7 @@ import time
 
 from . import nfl_capture_application_v2 as V
 from . import nfl_capture_evidence as capture
-from .nfl_capture_application_journal import CaptureApplicationBudgetExceeded
+from .nfl_capture_application_journal import CaptureApplicationBudgetExceeded, SCOPED_CAPTURE_RUN_SECONDS
 from .nfl_capture_job import _PinnedJournal
 from .nfl_capture_labels import _frozen_entries
 from .nfl_observed_job import _now
@@ -31,9 +31,6 @@ class CaptureApplicationScopeMismatch(ValueError):
     """A known digest does not authorize a different configured producer."""
 
 
-SCOPED_CAPTURE_RUN_SECONDS = 90
-
-
 def _budget(seconds, monotonic, *, maximum=45, started=None):
     if (type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 < seconds <= maximum
             or not callable(monotonic)):
@@ -48,6 +45,12 @@ def _budget(seconds, monotonic, *, maximum=45, started=None):
 def _attempts(value):
     if type(value) is not int or not 1 <= value <= 5:
         raise ValueError("capture_application_attempts_must_be_1_to_5")
+
+
+def _permit_scoped_budget(journal, game_scope, seconds):
+    permit = getattr(journal, "permit_scoped_operation_budget", None)
+    if seconds > 45 and callable(permit):
+        permit(game_scope, seconds)
 
 
 def _warm(journal, period, check):
@@ -111,6 +114,7 @@ def register_capture_application(journal, request, raw_chunks, *, clock=_now, ma
             legacy_id = V.make_request(frozen["capture_request"])["application_id"]
             if journal.get_capture_application(legacy_id) is not None:
                 raise JournalConflict("capture_application_legacy_original_exists")
+            _permit_scoped_budget(journal, game_scope, max_run_seconds)
             _warm(journal, {"season": game_scope["season"], "weeks": [game_scope["week"]],
                             "game_scope": game_scope}, check)
         context = V.bind_context(journal, frozen, raw_chunks, clock=clock)
@@ -183,6 +187,7 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
             # The stored registration owns the scope. Both clocks start before
             # its first lookup, and retries share the original deadline.
             check = scoped_check
+            _permit_scoped_budget(journal, game_scope, scoped_run_seconds)
         snapshot = None
         try:
             _warm(journal, seal, check)
