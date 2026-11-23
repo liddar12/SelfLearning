@@ -90,22 +90,22 @@ class Journal:
 
 
 def journal_fixture(*, vintages=2, lines=(39.5, 59.5), player="Fixture Receiver",
-                    player_id=RECEIVER_APP_ID, watermark="100"):
+                    player_id=RECEIVER_APP_ID, watermark="100", game_id="g6"):
     documents, objects = [], {}
     for vintage in range(vintages):
         created, recorded = f"2026-10-17T{12 + vintage:02d}:00:00Z", f"2026-10-17T{12 + vintage:02d}:01:00Z"
         base = {"player": player, "position": "WR", "team": "SEA", "gsis_id": player_id,
-                "game_id": "g6", "market": "wr_rec_yds", "side": "home", "direction": "over", "comparison_operator": "gte"}
+                "game_id": game_id, "market": "wr_rec_yds", "side": "home", "direction": "over", "comparison_operator": "gte"}
         rungs, rows = [], []
         for line in lines:
-            key = [2026, "g6", player_id, "wr_rec_yds", format(line, ".12g"), "home", "over", "gte"]
-            source = {"version": 1, "contract_id": fingerprint(key), "season": 2026, "week": 6, "game_id": "g6",
+            key = [2026, game_id, player_id, "wr_rec_yds", format(line, ".12g"), "home", "over", "gte"]
+            source = {"version": 1, "contract_id": fingerprint(key), "season": 2026, "week": 6, "game_id": game_id,
                 "player_id": player_id, "market": "wr_rec_yds", "line": line, "side": "home", "direction": "over", "comparison_operator": "gte",
                 "base_prob": .5, "served_prob": .5, "base_model_version": "fixture-base", "calibrator_version": fingerprint(None), "calibrator": None,
                 "forecast_created_utc": created, "source_snapshot_id": fingerprint([created]), "source_timestamps": {"fixture": created},
                 "generation_sha": "synthetic-local", "publication_status": "generated_unverified",
                 "features": {"market": "wr_rec_yds", "line": line, "mu": 80, "sd": 30, "z": (80 - line) / 30, "p_team": .6,
-                             "calibration": {"a": 0, "b": 0, "c": 0}, "correlation_tags": ["game:g6"]}}
+                             "calibration": {"a": 0, "b": 0, "c": 0}, "correlation_tags": [f"game:{game_id}"]}}
             source["receipt_id"] = fingerprint(source)
             rung = {"line": line, "model_prob": .5, "selection": f"Fixture {line}+ yards", "learning_receipt": source}
             rungs.append(rung)
@@ -114,7 +114,7 @@ def journal_fixture(*, vintages=2, lines=(39.5, 59.5), player="Fixture Receiver"
                          "kickoff_utc": "2026-10-18T20:25:00Z", "recorded_utc": recorded, "publication_status": "generated_unverified"})
         payloads = {"leg_pool": {"season": 2026, "week": 6, "generated_utc": created, "base_model_version": "fixture-base",
                                  "players": [{**base, "rungs": rungs}]},
-                    "schedule": {"season": 2026, "games": [{"game_id": "g6", "week": 6, "home": "SEA", "away": "LAR",
+                    "schedule": {"season": 2026, "games": [{"game_id": game_id, "week": 6, "home": "SEA", "away": "LAR",
                                   "status": "STATUS_SCHEDULED", "kickoff_utc": "2026-10-18T20:25:00Z"}]}, "parlay_calibration": None}
         refs = {}
         for name, payload in payloads.items():
@@ -214,6 +214,73 @@ class CaptureLabelBindingTests(unittest.TestCase):
             self.assertEqual(outcome["producer_trace"]["identity_crosswalk"],
                              result["observed_legs"][0]["identity_crosswalk"])
             self.assertEqual(outcome["source_observations"]["nflverse.rosters"]["observation_id"], roster_id)
+
+    def test_game_scope_keeps_every_line_and_vintage_and_excludes_neighbor_game(self):
+        target, other = journal_fixture(), journal_fixture(game_id="other")
+        target_ids = sorted(row["receipt_id"] for row in target.snapshot["receipts"])
+        target.snapshot["receipts"].extend(other.snapshot["receipts"])
+        target.snapshot["generation_records"].extend(other.snapshot["generation_records"])
+        target.objects.update(other.objects)
+        score = E.encoded({"season": {"year": 2026}, "week": {"number": 6},
+                           "events": [E.event(), E.event("other")]})
+        envelope, objects = good_capture(score_raw={6: score},
+            score_audits={6: E.score_audit(events=2, normalized_games=2, final_games=2)},
+            global_audit={"cross_week_conflicting_game_ids": [], "quarantined_game_ids": [],
+                          "normalized_games": 2})
+        raw = lambda key: E.stream(objects[key])
+        scope = B.CaptureGameScope(2026, 6, "g6")
+        staged = B.bind_game_capture_labels(target, envelope, raw, scope)
+        self.assertEqual(target.reads, 1)
+        self.assertEqual(len(staged["groups"]), 1)
+        self.assertEqual(staged["groups"][0]["receipt_ids"], target_ids)
+        self.assertEqual({row["game_id"] for row in staged["source_receipts"]}, {"g6"})
+        self.assertEqual(staged["game_scope_id"], fingerprint(scope.document()))
+        other_scope = B.bind_game_capture_labels(target, envelope, raw, B.CaptureGameScope(2026, 6, "other"))
+        self.assertNotEqual(other_scope["game_scope_id"], staged["game_scope_id"])
+        self.assertNotEqual(other_scope["membership_id"], staged["membership_id"])
+        self.assertFalse(staged["durable_ack"])
+        unstaged = B.bind_capture_labels(target, envelope, raw)
+        self.assertEqual(len(unstaged["groups"]), 2)
+        self.assertNotIn("game_scope_id", unstaged)
+
+    def test_game_scope_rejects_orphan_receipts_and_requires_verified_final(self):
+        scope = B.CaptureGameScope(2026, 6, "g6")
+        envelope, objects = good_capture()
+        raw = lambda key: E.stream(objects[key])
+        journal = journal_fixture()
+        journal.snapshot["generation_records"].pop()
+        with self.assertRaisesRegex(B.CaptureBindingError, "unlocatable_missing_generation_membership"):
+            B.bind_game_capture_labels(journal, envelope, raw, scope)
+        with self.assertRaisesRegex(B.CaptureBindingError, "capture_game_scope_outside_envelope"):
+            B.bind_game_capture_labels(journal, envelope, raw, B.CaptureGameScope(2026, 7, "g6"))
+        with self.assertRaisesRegex(B.CaptureBindingError, "capture_game_scope_requires_exact_final"):
+            B.bind_game_capture_labels(journal, envelope, raw, B.CaptureGameScope(2026, 6, "missing"))
+        with self.assertRaisesRegex(B.CaptureBindingError, "invalid_capture_game_scope"):
+            B.bind_game_capture_labels(journal, envelope, raw, {"game_id": "g6", "receipt_ids": []})
+        nonfinal = E.encoded({"season": {"year": 2026}, "week": {"number": 6},
+                             "events": [E.event(status="STATUS_SCHEDULED")]})
+        envelope, objects = good_capture(score_raw={6: nonfinal},
+            score_audits={6: E.score_audit(final_games=0, nonfinal_games=1)})
+        with self.assertRaisesRegex(B.CaptureBindingError, "capture_game_scope_requires_exact_final"):
+            B.bind_game_capture_labels(journal, envelope, lambda key: E.stream(objects[key]), scope)
+        self.assertEqual(journal.reads, 1)
+
+    def test_frozen_generation_indexes_once_and_preserves_duplicate_rung_refusal(self):
+        journal = journal_fixture(vintages=3, lines=(19.5, 39.5, 59.5, 79.5))
+        envelope, objects = good_capture()
+        with mock.patch.object(B, "_index_frozen_generation", wraps=B._index_frozen_generation) as index:
+            output = bind(journal, envelope, objects)
+        self.assertEqual(index.call_count, 3)
+        self.assertEqual(len(output["observed_legs"]), 12)
+
+        record = journal.snapshot["generation_records"][0]
+        pool_id = record["payload"]["generations"][0]["source_snapshots"]["leg_pool"]
+        rungs = journal.objects[pool_id]["payload"]["players"][0]["rungs"]
+        change_frozen_player(journal, 0, rungs=[*rungs, rungs[0]])
+        withheld = bind(journal, envelope, objects)
+        self.assertEqual(withheld["observed_legs"], [])
+        self.assertEqual(len(withheld["source_receipts"]), 12)
+        self.assertEqual(withheld["groups"][0]["reason_codes"], ["missing_or_ambiguous_frozen_player"])
 
     def test_legacy_three_source_capture_is_valid_and_cannot_label(self):
         envelope, objects = E.fixture(stats=E.STATS.replace(b",,,NA", b",,,80"))
