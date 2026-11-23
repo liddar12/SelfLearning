@@ -226,8 +226,11 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         scope = V.scope_from_document(game_scope).document()
         def read(view, *, watermark=None):
             selected_view = "game_generations" if view == "generations" else view
+            # A receipt can have several immutable correction/observation
+            # records. The 10k membership cap is not a history-record cap.
+            maximum_rows = 256 if view == "generations" else 10000 if view == "receipts" else 100000
             return self._read(selected_view, key=V.bounded(scope, 1024), watermark=watermark,
-                              rpc_operation="read_game", max_rows=256 if view == "generations" else 10000,
+                              rpc_operation="read_game", max_rows=maximum_rows,
                               max_bytes=64 * 1024 * 1024)
         return self._load_observed_snapshot(watermark, read=read, game_scope=scope)
 
