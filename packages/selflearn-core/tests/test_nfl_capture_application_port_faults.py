@@ -80,7 +80,7 @@ class ApplicationPortFaultTests(unittest.TestCase):
         with patch.object(journal, "_load_observed_snapshot", side_effect=load), patch.object(journal, "_read") as read:
             journal._load_observed_game_snapshot(scope, "100")
         expected = [("receipts", 64, 10000), ("game_generations", 80, 256),
-                    ("revisions", 64, 10000), ("observations", 64, 10000)]
+                    ("revisions", 64, 100000), ("observations", 64, 100000)]
         self.assertEqual([(args[0], kwargs["max_bytes"] // (1024 * 1024), kwargs["max_rows"])
                           for args, kwargs in read.call_args_list], expected)
         self.assertTrue(all(kwargs["watermark"] == "100" and kwargs["rpc_operation"] == "read_game"
