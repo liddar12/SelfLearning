@@ -62,8 +62,13 @@ jobs:
           tests/postgres/capture_delivery.test.mjs
           tests/postgres/capture_application.test.mjs
           tests/postgres/game_scoped_capture.test.mjs
-      - name: Run Python discovery and lookup adapters through actual PostgreSQL-WASM
-        run: python -m pytest tests/postgres/test_learning_job_discovery_adapter.py tests/postgres/test_learning_job_find_adapter.py -q -rs
+          tests/postgres/batched_objects.test.mjs
+      - name: Run Python discovery, object reads and lookup through PostgreSQL-WASM
+        run: >-
+          python -m pytest
+          tests/postgres/test_learning_job_discovery_adapter.py
+          tests/postgres/test_learning_job_find_adapter.py
+          tests/postgres/test_batched_object_adapter.py -q -rs
       - name: Test hosted authorization, persistence contracts and test tooling
         run: python -m pytest tests packages/selflearn-core/tests/test_supabase_store.py --ignore=tests/postgres -q -rs
       - name: Declare independent release evidence still required
