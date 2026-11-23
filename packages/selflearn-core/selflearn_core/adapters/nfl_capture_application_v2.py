@@ -14,7 +14,8 @@ from . import nfl_capture_evidence as capture
 from . import nfl_capture_delivery_journal as delivery
 from .nfl_capture_delivery_job import _pointer_reader
 from .nfl_capture_job import _PinnedJournal
-from .nfl_capture_labels import POLICY as BINDING_POLICY, bind_capture_labels
+from .nfl_capture_labels import (GAME_SCOPE_POLICY, POLICY as BINDING_POLICY, CaptureGameScope,
+                                 bind_capture_labels, bind_game_capture_labels)
 from .nfl_observed_job import _now
 from .nfl_observed_resolution import resolve_observed
 from ..probability_receipts import fingerprint, instant
@@ -39,21 +40,42 @@ def sequence(value):
     return result
 
 
-def make_request(capture_request):
+def scope_from_document(value):
+    if (type(value) is not dict or set(value) != {"policy", "season", "week", "game_id"}
+            or value["policy"] != GAME_SCOPE_POLICY):
+        raise ValueError("invalid_capture_game_scope")
+    return CaptureGameScope(value["season"], value["week"], value["game_id"])
+
+
+def capture_intent_id(request):
+    original = request["capture_request"]["delivery_id"]
+    if "game_scope" not in request:
+        return original
+    return fingerprint({"capture_intent_id": original, "game_scope": request["game_scope"]})
+
+
+def make_request(capture_request, *, game_scope=None):
     original = delivery._request(copy.deepcopy(capture_request))
     identity = {"version": 2, "kind": "nfl.capture_application.v2",
                 "capture_intent_id": original["delivery_id"], "execution_policy": EXECUTION_POLICY}
     value = {"version": 2, "kind": "nfl.capture_application_request.v2",
-             "execution_policy": EXECUTION_POLICY, "capture_request": original,
-             "application_id": fingerprint(identity)}
+             "execution_policy": EXECUTION_POLICY, "capture_request": original}
+    if game_scope is not None:
+        scope = scope_from_document(game_scope)
+        manifest = original["envelope"]["manifest"]
+        if scope.season != manifest["season"] or scope.week not in manifest["weeks"]:
+            raise ValueError("capture_game_scope_outside_envelope")
+        identity["game_scope"] = value["game_scope"] = scope.document()
+    value["application_id"] = fingerprint(identity)
     bounded(value, MAX_REQUEST_BYTES)
     return value
 
 
 def validate_request(value):
-    if type(value) is not dict or set(value) != {"version", "kind", "execution_policy", "capture_request", "application_id"}:
+    keys = {"version", "kind", "execution_policy", "capture_request", "application_id"}
+    if type(value) is not dict or set(value) not in (keys, keys | {"game_scope"}):
         raise ValueError("invalid_capture_application_request")
-    expected = make_request(value["capture_request"])
+    expected = make_request(value["capture_request"], game_scope=value.get("game_scope"))
     if bounded(expected, MAX_REQUEST_BYTES) != bounded(value, MAX_REQUEST_BYTES):
         raise ValueError("invalid_capture_application_request")
     return expected
@@ -67,7 +89,7 @@ def step_id(application_id, ordinal):
                         "application_id": application_id, "ordinal": ordinal})
 
 
-def source_vector_id(envelope):
+def source_vector_id(envelope, game_scope=None):
     """Content/observed-instant vector, not provider-authentication evidence."""
     _manifest, sources, _objects = capture._preflight(envelope, capture.DEFAULT_MAX_TOTAL_BYTES)
     entries, seen = [], set()
@@ -79,13 +101,18 @@ def source_vector_id(envelope):
         clock = instant(source["observed_utc"]).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         entries.append([*key, source["raw_sha256"], source["raw_bytes"], clock])
     entries.sort(key=lambda row: (row[0], row[1], -1 if row[2] is None else row[2]))
-    return fingerprint(entries)
+    if game_scope is None:
+        return fingerprint(entries)
+    return fingerprint({"sources": entries, "game_scope": scope_from_document(game_scope).document()})
 
 
-def membership_id(groups):
+def membership_id(groups, game_scope=None):
     """v2 global order is group-ID order, not v1 binder scope order."""
-    return fingerprint({"binding_policy": BINDING_POLICY,
-                        "groups": [group["membership_id"] for group in sorted(groups, key=lambda group: group["group_id"])]})
+    identity = {"binding_policy": BINDING_POLICY,
+                "groups": [group["membership_id"] for group in sorted(groups, key=lambda group: group["group_id"])]}
+    if game_scope is not None:
+        identity["game_scope_id"] = fingerprint(scope_from_document(game_scope).document())
+    return fingerprint(identity)
 
 
 def common_fact(observation):
@@ -106,29 +133,61 @@ def batch_wire(application_id, ordinal, groups, observations, proposals, waterma
     return data, len(capacity._encode(data, maximum, outer=True).encode("utf-8"))
 
 
-def _snapshot(journal):
-    snapshot = copy.deepcopy(journal.read_observed_snapshot())
+def _snapshot(journal, game_scope=None):
+    if game_scope is None:
+        read = getattr(journal, "read_observed_snapshot", None)
+        if not callable(read):
+            raise ValueError("invalid_capture_application_boundary")
+        snapshot = read()
+    else:
+        read_game = getattr(journal, "read_observed_game_snapshot", None)
+        if not callable(read_game):
+            raise ValueError("capture_game_snapshot_port_unavailable")
+        snapshot = read_game(scope_from_document(game_scope).document())
+    return _checked_snapshot(copy.deepcopy(snapshot), game_scope)
+
+
+def _checked_snapshot(snapshot, game_scope):
     if (type(snapshot) is not dict or type(snapshot.get("version")) is not int or snapshot["version"] != 1
             or any(type(snapshot.get(key)) is not list for key in
                    ("receipts", "generation_records", "observations", "observation_records", "revisions"))):
         raise ValueError("invalid_capture_application_snapshot")
     sequence(snapshot.get("watermark"))
+    if game_scope is not None:
+        scope = scope_from_document(game_scope)
+        event_id = f"nfl:{scope.season}:game:{scope.game_id}"
+        if bounded(snapshot.get("game_scope"), 1024) != bounded(scope.document(), 1024) or any(
+                type(row) is not dict or (row.get("domain"), row.get("task"), row.get("event_id"))
+                != ("nfl", "nfl.parlay_leg", event_id) for row in snapshot["receipts"]):
+            raise ValueError("capture_game_snapshot_scope_mismatch")
     return snapshot
 
 
-def bind_context(journal, request, raw_chunks, *, clock=_now, max_total_bytes=capture.DEFAULT_MAX_TOTAL_BYTES):
-    """Re-read COMPLETE authority and reverify raw input; never accept a subset."""
+def bind_context(journal, request, raw_chunks, *, clock=_now, max_total_bytes=capture.DEFAULT_MAX_TOTAL_BYTES,
+                 snapshot=None):
+    """Re-read complete authority for the request, then reverify raw input."""
     if (not callable(clock) or not callable(raw_chunks) or type(max_total_bytes) is not int
             or not 0 <= max_total_bytes <= capture.DEFAULT_MAX_TOTAL_BYTES
-            or any(not callable(getattr(journal, key, None)) for key in ("read_observed_snapshot", "get_object"))):
+            or not callable(getattr(journal, "get_object", None))):
         raise ValueError("invalid_capture_application_boundary")
     request = validate_request(request)
     original = request["capture_request"]
+    game_scope = request.get("game_scope")
     processing = clock()
     instant(processing)
-    snapshot = _snapshot(journal)
-    staged = bind_capture_labels(_PinnedJournal(journal, snapshot), original["envelope"],
-                                 _pointer_reader(original, raw_chunks), max_total_bytes=max_total_bytes)
+    if snapshot is None:
+        snapshot = _snapshot(journal, game_scope)
+    elif game_scope is None:
+        raise ValueError("capture_application_requires_fresh_snapshot")
+    else:
+        snapshot = _checked_snapshot(snapshot, game_scope)
+    journal_at_fence = _PinnedJournal(journal, snapshot)
+    envelope, raw_reader = original["envelope"], _pointer_reader(original, raw_chunks)
+    if game_scope is None:
+        staged = bind_capture_labels(journal_at_fence, envelope, raw_reader, max_total_bytes=max_total_bytes)
+    else:
+        staged = bind_game_capture_labels(journal_at_fence, envelope, raw_reader,
+                                          scope_from_document(game_scope), max_total_bytes=max_total_bytes)
     if staged["membership_watermark"] != snapshot["watermark"]:
         raise ValueError("capture_application_binding_fence_mismatch")
     groups = staged["groups"]
@@ -147,8 +206,10 @@ def bind_context(journal, request, raw_chunks, *, clock=_now, max_total_bytes=ca
             if rid in owners:
                 raise ValueError("duplicate_capture_application_member")
             owners[rid] = group["group_id"]
-    if len(owners) > MAX_MEMBERS or staged["membership_id"] != fingerprint(
-            {"binding_policy": BINDING_POLICY, "groups": [g["membership_id"] for g in groups]}):
+    staged_identity = {"binding_policy": BINDING_POLICY, "groups": [g["membership_id"] for g in groups]}
+    if game_scope is not None:
+        staged_identity["game_scope_id"] = fingerprint(game_scope)
+    if len(owners) > MAX_MEMBERS or staged["membership_id"] != fingerprint(staged_identity):
         raise ValueError("invalid_capture_application_membership")
     resolved = resolve_observed(snapshot["receipts"], staged["source_receipts"], staged["observed_legs"],
         staged["game_observations"], observed_utc=processing, existing_revisions=snapshot["revisions"],
@@ -196,7 +257,7 @@ def prepare_seal(context, *, max_batch_members=500, max_batch_observations=500,
               "revisions": capacity._cap(max_batch_revisions, MAX_BATCH_ITEMS),
               "rpc_bytes": capacity._cap(max_batch_bytes, MAX_RPC_BYTES)}
     request, staged = context["request"], context["staged"]
-    application_id = request["application_id"]
+    application_id, game_scope = request["application_id"], request.get("game_scope")
     groups, ready = [], []
     for original in sorted(staged["groups"], key=lambda group: group["group_id"]):
         group = {key: copy.deepcopy(original[key]) for key in ("group_id", *MEMBERSHIP_KEYS, "membership_id")}
@@ -253,12 +314,15 @@ def prepare_seal(context, *, max_batch_members=500, max_batch_observations=500,
         current.append(group); results.append(result); obs.extend(new_obs); rev.extend(new_rev)
     flush()
     seal = {"version": 2, "kind": "nfl.capture_application_seal.v2", "application_id": application_id,
-            "request_id": fingerprint(request), "capture_intent_id": request["capture_request"]["delivery_id"],
+            "request_id": fingerprint(request), "capture_intent_id": capture_intent_id(request),
             "capture_id": request["capture_request"]["capture_id"], "execution_policy": EXECUTION_POLICY,
-            "binding_policy": BINDING_POLICY, "season": staged["season"], "weeks": staged["weeks"],
-            "source_watermark": context["snapshot"]["watermark"], "membership_id": membership_id(groups),
-            "source_vector_id": source_vector_id(request["capture_request"]["envelope"]), "limits": limits,
+            "binding_policy": BINDING_POLICY, "season": staged["season"],
+            "weeks": staged["weeks"] if game_scope is None else [game_scope["week"]],
+            "source_watermark": context["snapshot"]["watermark"], "membership_id": membership_id(groups, game_scope),
+            "source_vector_id": source_vector_id(request["capture_request"]["envelope"], game_scope), "limits": limits,
             "groups": groups, "batches": batches}
+    if game_scope is not None:
+        seal["game_scope"] = game_scope
     seal["seal_id"] = fingerprint(seal)
     bounded(seal, MAX_SEAL_BYTES)
     # Registration RPC itself has the same escaped 8 MiB transport ceiling.

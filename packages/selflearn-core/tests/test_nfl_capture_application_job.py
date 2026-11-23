@@ -138,6 +138,41 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
         self.assertEqual(len(port.warms),warm_count)
         self.assertNotEqual(first["step_id"],second["step_id"])
 
+    def test_game_application_registers_steps_and_recovers_without_global_reads(self):
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+
+        class GamePort(FakeApplicationPort):
+            def __init__(self):
+                super().__init__()
+                self.request = V.make_request(self.request["capture_request"], game_scope=scope)
+                self.game_reads = []
+
+            def get_capture_application(self, application_id):
+                existing = super().get_capture_application(application_id)
+                return existing if existing is not None and existing["request"]["application_id"] == application_id else None
+
+            def read_observed_snapshot(self):
+                raise AssertionError("unexpected global read")
+
+            def read_observed_game_snapshot(self, game_scope):
+                self.game_reads.append(game_scope)
+                return {**self.base.read_observed_snapshot(), "game_scope": scope}
+
+            def prepare_capture_membership(self, season, weeks, *, game_scope=None):
+                if game_scope != scope:
+                    raise AssertionError("scoped membership preparation omitted or changed")
+                return super().prepare_capture_membership(season, weeks)
+
+        port = GamePort()
+        acknowledgement = register(port, max_batch_members=4)
+        first, second = step(port), step(port)
+        self.assertEqual(port.game_reads, [scope] * 3)
+        self.assertEqual(acknowledgement["capture_intent_id"], V.capture_intent_id(port.request))
+        self.assertNotEqual(first["step_id"], second["step_id"])
+        self.assertTrue(port.application["terminal"]["complete_success"])
+        self.assertEqual(register(port), acknowledgement)
+        self.assertEqual(port.game_reads, [scope] * 3)
+
     def test_changed_fence_rebinds_every_raw_source_and_bounded_attempts_exhaust(self):
         def once(port):
             port.before_register=None;port.base.snapshot["watermark"]=str(int(port.base.snapshot["watermark"])+1)

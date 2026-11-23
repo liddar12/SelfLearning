@@ -132,7 +132,7 @@ def _safe_reason(exc):
     return reason if _REASON.fullmatch(reason) else "invalid_frozen_member"
 
 
-def _ack(record, receipt_map):
+def _ack(record, receipt_map, scoped_game=None):
     doc, ack = record["payload"], record["ack"]
     rows = doc.get("receipts")
     if (type(rows) is not list or type(ack) is not dict
@@ -153,9 +153,17 @@ def _ack(record, receipt_map):
             _fail("invalid_generation_ack_receipt")
         sid, rid = _hash(row["source_receipt_id"]), _hash(row["receipt_id"])
         known = receipt_map.get(rid)
-        if known is None or known["source_receipt_id"] != sid:
+        if known is None and scoped_game is not None:
+            source = indexed.get(sid, {}).get("learning_receipt")
+            if (type(source) is not dict or source.get("receipt_id") != sid
+                    or type(source.get("game_id")) is not str or not _GAME_ID.fullmatch(source["game_id"])
+                    or type(source.get("season")) is not int
+                    or (source["season"], source["game_id"]) == (scoped_game.season, scoped_game.game_id)):
+                _fail("generation_ack_missing_persisted_receipt")
+        elif known is None or known["source_receipt_id"] != sid:
             _fail("generation_ack_missing_persisted_receipt")
-        accepted[sid] = known
+        else:
+            accepted[sid] = known
         partition.append(sid)
     for row in ack["rejections"]:
         if type(row) is not dict or not isinstance(row.get("reason"), str) or not row["reason"].strip():
@@ -212,6 +220,11 @@ def _frozen_entries(journal, season, weeks, game_scope=None):
             or type(snapshot.get("watermark")) is not str or not _SEQ.fullmatch(snapshot["watermark"])
             or type(snapshot.get("receipts")) is not list or type(snapshot.get("generation_records")) is not list):
         _fail("invalid_complete_journal_snapshot")
+    scoped_snapshot = None
+    if "game_scope" in snapshot:
+        if game_scope is None or snapshot["game_scope"] != game_scope.document():
+            _fail("capture_game_snapshot_scope_mismatch")
+        scoped_snapshot = game_scope
     receipt_map, scoped_receipts, original_ids = {}, {}, set()
     for receipt in snapshot["receipts"]:
         validate_probability_receipt(receipt)
@@ -252,7 +265,7 @@ def _frozen_entries(journal, season, weeks, game_scope=None):
             _fail("generation_envelope_hash_mismatch")
         records.add(oid)
         instant(record["recorded_utc"])
-        indexed, accepted = _ack(record, receipt_map)
+        indexed, accepted = _ack(record, receipt_map, scoped_snapshot)
         relevant = {sid: stored for sid, stored in accepted.items() if stored["receipt_id"] in scoped_receipts}
         seen.update(stored["receipt_id"] for stored in relevant.values())
         context = None
