@@ -37,7 +37,10 @@ class Opener:
         scoped_verification = request.get_method() == "POST" and request.full_url.endswith((
             "/selflearn_journal_prepare_capture_membership_v3", "/selflearn_journal_register_capture_application_v3",
         ))
-        assert timeout == (22 if scoped_verification else 12)
+        scoped_history = request.full_url.endswith("/selflearn_journal_read_observed_game_v1") and (
+            request.get_header("Accept-encoding") == "gzip"
+        )
+        assert timeout == (22 if scoped_verification or scoped_history else 12)
         self.requests.append(request)
         self.response = Response(self.payload, self.encoding)
         return self.response
