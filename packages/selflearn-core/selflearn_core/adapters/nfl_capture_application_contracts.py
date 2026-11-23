@@ -117,19 +117,27 @@ def _fact(value, scope, seal, request):
         raise ValueError("capture_application_fact_clock_order")
 
 
+def seal_keys(request):
+    return SEAL_KEYS if "game_scope" not in request else SEAL_KEYS | {"game_scope"}
+
+
 def validate_seal(seal, request):
     request = V.validate_request(request)
-    keys(seal, SEAL_KEYS)
+    game_scope = request.get("game_scope")
+    keys(seal, seal_keys(request))
+    if game_scope is not None and V.bounded(seal["game_scope"], 1024) != V.bounded(game_scope, 1024):
+        raise ValueError("invalid_capture_application_seal_game_scope")
     if (type(seal["version"]) is not int or seal["version"] != 2 or seal["kind"] != "nfl.capture_application_seal.v2"
             or seal["execution_policy"] != V.EXECUTION_POLICY or seal["binding_policy"] != V.BINDING_POLICY
             or seal["application_id"] != request["application_id"] or seal["request_id"] != fingerprint(request)
-            or seal["capture_intent_id"] != request["capture_request"]["delivery_id"]
+            or seal["capture_intent_id"] != V.capture_intent_id(request)
             or seal["capture_id"] != request["capture_request"]["capture_id"]):
         raise ValueError("invalid_capture_application_seal_identity")
     manifest = request["capture_request"]["envelope"]["manifest"]
+    weeks = manifest["weeks"] if game_scope is None else [game_scope["week"]]
     if (type(seal["season"]) is not int or seal["season"] != manifest["season"]
-            or V.bounded(seal["weeks"], 1024) != V.bounded(manifest["weeks"], 1024)
-            or seal["source_vector_id"] != V.source_vector_id(request["capture_request"]["envelope"])):
+            or V.bounded(seal["weeks"], 1024) != V.bounded(weeks, 1024)
+            or seal["source_vector_id"] != V.source_vector_id(request["capture_request"]["envelope"], game_scope)):
         raise ValueError("capture_application_seal_period_or_vector_mismatch")
     V.sequence(seal["source_watermark"])
     keys(seal["limits"], {"members", "observations", "revisions", "rpc_bytes"})
@@ -148,7 +156,9 @@ def validate_seal(seal, request):
         capacity._group(original)
         if any(len(value) > 200 for value in group["scope"][1:]):
             raise ValueError("capture_application_scope_text_work_limit")
-        if group["scope"][0] != seal["season"] or members.intersection(group["receipt_ids"]) or sources.intersection(group["source_receipt_ids"]):
+        if (group["scope"][0] != seal["season"]
+                or (game_scope is not None and group["scope"][1] != game_scope["game_id"])
+                or members.intersection(group["receipt_ids"]) or sources.intersection(group["source_receipt_ids"])):
             raise ValueError("duplicate_or_foreign_capture_application_members")
         gids.append(group["group_id"]); members.update(group["receipt_ids"]); sources.update(group["source_receipt_ids"])
         if group["status"] == "planned":
@@ -161,7 +171,7 @@ def validate_seal(seal, request):
             planned[group["group_id"]] = group
         elif any(group[key] is not None for key in ("batch_ordinal", "fact", "fact_id")):
             raise ValueError("capture_application_withheld_group_has_assignment")
-    if gids != sorted(set(gids)) or len(members) > V.MAX_MEMBERS or seal["membership_id"] != V.membership_id(groups):
+    if gids != sorted(set(gids)) or len(members) > V.MAX_MEMBERS or seal["membership_id"] != V.membership_id(groups, game_scope):
         raise ValueError("invalid_capture_application_global_membership")
     assigned = []
     for ordinal, batch in enumerate(batches):

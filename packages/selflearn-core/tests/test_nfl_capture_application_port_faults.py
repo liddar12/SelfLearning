@@ -68,6 +68,24 @@ def port(fake,**kwargs):
 
 
 class ApplicationPortFaultTests(unittest.TestCase):
+    def test_scoped_generation_wire_cap_is_separate_from_other_views(self):
+        journal = port(Pages())
+        scope = {"policy": "nfl.capture_game_scope_v1", "season": 2026, "week": 6, "game_id": "g6"}
+
+        def load(watermark, *, read, game_scope):
+            self.assertEqual(game_scope, scope)
+            for view in ("receipts", "generations", "revisions", "observations"):
+                read(view, watermark=watermark)
+
+        with patch.object(journal, "_load_observed_snapshot", side_effect=load), patch.object(journal, "_read") as read:
+            journal._load_observed_game_snapshot(scope, "100")
+        expected = [("receipts", 64, 10000), ("game_generations", 80, 256),
+                    ("revisions", 64, 100000), ("observations", 64, 100000)]
+        self.assertEqual([(args[0], kwargs["max_bytes"] // (1024 * 1024), kwargs["max_rows"])
+                          for args, kwargs in read.call_args_list], expected)
+        self.assertTrue(all(kwargs["watermark"] == "100" and kwargs["rpc_operation"] == "read_game"
+                            for _args, kwargs in read.call_args_list))
+
     def test_membership_prewarm_is_only_a_bounded_derived_cache_hint(self):
         class CacheRPC:
             def __init__(self):
@@ -177,6 +195,25 @@ class ApplicationPortFaultTests(unittest.TestCase):
             self.assertNotIn("SECRET",str(caught.exception))
             if isinstance(error,StoreError) and (type(error.status) is not int or not 400<=error.status<=599):
                 self.assertEqual(caught.exception.status,503)
+
+    def test_sealed_game_budget_extends_only_the_scoped_request_from_its_original_start(self):
+        clock = [100]
+        fake = Pages()
+        scoped = port(fake, max_run_seconds=45, monotonic=lambda: clock[0])
+        legacy = port(fake, max_run_seconds=45, monotonic=lambda: clock[0])
+        game = {"policy": "nfl.capture_game_scope_v1", "season": 2026, "week": 6, "game_id": "g6"}
+        for scope, seconds in ((None, 90), (game, 121), (game, 45), (game, True)):
+            with self.assertRaises(ValueError):
+                scoped.permit_scoped_operation_budget(scope, seconds)
+        clock[0] = 130
+        scoped.permit_scoped_operation_budget(game, 90)
+        clock[0] = 150
+        self.assertEqual(scoped.get_capture_application(fake.seal["application_id"]), fake.application())
+        with self.assertRaises(CaptureApplicationBudgetExceeded):
+            legacy.get_capture_application(fake.seal["application_id"])
+        clock[0] = 190
+        with self.assertRaises(CaptureApplicationBudgetExceeded):
+            scoped.get_capture_application(fake.seal["application_id"])
 
     def test_invalid_constructor_budget_opens_no_resource_and_deadline_does_not_mutate_other_port(self):
         for value in (True,False,0,-1,46,float("nan"),float("inf"),"45"):

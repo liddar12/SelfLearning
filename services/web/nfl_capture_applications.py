@@ -11,7 +11,7 @@ from selflearn_core.adapters import nfl_capture_application_v2 as V
 from selflearn_core.adapters import nfl_capture_application_contracts as C
 from selflearn_core.adapters.nfl_capture_application_job import (
     register_capture_application, commit_capture_application_step, CaptureApplicationStopped,
-    CaptureApplicationScopeMismatch,
+    CaptureApplicationScopeMismatch, SCOPED_CAPTURE_RUN_SECONDS,
 )
 from selflearn_core.adapters.nfl_capture_application_journal import CaptureApplicationBudgetExceeded
 from selflearn_core.store.receipt_journal import JournalConflict
@@ -45,7 +45,8 @@ class CaptureApplicationReceiver(CaptureReceiver):
         request = V.validate_request(value)
         if not self._scope(request):
             raise CaptureApplicationScopeMismatch("capture_application_not_found_in_configured_scope")
-        ack = register_capture_application(self.journal, request, self._raw(request),
+        deadline = 45 if request.get("game_scope") is None else SCOPED_CAPTURE_RUN_SECONDS
+        ack = register_capture_application(self.journal, request, self._raw(request), max_run_seconds=deadline,
             max_batch_members=DEFAULT_BATCH_MEMBERS,
             max_batch_observations=DEFAULT_BATCH_MEMBERS,
             max_batch_revisions=DEFAULT_BATCH_MEMBERS)
@@ -66,7 +67,8 @@ class CaptureApplicationReceiver(CaptureReceiver):
                 pointers = {value["object_id"]: value for value in application["request"]["capture_request"]["raw_pointers"]}
             return self.evidence.object_chunks(pointers[oid])
         result = commit_capture_application_step(self.journal, application_id, step_id, raw,
-                                                 expected_scope=(self.destination_id, self.producer_id))
+                                                 expected_scope=(self.destination_id, self.producer_id),
+                                                 scoped_run_seconds=SCOPED_CAPTURE_RUN_SECONDS)
         return {"version": 2, "result": result, "scope": "batch_only"}
 
     def application(self, application_id, *, view="status", after=None, limit=100, ledger_watermark=None, step_id=None):

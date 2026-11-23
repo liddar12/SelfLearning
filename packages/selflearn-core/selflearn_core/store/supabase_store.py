@@ -7,6 +7,7 @@ The migration grants INSERT columns explicitly, making received_at server-owned.
 from __future__ import annotations
 
 import json
+import zlib
 from dataclasses import asdict
 from typing import Any, Iterator, Optional
 from urllib.error import HTTPError, URLError
@@ -34,6 +35,51 @@ class _NoRedirect(HTTPRedirectHandler):
         return None
 
 
+_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+_SCOPED_VERIFICATION_RPCS = frozenset({
+    "/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3",
+    "/rest/v1/rpc/selflearn_journal_register_capture_application_v3",
+})
+_COMPRESSED_SCOPED_READS = frozenset({
+    "/rest/v1/rpc/selflearn_journal_read_observed_game_v1",
+    "/rest/v1/rpc/selflearn_journal_read_objects_v1",
+})
+
+
+def _read_scoped_response(response):
+    """Bound both encoded and decoded bytes; preserve the original JSON bytes."""
+    encoding = (response.getheader("Content-Encoding", "identity") or "identity").strip().lower()
+    if encoding == "identity":
+        payload = response.read(_MAX_RESPONSE_BYTES + 1)
+        if len(payload) > _MAX_RESPONSE_BYTES:
+            raise StoreError(502)
+        return payload
+    if encoding != "gzip":
+        raise StoreError(502)
+    decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    chunks, wire_bytes, decoded_bytes = [], 0, 0
+    try:
+        while True:
+            block = response.read(min(65536, _MAX_RESPONSE_BYTES + 1 - wire_bytes))
+            if not block:
+                break
+            wire_bytes += len(block)
+            if wire_bytes > _MAX_RESPONSE_BYTES:
+                raise StoreError(502)
+            decoded = decoder.decompress(block, _MAX_RESPONSE_BYTES + 1 - decoded_bytes)
+            decoded_bytes += len(decoded)
+            if decoded_bytes > _MAX_RESPONSE_BYTES or decoder.unused_data:
+                raise StoreError(502)
+            chunks.append(decoded)
+        # EOF verifies the gzip checksum and length. Truncation, trailing bytes
+        # and concatenated members are refused instead of accepting a prefix.
+        if not decoder.eof or decoder.unconsumed_tail:
+            raise StoreError(502)
+    except zlib.error:
+        raise StoreError(502) from None
+    return b"".join(chunks)
+
+
 class SupabaseStore(StorageBackend):
     page_size = 500
 
@@ -58,6 +104,9 @@ class SupabaseStore(StorageBackend):
         if not path.startswith(("/rest/v1/", "/storage/v1/")) or ".." in path:
             raise ValueError("Invalid store path")
         headers = dict(self._headers)
+        scoped_compression = method == "POST" and path in _COMPRESSED_SCOPED_READS and not binary
+        if scoped_compression:
+            headers["Accept-Encoding"] = "gzip"
         body = raw
         if data is not None:
             body = json.dumps(data, allow_nan=False).encode()
@@ -68,11 +117,17 @@ class SupabaseStore(StorageBackend):
             headers["Prefer"] = "return=minimal"
         url = self._url + path + ("?" + urlencode(query) if query else "")
         req = Request(url, data=body, headers=headers, method=method)
+        # Scoped certification and registration have their own bounded
+        # 18s database deadline. Allow time to return each verified reply.
+        timeout = 22 if method == "POST" and path in _SCOPED_VERIFICATION_RPCS and not binary else 12
         try:
-            with self._opener.open(req, timeout=12) as response:
-                payload = response.read(8 * 1024 * 1024 + 1)
-                if len(payload) > 8 * 1024 * 1024:
-                    raise StoreError(502)
+            with self._opener.open(req, timeout=timeout) as response:
+                if scoped_compression:
+                    payload = _read_scoped_response(response)
+                else:
+                    payload = response.read(_MAX_RESPONSE_BYTES + 1)
+                    if len(payload) > _MAX_RESPONSE_BYTES:
+                        raise StoreError(502)
         except HTTPError as exc:
             if exc.code == 409:
                 raise StoreConflict() from None

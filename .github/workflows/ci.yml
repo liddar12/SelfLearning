@@ -61,16 +61,34 @@ jobs:
           tests/postgres/nfl_roster_capture_transport.test.mjs
           tests/postgres/capture_delivery.test.mjs
           tests/postgres/capture_application.test.mjs
-      - name: Run Python discovery and lookup adapters through actual PostgreSQL-WASM
-        run: python -m pytest tests/postgres/test_learning_job_discovery_adapter.py tests/postgres/test_learning_job_find_adapter.py -q -rs
+          tests/postgres/game_scoped_capture.test.mjs
+          tests/postgres/batched_objects.test.mjs
+          tests/postgres/scoped_journal_paging.test.mjs
+          tests/postgres/generation_authority_proofs.test.mjs
+          tests/postgres/game_cache_recycling.test.mjs
+      - name: Check out the immutable public NFL producer fixture
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          repository: liddar12/NFL2026
+          ref: fd8e8055dcfd60850e17a5029c0c0103f8c9de55
+          path: .nfl2026-fixture
+          persist-credentials: false
+      - name: Run Python discovery, scoped provenance and lookup through PostgreSQL-WASM
+        env:
+          NFL2026_CHECKOUT: ${{ github.workspace }}/.nfl2026-fixture
+        run: >-
+          python -m pytest
+          tests/postgres/test_learning_job_discovery_adapter.py
+          tests/postgres/test_learning_job_find_adapter.py
+          tests/postgres/test_batched_object_adapter.py
+          tests/postgres/test_generation_proof_adapter.py -q -rs
       - name: Test hosted authorization, persistence contracts and test tooling
         run: python -m pytest tests packages/selflearn-core/tests/test_supabase_store.py --ignore=tests/postgres -q -rs
       - name: Declare independent release evidence still required
         run: >-
-          echo 'This job uses no cloud credentials. Actual NFL producer/exporter tests
-          require an explicit NFL2026_CHECKOUT and remain a separate cross-repository
-          release check until both local checkpoints are published and pinned.
-          Skipped integration tests are not hosted production verification.'
+          echo 'Generation provenance is tested against the pinned public NFL fixture.
+          This job uses no production cloud credentials. Separate hosted canaries
+          verify durable processing and replay in production.'
 
   native-postgres:
     name: native PostgreSQL 17 transaction gate (disposable; no cloud writes)

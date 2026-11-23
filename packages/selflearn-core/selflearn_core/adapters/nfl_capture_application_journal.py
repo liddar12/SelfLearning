@@ -19,6 +19,9 @@ from ..store.receipt_journal import JournalConflict
 from ..store.supabase_store import StoreConflict, StoreError
 
 
+SCOPED_CAPTURE_RUN_SECONDS = 120
+
+
 class CaptureApplicationBudgetExceeded(TimeoutError):
     """Leave active work pending; never terminalize or fabricate a result."""
 
@@ -30,24 +33,38 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                      or not 0 < max_run_seconds <= 45))):
             raise ValueError("invalid_capture_application_operation_budget")
         super().__init__(*args, **kwargs)
+        self._operation_started = None
         if max_run_seconds is not None:
             # Fixed per-instance/per-operation deadline. Never mutate another
             # worker's live port to install a temporary request wrapper.
-            end = monotonic() + max_run_seconds
+            self._operation_started = monotonic()
+            self._operation_deadline = self._operation_started + max_run_seconds
             request = self._request
             def bounded_request(*request_args, **request_kwargs):
-                if monotonic() >= end:
+                if monotonic() >= self._operation_deadline:
                     raise CaptureApplicationBudgetExceeded("capture_application_pending_operation_budget")
                 return request(*request_args, **request_kwargs)
             self._request = bounded_request
+
+    def permit_scoped_operation_budget(self, game_scope, seconds):
+        """Extend this request's existing transport deadline after scope validation."""
+        V.scope_from_document(game_scope)
+        if (type(seconds) not in (int, float) or not math.isfinite(seconds)
+                or not 45 < seconds <= SCOPED_CAPTURE_RUN_SECONDS):
+            raise ValueError("invalid_scoped_capture_operation_budget")
+        if self._operation_started is not None:
+            self._operation_deadline = self._operation_started + seconds
 
     def _application_rpc(self, name, data):
         # This is separate from _observed_rpc, whose strict version=1
         # response checks remain correct for every inherited v1 operation.
         if name not in {"selflearn_journal_register_capture_application_v2",
+                        "selflearn_journal_register_capture_application_v3",
                         "selflearn_journal_commit_capture_application_batch_v2",
                         "selflearn_journal_stop_capture_application_v2",
                         "selflearn_journal_prepare_capture_membership_v2",
+                        "selflearn_journal_prepare_capture_membership_v3",
+                        "selflearn_journal_prepare_capture_generation_proofs_v1",
                         "selflearn_journal_read_capture_application_v2"}:
             raise ValueError("invalid_capture_application_rpc")
         try:
@@ -149,7 +166,7 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                 raise ValueError("missing_capture_application_registration")
             record = header["records"][0]
             C.keys(record, {"request", "seal_header", "registration"})
-            C.keys(record["seal_header"], C.SEAL_KEYS - {"groups", "batches"})
+            C.keys(record["seal_header"], C.seal_keys(record["request"]) - {"groups", "batches"})
             documents = {}
             for view in ("groups", "batches", "status", "terminal"):
                 page = self._application_rows(application_id, view, ledger_watermark=header["ledger_watermark"])
@@ -215,7 +232,80 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                 return row["result"]
         raise ValueError("capture_application_step_not_in_seal")
 
-    def prepare_capture_membership(self, season, weeks):
+    def _rpc(self, operation, data):
+        if operation == "read_game":
+            return self._observed_rpc("selflearn_journal_read_observed_game_v1", data)
+        return super()._rpc(operation, data)
+
+    def _load_observed_game_snapshot(self, game_scope, watermark=None):
+        scope = V.scope_from_document(game_scope).document()
+        def read(view, *, watermark=None):
+            selected_view = "game_generations" if view == "generations" else view
+            # Historical corrections are separate from the forecast membership cap.
+            maximum_rows = {"generations": 256, "receipts": 10000}.get(view, 100000)
+            # Largest measured scoped game exceeds 64 MiB after JSON escaping.
+            max_mib = 80 if view == "generations" else 64
+            return self._read(selected_view, key=V.bounded(scope, 1024), watermark=watermark,
+                              rpc_operation="read_game", max_rows=maximum_rows,
+                              max_bytes=max_mib * 1024 * 1024)
+        return self._load_observed_snapshot(watermark, read=read, game_scope=scope)
+
+    def read_observed_game_snapshot(self, game_scope):
+        """Read complete selected-game history at one global fence, in SQL."""
+        return self._load_observed_game_snapshot(game_scope)
+
+    def _read_owned_observed_game_snapshot(self, game_scope):
+        """Transfer newly decoded scoped data to one trusted server operation."""
+        scope = V.scope_from_document(game_scope)
+        return V._OwnedGameSnapshot(self._load_observed_game_snapshot(scope.document()), scope)
+
+    def prepare_capture_generation_proofs(self, game_scope, *, check=None):
+        """Resume DB-verified envelope proofs, one bounded generation per RPC.
+
+        Completed proofs survive a request deadline. They are performance
+        certificates only; selected source checks and membership CAS still run.
+        """
+        scope = V.scope_from_document(game_scope).document()
+        if check is not None and not callable(check):
+            raise ValueError("invalid_capture_generation_proof_budget")
+        policy = None
+        for _ in range(256):
+            if check is not None:
+                check()
+            result = self._application_rpc("selflearn_journal_prepare_capture_generation_proofs_v1",
+                                           {"p_game_scope_json": V.bounded(scope, 1024)})
+            try:
+                C.keys(result, {"version", "kind", "scope", "game_scope", "policy_id",
+                                "total_generation_count", "verified_generation_count", "remaining_generation_count",
+                                "prepared_object_id", "added", "durable_ack", "learning_accepted"})
+                if (result["kind"] != "nfl.capture_generation_proofs.v1"
+                        or result["scope"] != "derived_generation_envelope_proofs_only"
+                        or V.bounded(result["game_scope"], 1024) != V.bounded(scope, 1024)
+                        or type(result["added"]) is not bool or result["durable_ack"] is not False
+                        or result["learning_accepted"] is not False):
+                    raise ValueError("invalid_capture_generation_proof_response")
+                D._hash(result["policy_id"])
+                if policy is not None and policy != result["policy_id"]:
+                    raise ValueError("capture_generation_proof_policy_changed")
+                policy = result["policy_id"]
+                total = C.integer(result["total_generation_count"], 0, 256)
+                verified = C.integer(result["verified_generation_count"], 0, total)
+                remaining = C.integer(result["remaining_generation_count"], 0, total)
+                if verified + remaining != total:
+                    raise ValueError("capture_generation_proof_count_mismatch")
+                if result["prepared_object_id"] is not None:
+                    D._hash(result["prepared_object_id"])
+                    if not verified:
+                        raise ValueError("capture_generation_proof_missing_verified_member")
+                elif result["added"] or remaining:
+                    raise ValueError("capture_generation_proof_no_progress")
+                if not remaining:
+                    return result
+            except (ValueError, TypeError, KeyError, OverflowError):
+                raise StoreError(502) from None
+        raise CaptureApplicationBudgetExceeded("capture_application_pending_generation_proofs")
+
+    def prepare_capture_membership(self, season, weeks, *, game_scope=None, check=None):
         """Warm a DB-derived authority cache; never a forecast/outcome ACK.
 
         Only SQL can construct its complete membership and source index. The
@@ -227,11 +317,24 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                 or any(type(week) is not int or not 1 <= week <= 18 for week in weeks)
                 or weeks != sorted(set(weeks))):
             raise ValueError("invalid_capture_application_cache_period")
-        result = self._application_rpc("selflearn_journal_prepare_capture_membership_v2",
-                                      {"p_season": season, "p_weeks_json": V.bounded(weeks, 1024)})
+        scope = None if game_scope is None else V.scope_from_document(game_scope).document()
+        data = {"p_season": season, "p_weeks_json": V.bounded(weeks, 1024)}
+        name = "selflearn_journal_prepare_capture_membership_v2"
+        if scope is not None:
+            if season != scope["season"] or weeks != [scope["week"]]:
+                raise ValueError("invalid_capture_application_cache_period")
+            self.prepare_capture_generation_proofs(scope, check=check)
+            name = "selflearn_journal_prepare_capture_membership_v3"
+            data["p_game_scope_json"] = V.bounded(scope, 1024)
+        if check is not None:
+            check()
+        result = self._application_rpc(name, data)
         try:
             C.keys(result, {"version", "kind", "scope", "durable_ack", "learning_accepted", "season", "weeks",
-                            "authority_watermark", "policy_id", "cache_id", "membership_id", "member_count", "group_count"})
+                            "authority_watermark", "policy_id", "cache_id", "membership_id", "member_count", "group_count"}
+                   | ({"game_scope"} if scope is not None else set()))
+            if scope is not None and V.bounded(result["game_scope"], 1024) != V.bounded(scope, 1024):
+                raise ValueError("capture_application_cache_scope_mismatch")
             if (result["kind"] != "nfl.capture_membership_cache.v2" or result["scope"] != "derived_membership_cache_only"
                     or result["durable_ack"] is not False or result["learning_accepted"] is not False
                     or type(result["season"]) is not int or result["season"] != season
@@ -256,7 +359,8 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         data = {"p_request_json": V.bounded(request, V.MAX_REQUEST_BYTES), "p_seal_json": V.bounded(seal, V.MAX_SEAL_BYTES),
                 "p_watermark": watermark}
         V.capacity._encode(data, V.MAX_RPC_BYTES, outer=True)
-        result = self._application_rpc("selflearn_journal_register_capture_application_v2", data)
+        result = self._application_rpc("selflearn_journal_register_capture_application_v3" if "game_scope" in request
+                                       else "selflearn_journal_register_capture_application_v2", data)
         try:
             return C.validate_registration(result, seal)
         except (ValueError, TypeError, KeyError, OverflowError):
@@ -285,8 +389,12 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         data, _size = V.batch_wire(application_id, assignment["assignment"]["ordinal"], group_results, observations, proposals,
                                     watermark, maximum=seal["limits"]["rpc_bytes"])
         snapshot = self._observed_snapshot
-        if snapshot is None or snapshot.get("watermark") != watermark:
-            snapshot = self._load_observed_snapshot(watermark)
+        game_scope = original["request"].get("game_scope")
+        def reload(fence):
+            return (self._load_observed_snapshot(fence) if game_scope is None
+                    else self._load_observed_game_snapshot(game_scope, fence))
+        if snapshot is None or snapshot.get("watermark") != watermark or snapshot.get("game_scope") != game_scope:
+            snapshot = reload(watermark)
         try:
             result = self._application_rpc("selflearn_journal_commit_capture_application_batch_v2", data)
         finally:
@@ -296,7 +404,7 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
             # Validate the returned ORIGINAL proof IDs at its own pinned input
             # fence, even when it belongs to a concurrent earlier attempt.
             # A stored matching blob cannot excuse false new-ID counts.
-            basis = snapshot if snapshot["watermark"] == result["input_watermark"] else self._load_observed_snapshot(result["input_watermark"])
+            basis = snapshot if snapshot["watermark"] == result["input_watermark"] else reload(result["input_watermark"])
             expected_obs = len({oid for group in result["groups"] for oid in group["observation_ids"]}
                                - {row["observation_id"] for row in basis["observations"]})
             expected_rev = len({rid for group in result["groups"] for rid in group["revision_ids"]}

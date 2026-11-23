@@ -12,7 +12,7 @@ import time
 
 from . import nfl_capture_application_v2 as V
 from . import nfl_capture_evidence as capture
-from .nfl_capture_application_journal import CaptureApplicationBudgetExceeded
+from .nfl_capture_application_journal import CaptureApplicationBudgetExceeded, SCOPED_CAPTURE_RUN_SECONDS
 from .nfl_capture_job import _PinnedJournal
 from .nfl_capture_labels import _frozen_entries
 from .nfl_observed_job import _now
@@ -31,11 +31,11 @@ class CaptureApplicationScopeMismatch(ValueError):
     """A known digest does not authorize a different configured producer."""
 
 
-def _budget(seconds, monotonic):
-    if (type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 < seconds <= 45
+def _budget(seconds, monotonic, *, maximum=45, started=None):
+    if (type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 < seconds <= maximum
             or not callable(monotonic)):
         raise ValueError("invalid_capture_application_run_budget")
-    end = monotonic() + seconds
+    end = (monotonic() if started is None else started) + seconds
     def check():
         if monotonic() >= end:
             raise CaptureApplicationBudgetExceeded("capture_application_pending_operation_budget")
@@ -47,18 +47,37 @@ def _attempts(value):
         raise ValueError("capture_application_attempts_must_be_1_to_5")
 
 
+def _permit_scoped_budget(journal, game_scope, seconds):
+    permit = getattr(journal, "permit_scoped_operation_budget", None)
+    if seconds > 45 and callable(permit):
+        permit(game_scope, seconds)
+
+
 def _warm(journal, period, check):
     check()
     if not callable(getattr(journal, "prepare_capture_membership", None)):
         raise ValueError("capture_application_membership_cache_port_unavailable")
     # This is only a performance hint. All full raw/member checks and the
     # authoritative SQL CAS still run, even when a cache certificate exists.
-    journal.prepare_capture_membership(period["season"], period["weeks"])
+    game_scope = period.get("game_scope")
+    if game_scope is None:
+        journal.prepare_capture_membership(period["season"], period["weeks"])
+    elif callable(getattr(journal, "prepare_capture_generation_proofs", None)):
+        # The persisted-proof port checks this same operation deadline before
+        # each one-generation RPC. Older fixture ports keep their interface.
+        journal.prepare_capture_membership(period["season"], period["weeks"], game_scope=game_scope, check=check)
+    else:
+        journal.prepare_capture_membership(period["season"], period["weeks"], game_scope=game_scope)
     check()
 
 
-def _membership(journal, snapshot, seal):
-    watermark, entries = _frozen_entries(_PinnedJournal(journal, snapshot), seal["season"], set(seal["weeks"]))
+def _membership(journal, snapshot, seal, *, game_authority=None):
+    game_scope = seal.get("game_scope")
+    if game_authority is None:
+        scope = V.scope_from_document(game_scope) if game_scope is not None else None
+        watermark, entries = _frozen_entries(_PinnedJournal(journal, snapshot), seal["season"], set(seal["weeks"]), scope)
+    else:
+        watermark, entries = V._reuse_game_authority(game_authority, snapshot, game_scope)
     if watermark != snapshot["watermark"]:
         raise ValueError("capture_application_membership_fence_changed")
     grouped = defaultdict(list)
@@ -71,14 +90,16 @@ def _membership(journal, snapshot, seal):
             "source_receipt_ids": sorted(sids),
             "generation_object_ids": sorted({oid for sid in sids for oid in entries[sid]["generation_object_ids"]})}
         groups.append({"group_id": fingerprint(list(scope)), "membership_id": fingerprint(membership)})
-    return V.membership_id(groups)
+    return V.membership_id(groups, game_scope)
 
 
 def register_capture_application(journal, request, raw_chunks, *, clock=_now, max_attempts=3,
                                  max_run_seconds=45, monotonic=time.monotonic, **seal_limits):
     _attempts(max_attempts)
-    check = _budget(max_run_seconds, monotonic)
     frozen = V.validate_request(request)
+    game_scope = frozen.get("game_scope")
+    maximum = 45 if game_scope is None else SCOPED_CAPTURE_RUN_SECONDS
+    check = _budget(max_run_seconds, monotonic, maximum=maximum)
     for attempt in range(max_attempts):
         check()
         old = journal.get_capture_application(frozen["application_id"])
@@ -89,9 +110,17 @@ def register_capture_application(journal, request, raw_chunks, *, clock=_now, ma
         check()
         if journal.get_capture_delivery(frozen["capture_request"]["delivery_id"]) is not None:
             raise JournalConflict("capture_application_legacy_original_exists")
+        if game_scope is not None:
+            legacy_id = V.make_request(frozen["capture_request"])["application_id"]
+            if journal.get_capture_application(legacy_id) is not None:
+                raise JournalConflict("capture_application_legacy_original_exists")
+            _permit_scoped_budget(journal, game_scope, max_run_seconds)
+            _warm(journal, {"season": game_scope["season"], "weeks": [game_scope["week"]],
+                            "game_scope": game_scope}, check)
         context = V.bind_context(journal, frozen, raw_chunks, clock=clock)
         seal = V.prepare_seal(context, **seal_limits)
-        _warm(journal, seal, check)
+        if game_scope is None:
+            _warm(journal, seal, check)
         check()
         try:
             return journal.register_capture_application(frozen, seal, watermark=seal["source_watermark"])
@@ -107,7 +136,7 @@ def register_capture_application(journal, request, raw_chunks, *, clock=_now, ma
             # ownership/vector conflict: require an actually changed evidence
             # fence before a fresh full bind may be attempted.
             check()
-            if V._snapshot(journal)["watermark"] == seal["source_watermark"]:
+            if V._snapshot(journal, game_scope)["watermark"] == seal["source_watermark"]:
                 raise JournalConflict("capture_application_conflict_without_changed_fence") from None
             if attempt + 1 == max_attempts:
                 raise JournalConflict("capture_application_registration_retry_exhausted") from None
@@ -121,10 +150,15 @@ def _stop(journal, application_id, reason, watermark, check):
 
 
 def commit_capture_application_step(journal, application_id, step_id, raw_chunks, *, clock=_now,
-                                    max_attempts=3, max_run_seconds=45, monotonic=time.monotonic, expected_scope=None):
+                                    max_attempts=3, max_run_seconds=45, monotonic=time.monotonic,
+                                    expected_scope=None, scoped_run_seconds=None):
     V.delivery._hash(application_id); V.delivery._hash(step_id)
     _attempts(max_attempts)
-    check = _budget(max_run_seconds, monotonic)
+    started = monotonic() if scoped_run_seconds is not None and callable(monotonic) else None
+    check = _budget(max_run_seconds, monotonic, started=started)
+    scoped_check = None
+    if scoped_run_seconds is not None:
+        scoped_check = _budget(scoped_run_seconds, monotonic, maximum=SCOPED_CAPTURE_RUN_SECONDS, started=started)
     if expected_scope is not None:
         from ..store.capture_staging import staging_namespace
         if type(expected_scope) is not tuple or len(expected_scope) != 2:
@@ -148,12 +182,21 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
         if application["status"]["next_step_id"] != step_id:
             raise JournalConflict("capture_application_step_out_of_order")
         seal, frozen = application["seal"], application["request"]
+        game_scope = frozen.get("game_scope")
+        if game_scope is not None and scoped_check is not None:
+            # The stored registration owns the scope. Both clocks start before
+            # its first lookup, and retries share the original deadline.
+            check = scoped_check
+            _permit_scoped_budget(journal, game_scope, scoped_run_seconds)
         snapshot = None
         try:
             _warm(journal, seal, check)
             check()
-            snapshot = V._snapshot(journal)
-            if _membership(journal, snapshot, seal) != seal["membership_id"]:
+            snapshot = V._snapshot(journal, game_scope)
+            game_authority = None if game_scope is None else V._freeze_game_authority(journal, snapshot, game_scope)
+            membership = (_membership(journal, snapshot, seal) if game_authority is None
+                          else _membership(journal, snapshot, seal, game_authority=game_authority))
+            if membership != seal["membership_id"]:
                 check()
                 # SQL detects complete current membership BEFORE proof-array
                 # validation and atomically records a not-applied step plus
@@ -162,7 +205,13 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
                                                                  watermark=snapshot["watermark"])
             check()
             try:
-                context = V.bind_context(journal, frozen, raw_chunks, clock=clock)
+                if game_scope is None:
+                    context = V.bind_context(journal, frozen, raw_chunks, clock=clock)
+                else:
+                    # Reuse immutable provenance only at this attempt's
+                    # snapshot. Raw bytes are verified and SQL still owns CAS.
+                    context = V.bind_context(journal, frozen, raw_chunks, clock=clock, snapshot=snapshot,
+                                             _game_authority=game_authority)
             except capture.CaptureIntegrityError:
                 _stop(journal, application_id, "source_integrity_failed", snapshot["watermark"], check)
             except ValueError as exc:
@@ -171,7 +220,7 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
                     raise
                 _stop(journal, application_id, "source_integrity_failed", snapshot["watermark"], check)
             snapshot = context["snapshot"]
-            if V.membership_id(context["staged"]["groups"]) != seal["membership_id"]:
+            if V.membership_id(context["staged"]["groups"], game_scope) != seal["membership_id"]:
                 check()
                 return journal.commit_capture_application_batch(application_id, step_id, [], [], [],
                                                                  watermark=snapshot["watermark"])
@@ -203,7 +252,7 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
                 if recovered["terminal"] is not None:
                     raise CaptureApplicationStopped(recovered["terminal"]) from None
             check()
-            if snapshot is None or V._snapshot(journal)["watermark"] == snapshot["watermark"]:
+            if snapshot is None or V._snapshot(journal, game_scope)["watermark"] == snapshot["watermark"]:
                 raise JournalConflict("capture_application_conflict_without_changed_fence") from None
             if attempt + 1 == max_attempts:
                 raise JournalConflict("capture_application_step_retry_exhausted") from None

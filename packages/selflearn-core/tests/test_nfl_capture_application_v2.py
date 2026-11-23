@@ -4,10 +4,12 @@ import json
 import unittest
 from unittest.mock import patch
 
+from selflearn_core.adapters import nfl_capture_application_contracts as C
 from selflearn_core.adapters import nfl_capture_application_v2 as V
 from selflearn_core.probability_receipts import fingerprint
 from test_nfl_capture_application import population
 from test_nfl_capture_delivery_job import PROCESSING, request as v1_request
+from test_nfl_capture_labels import good_capture, journal_fixture
 import test_nfl_capture_evidence as E
 
 
@@ -33,6 +35,129 @@ class SealedApplicationPreparationTests(unittest.TestCase):
         for invalid in (None, [], {}):
             with self.assertRaises(ValueError): V.validate_request(invalid)
         self.assertEqual(journal.delivery_writes, [])
+
+    def test_game_scope_request_seal_and_complete_mixed_generation_proof(self):
+        legacy_context, journal, envelope, objects = context()
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+        other = journal_fixture(game_id="other")
+        snapshot = journal.read_observed_snapshot()
+        snapshot["generation_records"].extend(other.snapshot["generation_records"])
+        snapshot["game_scope"] = scope
+        request = V.make_request(legacy_context["request"]["capture_request"], game_scope=scope)
+        identity = {"version": 2, "kind": "nfl.capture_application.v2",
+                    "capture_intent_id": request["capture_request"]["delivery_id"],
+                    "execution_policy": V.EXECUTION_POLICY, "game_scope": scope}
+        self.assertEqual(request["application_id"], fingerprint(identity))
+        self.assertNotEqual(request["application_id"], legacy_context["request"]["application_id"])
+        self.assertEqual(V.validate_request(request), request)
+        raw = lambda oid: E.stream(objects[oid])
+        with patch.object(journal, "read_observed_snapshot", side_effect=AssertionError("unscoped read")), \
+                patch.object(journal, "read_observed_game_snapshot", create=True, return_value=snapshot) as scoped_read:
+            bound = V.bind_context(journal, request, raw, clock=lambda: PROCESSING)
+            scoped_read.assert_called_once_with(scope)
+        seal = V.prepare_seal(bound)
+        C.validate_seal(seal, request)
+        self.assertEqual(seal["game_scope"], scope)
+        self.assertEqual(seal["weeks"], [6])
+        self.assertEqual(seal["capture_intent_id"], fingerprint({
+            "capture_intent_id": request["capture_request"]["delivery_id"], "game_scope": scope,
+        }))
+        self.assertNotEqual(seal["source_vector_id"], V.source_vector_id(envelope))
+        self.assertNotEqual(seal["membership_id"], V.membership_id(seal["groups"]))
+        self.assertEqual(seal["membership_id"], V.membership_id(seal["groups"], scope))
+        self.assertEqual(sum(len(g["receipt_ids"]) for g in seal["groups"]), len(snapshot["receipts"]))
+        self.assertEqual({g["scope"][1] for g in seal["groups"]}, {"g6"})
+        wrong_scope = {**scope, "game_id": "other"}
+        with self.assertRaisesRegex(ValueError, "invalid_capture_application_request"):
+            V.validate_request({**request, "game_scope": wrong_scope})
+        changed = {**seal, "game_scope": wrong_scope}
+        changed["seal_id"] = fingerprint({key: v for key, v in changed.items() if key != "seal_id"})
+        with self.assertRaisesRegex(ValueError, "invalid_capture_application_seal_game_scope"):
+            C.validate_seal(changed, request)
+        with self.assertRaisesRegex(ValueError, "capture_game_snapshot_port_unavailable"):
+            V.bind_context(journal, request, raw, clock=lambda: PROCESSING)
+        with self.assertRaisesRegex(ValueError, "capture_game_snapshot_scope_mismatch"):
+            V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                           snapshot={**snapshot, "game_scope": wrong_scope})
+        with self.assertRaisesRegex(ValueError, "generation_ack_missing_persisted_receipt"):
+            V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                           snapshot={**snapshot, "receipts": snapshot["receipts"][1:]})
+        with self.assertRaisesRegex(ValueError, "capture_game_snapshot_scope_mismatch"):
+            V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                           snapshot={**snapshot, "receipts": snapshot["receipts"] + other.snapshot["receipts"]})
+
+    def test_game_scope_seals_only_its_week_from_shared_multiweek_evidence(self):
+        journal = journal_fixture()
+        envelope, objects = good_capture(weeks=(6, 7))
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+        request = V.make_request(v1_request(envelope, objects), game_scope=scope)
+        snapshot = {**journal.read_observed_snapshot(), "game_scope": scope}
+        result = V.bind_context(journal, request, lambda oid: E.stream(objects[oid]), clock=lambda: PROCESSING,
+                                snapshot=snapshot)
+        seal = V.prepare_seal(result)
+        self.assertEqual(request["capture_request"]["envelope"]["manifest"]["weeks"], [6, 7])
+        self.assertEqual(seal["weeks"], [6])
+        C.validate_seal(seal, request)
+        self.assertEqual(seal["source_vector_id"], V.source_vector_id(envelope, scope))
+
+    def test_game_authority_cannot_be_reused_on_a_different_snapshot_or_scope(self):
+        journal = journal_fixture()
+        envelope, objects = good_capture()
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+        request = V.make_request(v1_request(envelope, objects), game_scope=scope)
+        snapshot = {**journal.read_observed_snapshot(), "game_scope": scope}
+        authority = V._freeze_game_authority(journal, snapshot, scope)
+        raw = lambda oid: E.stream(objects[oid])
+        # Even an equal snapshot from a different attempt is not a reuse key.
+        with self.assertRaisesRegex(ValueError, "capture_application_game_authority_fence_mismatch"):
+            V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                           snapshot=copy.deepcopy(snapshot), _game_authority=authority)
+        snapshot["watermark"] = "101"
+        with self.assertRaisesRegex(ValueError, "capture_application_game_authority_fence_mismatch"):
+            V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                           snapshot=snapshot, _game_authority=authority)
+
+    def test_scoped_source_batch_pins_exact_ids_and_preserves_member_verification(self):
+        journal = journal_fixture()
+        envelope, objects = good_capture()
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+        request = V.make_request(v1_request(envelope, objects), game_scope=scope)
+        snapshot = {**journal.read_observed_snapshot(), "game_scope": scope}
+        raw = lambda oid: E.stream(objects[oid])
+        expected = V.bind_context(journal, request, raw, clock=lambda: PROCESSING, snapshot=snapshot)
+        expected_ids = sorted(journal.objects)
+
+        def batch(ids, *, watermark):
+            self.assertEqual(ids, expected_ids)
+            self.assertEqual(watermark, snapshot["watermark"])
+            return [copy.deepcopy(journal.objects[oid]) for oid in ids]
+
+        with patch.object(journal, "get_object", side_effect=AssertionError("unexpected point read")), \
+                patch.object(journal, "get_objects", create=True, side_effect=batch) as get_objects:
+            result = V.bind_context(journal, request, raw, clock=lambda: PROCESSING, snapshot=snapshot)
+            self.assertEqual(result, expected)
+            get_objects.assert_called_once()
+            authority = V._freeze_game_authority(journal, snapshot, scope)
+            self.assertEqual(V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                                            snapshot=snapshot, _game_authority=authority), expected)
+            self.assertEqual(get_objects.call_count, 2)  # No batch during reuse.
+
+        def incomplete(ids, *, watermark):
+            return batch(ids, watermark=watermark)[:-1]
+
+        with patch.object(journal, "get_objects", create=True, side_effect=incomplete):
+            with self.assertRaisesRegex(ValueError, "invalid_capture_game_source_batch"):
+                V.bind_context(journal, request, raw, clock=lambda: PROCESSING, snapshot=snapshot)
+
+        def tampered(ids, *, watermark):
+            rows = batch(ids, watermark=watermark)
+            rows[0]["payload"] = {"poison": True}
+            return rows
+
+        with patch.object(journal, "get_objects", create=True, side_effect=tampered):
+            result = V.bind_context(journal, request, raw, clock=lambda: PROCESSING, snapshot=snapshot)
+        self.assertEqual(result["staged"]["observed_legs"], [])
+        self.assertEqual(result["staged"]["groups"][0]["reason_codes"], ["missing_or_changed_frozen_source_object"])
 
     def test_semantic_vector_rejects_metadata_restamp_and_equivalent_clock_spelling(self):
         ctx, _, envelope, objects = context()

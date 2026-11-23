@@ -138,6 +138,90 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
         self.assertEqual(len(port.warms),warm_count)
         self.assertNotEqual(first["step_id"],second["step_id"])
 
+    def test_game_application_registers_steps_and_recovers_without_global_reads(self):
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+
+        class GamePort(FakeApplicationPort):
+            def __init__(self):
+                super().__init__()
+                self.request = V.make_request(self.request["capture_request"], game_scope=scope)
+                self.game_reads = []
+                self.permitted = []
+
+            def get_capture_application(self, application_id):
+                existing = super().get_capture_application(application_id)
+                return existing if existing is not None and existing["request"]["application_id"] == application_id else None
+
+            def read_observed_snapshot(self):
+                raise AssertionError("unexpected global read")
+
+            def read_observed_game_snapshot(self, game_scope):
+                self.game_reads.append(game_scope)
+                return {**self.base.read_observed_snapshot(), "game_scope": scope}
+
+            def permit_scoped_operation_budget(self, game_scope, seconds):
+                self.permitted.append((game_scope, seconds))
+
+            def prepare_capture_membership(self, season, weeks, *, game_scope=None):
+                if game_scope != scope:
+                    raise AssertionError("scoped membership preparation omitted or changed")
+                return super().prepare_capture_membership(season, weeks)
+
+        port = GamePort()
+        elapsed = [0]
+        raw = port.raw
+
+        def slow_raw(oid):
+            elapsed[0] = 50
+            return raw(oid)
+
+        port.raw = slow_raw
+        previous_object_reads = len(port.base.gets)
+        acknowledgement = register(port, max_batch_members=4, max_run_seconds=90,
+                                   monotonic=lambda: elapsed[0])
+        objects_per_bind = len(port.base.gets) - previous_object_reads
+        raw_per_bind = len(port.raw_reads)
+        self.assertGreater(objects_per_bind, 0)
+        self.assertGreater(raw_per_bind, 0)
+
+        def changed_fence(port):
+            port.before_commit = None
+            port.base.snapshot["watermark"] = str(int(port.base.snapshot["watermark"]) + 1)
+
+        port.before_commit = changed_fence
+        elapsed[0] = 0
+        first = step(port, scoped_run_seconds=90, monotonic=lambda: elapsed[0])
+        elapsed[0] = 0
+        second = step(port, scoped_run_seconds=90, monotonic=lambda: elapsed[0])
+        self.assertEqual(port.game_reads, [scope] * 5)
+        self.assertEqual(port.permitted, [(scope, 90)] * 4)
+        # Registration, two successful steps, and the stale attempt each
+        # validate immutable sources once and re-read the original raw bytes.
+        self.assertEqual(len(port.base.gets) - previous_object_reads, 4 * objects_per_bind)
+        self.assertEqual(len(port.raw_reads), 4 * raw_per_bind)
+        self.assertEqual(acknowledgement["capture_intent_id"], V.capture_intent_id(port.request))
+        self.assertNotEqual(first["step_id"], second["step_id"])
+        self.assertTrue(port.application["terminal"]["complete_success"])
+        self.assertEqual(register(port), acknowledgement)
+        self.assertEqual(port.game_reads, [scope] * 5)
+
+    def test_legacy_cannot_use_scope_extended_deadline(self):
+        port = FakeApplicationPort()
+        with self.assertRaisesRegex(ValueError, "invalid_capture_application_run_budget"):
+            register(port, max_run_seconds=90)
+        register(port)
+        elapsed = [0]
+        raw = port.raw
+
+        def slow_raw(oid):
+            elapsed[0] = 50
+            return raw(oid)
+
+        port.raw = slow_raw
+        with self.assertRaises(J.CaptureApplicationBudgetExceeded):
+            step(port, scoped_run_seconds=90, monotonic=lambda: elapsed[0])
+        self.assertEqual(port.commits, [])
+
     def test_changed_fence_rebinds_every_raw_source_and_bounded_attempts_exhaust(self):
         def once(port):
             port.before_register=None;port.base.snapshot["watermark"]=str(int(port.base.snapshot["watermark"])+1)

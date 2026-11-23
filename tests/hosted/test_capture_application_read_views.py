@@ -129,7 +129,8 @@ def test_step_raw_pointer_lookup_is_lazy_memoized_and_rechecks_configured_scope(
         reads.append(copy.deepcopy(pointer))
         return iter([b"explicit raw-read fixture, not a kernel/DB acceptance"])
     monkeypatch.setattr(receiver.evidence, "object_chunks", object_chunks)
-    def step(port, aid, sid, raw, *, expected_scope):
+    def step(port, aid, sid, raw, *, expected_scope, scoped_run_seconds):
+        assert scoped_run_seconds == 120
         assert port is journal and expected_scope == (captured["destination_id"], captured["producer_id"])
         pointer = captured["raw_pointers"][0]
         assert list(raw(pointer["object_id"])) == list(raw(pointer["object_id"]))
