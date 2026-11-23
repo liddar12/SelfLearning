@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
-import { openCaptureApplicationDatabase } from './capture_application_harness.mjs';
+import { openGameCaptureApplicationDatabase as openCaptureApplicationDatabase } from './capture_application_harness.mjs';
 import { asRole } from './harness.mjs';
 
 const params=Object.freeze({
@@ -20,16 +20,15 @@ const params=Object.freeze({
   selflearn_journal_stop_capture_application_v2:['p_application_id','p_reason','p_watermark'],
   selflearn_journal_read_capture_application_v2:['p_application_id','p_view','p_key','p_after','p_limit','p_ledger_watermark'],
   selflearn_journal_prepare_capture_membership_v2:['p_season','p_weeks_json'],
+  selflearn_journal_prepare_capture_membership_v3:['p_season','p_weeks_json','p_game_scope_json'],
+  selflearn_journal_register_capture_application_v3:['p_request_json','p_seal_json','p_watermark'],
+  selflearn_journal_read_observed_game_v1:['p_view','p_key','p_after','p_limit','p_watermark'],
   selflearn_reserve_capture_stage_v1:['p_namespace_id','p_chunk_id','p_raw_bytes'],
 });
 const db=await openCaptureApplicationDatabase();
 const lines=createInterface({input:process.stdin,crlfDelay:Infinity});
 const write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 try {
-  if (process.env.SELFLEARN_ROSTER_CAPTURE_TEST === '1') {
-    const rosterMigration = new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql', import.meta.url);
-    await db.exec(await readFile(rosterMigration, 'utf8'));
-  }
   write({ready:true,engine:'postgresql-wasm',version:(await db.query('SELECT version() AS value')).rows[0].value});
   for await(const line of lines) {
     let request;

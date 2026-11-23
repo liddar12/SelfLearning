@@ -45,9 +45,11 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         # This is separate from _observed_rpc, whose strict version=1
         # response checks remain correct for every inherited v1 operation.
         if name not in {"selflearn_journal_register_capture_application_v2",
+                        "selflearn_journal_register_capture_application_v3",
                         "selflearn_journal_commit_capture_application_batch_v2",
                         "selflearn_journal_stop_capture_application_v2",
                         "selflearn_journal_prepare_capture_membership_v2",
+                        "selflearn_journal_prepare_capture_membership_v3",
                         "selflearn_journal_read_capture_application_v2"}:
             raise ValueError("invalid_capture_application_rpc")
         try:
@@ -149,7 +151,7 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                 raise ValueError("missing_capture_application_registration")
             record = header["records"][0]
             C.keys(record, {"request", "seal_header", "registration"})
-            C.keys(record["seal_header"], C.SEAL_KEYS - {"groups", "batches"})
+            C.keys(record["seal_header"], C.seal_keys(record["request"]) - {"groups", "batches"})
             documents = {}
             for view in ("groups", "batches", "status", "terminal"):
                 page = self._application_rows(application_id, view, ledger_watermark=header["ledger_watermark"])
@@ -215,7 +217,25 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                 return row["result"]
         raise ValueError("capture_application_step_not_in_seal")
 
-    def prepare_capture_membership(self, season, weeks):
+    def _rpc(self, operation, data):
+        if operation == "read_game":
+            return self._observed_rpc("selflearn_journal_read_observed_game_v1", data)
+        return super()._rpc(operation, data)
+
+    def _load_observed_game_snapshot(self, game_scope, watermark=None):
+        scope = V.scope_from_document(game_scope).document()
+        def read(view, *, watermark=None):
+            selected_view = "game_generations" if view == "generations" else view
+            return self._read(selected_view, key=V.bounded(scope, 1024), watermark=watermark,
+                              rpc_operation="read_game", max_rows=256 if view == "generations" else 10000,
+                              max_bytes=64 * 1024 * 1024)
+        return self._load_observed_snapshot(watermark, read=read, game_scope=scope)
+
+    def read_observed_game_snapshot(self, game_scope):
+        """Read complete selected-game history at one global fence, in SQL."""
+        return self._load_observed_game_snapshot(game_scope)
+
+    def prepare_capture_membership(self, season, weeks, *, game_scope=None):
         """Warm a DB-derived authority cache; never a forecast/outcome ACK.
 
         Only SQL can construct its complete membership and source index. The
@@ -227,11 +247,21 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                 or any(type(week) is not int or not 1 <= week <= 18 for week in weeks)
                 or weeks != sorted(set(weeks))):
             raise ValueError("invalid_capture_application_cache_period")
-        result = self._application_rpc("selflearn_journal_prepare_capture_membership_v2",
-                                      {"p_season": season, "p_weeks_json": V.bounded(weeks, 1024)})
+        scope = None if game_scope is None else V.scope_from_document(game_scope).document()
+        data = {"p_season": season, "p_weeks_json": V.bounded(weeks, 1024)}
+        name = "selflearn_journal_prepare_capture_membership_v2"
+        if scope is not None:
+            if season != scope["season"] or weeks != [scope["week"]]:
+                raise ValueError("invalid_capture_application_cache_period")
+            name = "selflearn_journal_prepare_capture_membership_v3"
+            data["p_game_scope_json"] = V.bounded(scope, 1024)
+        result = self._application_rpc(name, data)
         try:
             C.keys(result, {"version", "kind", "scope", "durable_ack", "learning_accepted", "season", "weeks",
-                            "authority_watermark", "policy_id", "cache_id", "membership_id", "member_count", "group_count"})
+                            "authority_watermark", "policy_id", "cache_id", "membership_id", "member_count", "group_count"}
+                   | ({"game_scope"} if scope is not None else set()))
+            if scope is not None and V.bounded(result["game_scope"], 1024) != V.bounded(scope, 1024):
+                raise ValueError("capture_application_cache_scope_mismatch")
             if (result["kind"] != "nfl.capture_membership_cache.v2" or result["scope"] != "derived_membership_cache_only"
                     or result["durable_ack"] is not False or result["learning_accepted"] is not False
                     or type(result["season"]) is not int or result["season"] != season
@@ -256,7 +286,8 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         data = {"p_request_json": V.bounded(request, V.MAX_REQUEST_BYTES), "p_seal_json": V.bounded(seal, V.MAX_SEAL_BYTES),
                 "p_watermark": watermark}
         V.capacity._encode(data, V.MAX_RPC_BYTES, outer=True)
-        result = self._application_rpc("selflearn_journal_register_capture_application_v2", data)
+        result = self._application_rpc("selflearn_journal_register_capture_application_v3" if "game_scope" in request
+                                       else "selflearn_journal_register_capture_application_v2", data)
         try:
             return C.validate_registration(result, seal)
         except (ValueError, TypeError, KeyError, OverflowError):
@@ -285,8 +316,12 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         data, _size = V.batch_wire(application_id, assignment["assignment"]["ordinal"], group_results, observations, proposals,
                                     watermark, maximum=seal["limits"]["rpc_bytes"])
         snapshot = self._observed_snapshot
-        if snapshot is None or snapshot.get("watermark") != watermark:
-            snapshot = self._load_observed_snapshot(watermark)
+        game_scope = original["request"].get("game_scope")
+        def reload(fence):
+            return (self._load_observed_snapshot(fence) if game_scope is None
+                    else self._load_observed_game_snapshot(game_scope, fence))
+        if snapshot is None or snapshot.get("watermark") != watermark or snapshot.get("game_scope") != game_scope:
+            snapshot = reload(watermark)
         try:
             result = self._application_rpc("selflearn_journal_commit_capture_application_batch_v2", data)
         finally:
@@ -296,7 +331,7 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
             # Validate the returned ORIGINAL proof IDs at its own pinned input
             # fence, even when it belongs to a concurrent earlier attempt.
             # A stored matching blob cannot excuse false new-ID counts.
-            basis = snapshot if snapshot["watermark"] == result["input_watermark"] else self._load_observed_snapshot(result["input_watermark"])
+            basis = snapshot if snapshot["watermark"] == result["input_watermark"] else reload(result["input_watermark"])
             expected_obs = len({oid for group in result["groups"] for oid in group["observation_ids"]}
                                - {row["observation_id"] for row in basis["observations"]})
             expected_rev = len({rid for group in result["groups"] for rid in group["revision_ids"]}

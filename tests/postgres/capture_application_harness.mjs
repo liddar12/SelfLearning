@@ -4,6 +4,8 @@ import { openCaptureDeliveryDatabase } from './capture_delivery_harness.mjs';
 import { canonical, digest, receipt, appendGeneration, commitGeneration, asRole } from './harness.mjs';
 
 const RPCS = new Set(['selflearn_journal_register_capture_application_v2','selflearn_journal_commit_capture_application_batch_v2',
+  'selflearn_journal_register_capture_application_v3','selflearn_journal_prepare_capture_membership_v3',
+  'selflearn_journal_read_observed_game_v1',
   'selflearn_journal_stop_capture_application_v2','selflearn_journal_read_capture_application_v2','selflearn_journal_prepare_capture_membership_v2']);
 export async function rpcV2(db,name,args=[]) {
   if (!RPCS.has(name)) throw new Error('Unsupported v2 test RPC');
@@ -26,16 +28,25 @@ export async function openCaptureApplicationDatabase() {
   }
 }
 
-export async function addMembers(db, count, { vintage = 'first', player = i => 'player-' + i, line = i => 40 + i % 2, week = 6,
+export async function openGameCaptureApplicationDatabase() {
+  const db = await openCaptureApplicationDatabase();
+  try {
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261118192717_nfl_roster_capture_provenance.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261123184027_nfl_game_scoped_capture_journal_v1.sql', import.meta.url), 'utf8'));
+    return db;
+  } catch (error) { await db.close(); throw error; }
+}
+
+export async function addMembers(db, count, { vintage = 'first', player = i => 'player-' + i, line = i => 40 + i % 2, week = 6, gameId = 'G1',
                                             sourceExtra = {}, genericExtra = {}, accepted = true } = {}) {
   const members = [];
   for (let i = 0; i < count; i++) {
     const name = typeof player === 'function' ? player(i) : player;
     const threshold = typeof line === 'function' ? line(i) : line;
-    const key = [2026, 'G1', name, 'wr_rec_yds', String(threshold), 'home', 'over', 'gte'];
-    const generic = receipt(vintage + '-' + i, { event_id: 'nfl:2026:game:G1', correlation_group: 'nfl:2026:game:G1',
+    const key = [2026, gameId, name, 'wr_rec_yds', String(threshold), 'home', 'over', 'gte'];
+    const generic = receipt(vintage + '-' + i, { event_id: 'nfl:2026:game:'+gameId, correlation_group: 'nfl:2026:game:'+gameId,
                                                contract_id: digest(key), ...genericExtra });
-    const source = { version: 1, season: 2026, week, game_id: 'G1', player_id: name, market: 'wr_rec_yds',
+    const source = { version: 1, season: 2026, week, game_id: gameId, player_id: name, market: 'wr_rec_yds',
       line: threshold, side: 'home', direction: 'over', comparison_operator: 'gte', contract_id: generic.contract_id };
     for (const k of ['base_prob','served_prob','base_model_version','calibrator_version','forecast_created_utc',
       'source_snapshot_id','source_timestamps','features','publication_status']) source[k] = generic[k];

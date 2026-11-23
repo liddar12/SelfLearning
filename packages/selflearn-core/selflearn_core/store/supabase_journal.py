@@ -184,13 +184,13 @@ class SupabaseReceiptJournal:
             raise StoreError(502)
         return int(value)
 
-    def _read(self, view, *, key=None, watermark=None, rpc_operation="read"):
+    def _read(self, view, *, key=None, watermark=None, rpc_operation="read", max_rows=None, max_bytes=None):
         """Read an entire bounded-keyset view at one server-pinned watermark."""
         if key is not None and not isinstance(key, str):
             raise ValueError("journal_read_key_must_be_text")
         if watermark is not None:
             self._sequence(watermark)
-        rows, after = [], None
+        rows, after, total_bytes = [], None, 0
         # A generation contains the entire producer document and may be close
         # to the 3 MiB request boundary. Count-bounded pages of 500 such rows
         # would exceed the transport's 8 MiB response cap by orders of magnitude.
@@ -224,6 +224,12 @@ class SupabaseReceiptJournal:
                 if not page or next_after != page[-1]["journal_seq"]:
                     raise StoreError(502)
             rows.extend(page)
+            if max_rows is not None and len(rows) > max_rows:
+                raise StoreError(502)
+            if max_bytes is not None:
+                total_bytes += len(_canonical(page).encode("utf-8"))
+                if total_bytes > max_bytes:
+                    raise StoreError(502)
             if next_after is None:
                 return rows, watermark
             after = next_after

@@ -177,25 +177,38 @@ class NFLObservedJournal(SupabaseReceiptJournal):
             raise ValueError("observed_resolution_requires_atomic_commit")
         return super().append_resolution(resolution, revision_id=revision_id, supersedes=supersedes, reason=reason)
 
-    def _load_observed_snapshot(self, watermark=None):
+    def _load_observed_snapshot(self, watermark=None, *, read=None, game_scope=None):
         self._observed_snapshot = None
-        receipt_rows, watermark = self._read("receipts", watermark=watermark)
+        read = self._read if read is None else read
+        receipt_rows, watermark = read("receipts", watermark=watermark)
         receipts = self._receipt_rows(receipt_rows)
         receipt_map = {r["receipt_id"]: r for r in receipts}
-        generation_rows, _ = self._read("generations", watermark=watermark)
+        generation_rows, _ = read("generations", watermark=watermark)
         generations = self._generation_rows(generation_rows)
         for generation in generations:
+            if game_scope is not None:
+                from .nfl_capture_labels import CaptureGameScope, _ack
+                try:
+                    _ack(generation, receipt_map, CaptureGameScope(game_scope["season"], game_scope["week"], game_scope["game_id"]))
+                except (ValueError, TypeError, KeyError, OverflowError):
+                    raise StoreError(502) from None
+                continue
             for accepted in generation["ack"]["receipts"]:
                 stored = receipt_map.get(accepted["receipt_id"])
                 if stored is None or stored["source_receipt_id"] != accepted["source_receipt_id"]:
                     raise StoreError(502)
-        revision_rows, _ = self._read("revisions", watermark=watermark)
+        revision_rows, _ = read("revisions", watermark=watermark)
         revisions = self._revision_rows(revision_rows, receipt_map)
         self._validate_chains(revisions)
         snapshot = {"version": 1, "watermark": watermark,
             "receipts": sorted(receipts, key=lambda r: r["receipt_id"]),
             "generation_records": generations, "revisions": revisions}
-        rows, _ = self._read("observations", watermark=snapshot["watermark"])
+        if game_scope is not None:
+            expected_event = f"nfl:{game_scope['season']}:game:{game_scope['game_id']}"
+            if any(row["domain"] != "nfl" or row["task"] != "nfl.parlay_leg" or row["event_id"] != expected_event for row in receipts):
+                raise StoreError(502)
+            snapshot["game_scope"] = copy.deepcopy(game_scope)
+        rows, _ = read("observations", watermark=snapshot["watermark"])
         records, seen = [], set()
         try:
             for row in rows:
