@@ -61,10 +61,13 @@ def _warm(journal, period, check):
     check()
 
 
-def _membership(journal, snapshot, seal):
+def _membership(journal, snapshot, seal, *, game_authority=None):
     game_scope = seal.get("game_scope")
-    scope = V.scope_from_document(game_scope) if game_scope is not None else None
-    watermark, entries = _frozen_entries(_PinnedJournal(journal, snapshot), seal["season"], set(seal["weeks"]), scope)
+    if game_authority is None:
+        scope = V.scope_from_document(game_scope) if game_scope is not None else None
+        watermark, entries = _frozen_entries(_PinnedJournal(journal, snapshot), seal["season"], set(seal["weeks"]), scope)
+    else:
+        watermark, entries = V._reuse_game_authority(game_authority, snapshot, game_scope)
     if watermark != snapshot["watermark"]:
         raise ValueError("capture_application_membership_fence_changed")
     grouped = defaultdict(list)
@@ -165,7 +168,10 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
             _warm(journal, seal, check)
             check()
             snapshot = V._snapshot(journal, game_scope)
-            if _membership(journal, snapshot, seal) != seal["membership_id"]:
+            game_authority = None if game_scope is None else V._freeze_game_authority(journal, snapshot, game_scope)
+            membership = (_membership(journal, snapshot, seal) if game_authority is None
+                          else _membership(journal, snapshot, seal, game_authority=game_authority))
+            if membership != seal["membership_id"]:
                 check()
                 # SQL detects complete current membership BEFORE proof-array
                 # validation and atomically records a not-applied step plus
@@ -177,9 +183,10 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
                 if game_scope is None:
                     context = V.bind_context(journal, frozen, raw_chunks, clock=clock)
                 else:
-                    # Reuse this request's trusted scoped snapshot. SQL still
-                    # owns the global watermark CAS and rejects stale writes.
-                    context = V.bind_context(journal, frozen, raw_chunks, clock=clock, snapshot=snapshot)
+                    # Reuse immutable provenance only at this attempt's
+                    # snapshot. Raw bytes are verified and SQL still owns CAS.
+                    context = V.bind_context(journal, frozen, raw_chunks, clock=clock, snapshot=snapshot,
+                                             _game_authority=game_authority)
             except capture.CaptureIntegrityError:
                 _stop(journal, application_id, "source_integrity_failed", snapshot["watermark"], check)
             except ValueError as exc:

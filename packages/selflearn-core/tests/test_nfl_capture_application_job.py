@@ -164,14 +164,29 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
                 return super().prepare_capture_membership(season, weeks)
 
         port = GamePort()
+        previous_object_reads = len(port.base.gets)
         acknowledgement = register(port, max_batch_members=4)
+        objects_per_bind = len(port.base.gets) - previous_object_reads
+        raw_per_bind = len(port.raw_reads)
+        self.assertGreater(objects_per_bind, 0)
+        self.assertGreater(raw_per_bind, 0)
+
+        def changed_fence(port):
+            port.before_commit = None
+            port.base.snapshot["watermark"] = str(int(port.base.snapshot["watermark"]) + 1)
+
+        port.before_commit = changed_fence
         first, second = step(port), step(port)
-        self.assertEqual(port.game_reads, [scope] * 3)
+        self.assertEqual(port.game_reads, [scope] * 5)
+        # Registration, two successful steps, and the stale attempt each
+        # validate immutable sources once and re-read the original raw bytes.
+        self.assertEqual(len(port.base.gets) - previous_object_reads, 4 * objects_per_bind)
+        self.assertEqual(len(port.raw_reads), 4 * raw_per_bind)
         self.assertEqual(acknowledgement["capture_intent_id"], V.capture_intent_id(port.request))
         self.assertNotEqual(first["step_id"], second["step_id"])
         self.assertTrue(port.application["terminal"]["complete_success"])
         self.assertEqual(register(port), acknowledgement)
-        self.assertEqual(port.game_reads, [scope] * 3)
+        self.assertEqual(port.game_reads, [scope] * 5)
 
     def test_changed_fence_rebinds_every_raw_source_and_bounded_attempts_exhaust(self):
         def once(port):

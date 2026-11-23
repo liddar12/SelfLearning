@@ -7,6 +7,7 @@ the older offline capacity model. A seal is not an outcome commit/learning ACK.
 from __future__ import annotations
 
 import copy
+from dataclasses import dataclass
 from datetime import timezone
 
 from . import nfl_capture_application as capacity
@@ -15,7 +16,7 @@ from . import nfl_capture_delivery_journal as delivery
 from .nfl_capture_delivery_job import _pointer_reader
 from .nfl_capture_job import _PinnedJournal
 from .nfl_capture_labels import (GAME_SCOPE_POLICY, POLICY as BINDING_POLICY, CaptureGameScope,
-                                 bind_capture_labels, bind_game_capture_labels)
+                                 _bind_capture_labels, _frozen_entries, bind_capture_labels, bind_game_capture_labels)
 from .nfl_observed_job import _now
 from .nfl_observed_resolution import resolve_observed
 from ..probability_receipts import fingerprint, instant
@@ -163,8 +164,33 @@ def _checked_snapshot(snapshot, game_scope):
     return snapshot
 
 
+@dataclass(frozen=True)
+class _GameAuthority:
+    """Transient provenance derived from the exact scoped snapshot of one attempt."""
+
+    snapshot: dict
+    scope: CaptureGameScope
+    watermark: str
+    entries: dict
+
+
+def _freeze_game_authority(journal, snapshot, game_scope):
+    scope = scope_from_document(game_scope)
+    watermark, entries = _frozen_entries(_PinnedJournal(journal, snapshot), scope.season, {scope.week}, scope)
+    if watermark != snapshot["watermark"]:
+        raise ValueError("capture_application_binding_fence_mismatch")
+    return _GameAuthority(snapshot, scope, watermark, entries)
+
+
+def _reuse_game_authority(authority, snapshot, game_scope):
+    if (type(authority) is not _GameAuthority or game_scope is None or authority.snapshot is not snapshot
+            or authority.watermark != snapshot["watermark"] or authority.scope != scope_from_document(game_scope)):
+        raise ValueError("capture_application_game_authority_fence_mismatch")
+    return authority.watermark, authority.entries
+
+
 def bind_context(journal, request, raw_chunks, *, clock=_now, max_total_bytes=capture.DEFAULT_MAX_TOTAL_BYTES,
-                 snapshot=None):
+                 snapshot=None, _game_authority=None):
     """Re-read complete authority for the request, then reverify raw input."""
     if (not callable(clock) or not callable(raw_chunks) or type(max_total_bytes) is not int
             or not 0 <= max_total_bytes <= capture.DEFAULT_MAX_TOTAL_BYTES
@@ -183,7 +209,11 @@ def bind_context(journal, request, raw_chunks, *, clock=_now, max_total_bytes=ca
         snapshot = _checked_snapshot(snapshot, game_scope)
     journal_at_fence = _PinnedJournal(journal, snapshot)
     envelope, raw_reader = original["envelope"], _pointer_reader(original, raw_chunks)
-    if game_scope is None:
+    if _game_authority is not None:
+        frozen = _reuse_game_authority(_game_authority, snapshot, game_scope)
+        staged = _bind_capture_labels(journal_at_fence, envelope, raw_reader, max_total_bytes,
+                                      _game_authority.scope, frozen_membership=frozen)
+    elif game_scope is None:
         staged = bind_capture_labels(journal_at_fence, envelope, raw_reader, max_total_bytes=max_total_bytes)
     else:
         staged = bind_game_capture_labels(journal_at_fence, envelope, raw_reader,

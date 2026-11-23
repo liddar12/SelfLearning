@@ -693,7 +693,8 @@ def bind_game_capture_labels(journal, capture_envelope, raw_chunks, game_scope, 
     return _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes, game_scope)
 
 
-def _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes, game_scope=None):
+def _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes, game_scope=None, *,
+                         frozen_membership=None):
     if (type(max_total_bytes) is not int or not 0 <= max_total_bytes <= capture.DEFAULT_MAX_TOTAL_BYTES
             or not callable(raw_chunks)):
         _fail("invalid_capture_limit_or_source")
@@ -711,7 +712,10 @@ def _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes,
         if (len(fixtures) != 1 or fixtures[0]["season"] != game_scope.season
                 or fixtures[0]["week"] != game_scope.week or fixtures[0]["final"] is not True):
             _fail("capture_game_scope_requires_exact_final")
-        watermark, entries = _frozen_entries(journal, game_scope.season, {game_scope.week}, game_scope)
+        if frozen_membership is None:
+            watermark, entries = _frozen_entries(journal, game_scope.season, {game_scope.week}, game_scope)
+        else:
+            watermark, entries = frozen_membership
     observations = {observation["profile"]: {"observation_id": oid, **observation} for oid, observation in sources
                     if observation["profile"] in (capture.STATS_PROFILE, capture.SNAPS_PROFILE, capture.ROSTERS_PROFILE)}
     grouped = defaultdict(list)

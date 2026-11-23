@@ -100,6 +100,23 @@ class SealedApplicationPreparationTests(unittest.TestCase):
         C.validate_seal(seal, request)
         self.assertEqual(seal["source_vector_id"], V.source_vector_id(envelope, scope))
 
+    def test_game_authority_cannot_be_reused_on_a_different_snapshot_or_scope(self):
+        journal = journal_fixture()
+        envelope, objects = good_capture()
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+        request = V.make_request(v1_request(envelope, objects), game_scope=scope)
+        snapshot = {**journal.read_observed_snapshot(), "game_scope": scope}
+        authority = V._freeze_game_authority(journal, snapshot, scope)
+        raw = lambda oid: E.stream(objects[oid])
+        # Even an equal snapshot from a different attempt is not a reuse key.
+        with self.assertRaisesRegex(ValueError, "capture_application_game_authority_fence_mismatch"):
+            V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                           snapshot=copy.deepcopy(snapshot), _game_authority=authority)
+        snapshot["watermark"] = "101"
+        with self.assertRaisesRegex(ValueError, "capture_application_game_authority_fence_mismatch"):
+            V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                           snapshot=snapshot, _game_authority=authority)
+
     def test_semantic_vector_rejects_metadata_restamp_and_equivalent_clock_spelling(self):
         ctx, _, envelope, objects = context()
         original = V.source_vector_id(envelope)
