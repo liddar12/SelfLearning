@@ -164,8 +164,17 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
                 return super().prepare_capture_membership(season, weeks)
 
         port = GamePort()
+        elapsed = [0]
+        raw = port.raw
+
+        def slow_raw(oid):
+            elapsed[0] = 50
+            return raw(oid)
+
+        port.raw = slow_raw
         previous_object_reads = len(port.base.gets)
-        acknowledgement = register(port, max_batch_members=4)
+        acknowledgement = register(port, max_batch_members=4, max_run_seconds=90,
+                                   monotonic=lambda: elapsed[0])
         objects_per_bind = len(port.base.gets) - previous_object_reads
         raw_per_bind = len(port.raw_reads)
         self.assertGreater(objects_per_bind, 0)
@@ -176,7 +185,10 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
             port.base.snapshot["watermark"] = str(int(port.base.snapshot["watermark"]) + 1)
 
         port.before_commit = changed_fence
-        first, second = step(port), step(port)
+        elapsed[0] = 0
+        first = step(port, scoped_run_seconds=90, monotonic=lambda: elapsed[0])
+        elapsed[0] = 0
+        second = step(port, scoped_run_seconds=90, monotonic=lambda: elapsed[0])
         self.assertEqual(port.game_reads, [scope] * 5)
         # Registration, two successful steps, and the stale attempt each
         # validate immutable sources once and re-read the original raw bytes.
@@ -187,6 +199,23 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
         self.assertTrue(port.application["terminal"]["complete_success"])
         self.assertEqual(register(port), acknowledgement)
         self.assertEqual(port.game_reads, [scope] * 5)
+
+    def test_legacy_cannot_use_scope_extended_deadline(self):
+        port = FakeApplicationPort()
+        with self.assertRaisesRegex(ValueError, "invalid_capture_application_run_budget"):
+            register(port, max_run_seconds=90)
+        register(port)
+        elapsed = [0]
+        raw = port.raw
+
+        def slow_raw(oid):
+            elapsed[0] = 50
+            return raw(oid)
+
+        port.raw = slow_raw
+        with self.assertRaises(J.CaptureApplicationBudgetExceeded):
+            step(port, scoped_run_seconds=90, monotonic=lambda: elapsed[0])
+        self.assertEqual(port.commits, [])
 
     def test_changed_fence_rebinds_every_raw_source_and_bounded_attempts_exhaust(self):
         def once(port):

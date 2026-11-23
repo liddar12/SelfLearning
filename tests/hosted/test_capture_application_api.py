@@ -209,10 +209,10 @@ def test_new_registration_uses_only_server_owned_400_member_policy(monkeypatch):
         assert result.status_code == 200
         assert result.json() == {"version": 2, "registration": ack,
             "scope": "registration_only", "learning_accepted": False}
-        for supplied in ({"max_batch_members": 500}, {"limits": {"members": 500}},
+        for supplied in ({"max_run_seconds": 999}, {"max_batch_members": 500}, {"limits": {"members": 500}},
                          {"max_batch_members": 1}):
             assert client.post(BASE, json={**value, **supplied}, headers=headers()).status_code == 422
-    assert calls == [(journal, value, {"max_batch_members": 400,
+    assert calls == [(journal, value, {"max_run_seconds": 45, "max_batch_members": 400,
         "max_batch_observations": 400, "max_batch_revisions": 400})]
     assert journal.calls == [] and storage.calls == [] and quota.calls == []
 

@@ -31,11 +31,14 @@ class CaptureApplicationScopeMismatch(ValueError):
     """A known digest does not authorize a different configured producer."""
 
 
-def _budget(seconds, monotonic):
-    if (type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 < seconds <= 45
+SCOPED_CAPTURE_RUN_SECONDS = 90
+
+
+def _budget(seconds, monotonic, *, maximum=45, started=None):
+    if (type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 < seconds <= maximum
             or not callable(monotonic)):
         raise ValueError("invalid_capture_application_run_budget")
-    end = monotonic() + seconds
+    end = (monotonic() if started is None else started) + seconds
     def check():
         if monotonic() >= end:
             raise CaptureApplicationBudgetExceeded("capture_application_pending_operation_budget")
@@ -90,9 +93,10 @@ def _membership(journal, snapshot, seal, *, game_authority=None):
 def register_capture_application(journal, request, raw_chunks, *, clock=_now, max_attempts=3,
                                  max_run_seconds=45, monotonic=time.monotonic, **seal_limits):
     _attempts(max_attempts)
-    check = _budget(max_run_seconds, monotonic)
     frozen = V.validate_request(request)
     game_scope = frozen.get("game_scope")
+    maximum = 45 if game_scope is None else SCOPED_CAPTURE_RUN_SECONDS
+    check = _budget(max_run_seconds, monotonic, maximum=maximum)
     for attempt in range(max_attempts):
         check()
         old = journal.get_capture_application(frozen["application_id"])
@@ -142,10 +146,15 @@ def _stop(journal, application_id, reason, watermark, check):
 
 
 def commit_capture_application_step(journal, application_id, step_id, raw_chunks, *, clock=_now,
-                                    max_attempts=3, max_run_seconds=45, monotonic=time.monotonic, expected_scope=None):
+                                    max_attempts=3, max_run_seconds=45, monotonic=time.monotonic,
+                                    expected_scope=None, scoped_run_seconds=None):
     V.delivery._hash(application_id); V.delivery._hash(step_id)
     _attempts(max_attempts)
-    check = _budget(max_run_seconds, monotonic)
+    started = monotonic() if scoped_run_seconds is not None and callable(monotonic) else None
+    check = _budget(max_run_seconds, monotonic, started=started)
+    scoped_check = None
+    if scoped_run_seconds is not None:
+        scoped_check = _budget(scoped_run_seconds, monotonic, maximum=SCOPED_CAPTURE_RUN_SECONDS, started=started)
     if expected_scope is not None:
         from ..store.capture_staging import staging_namespace
         if type(expected_scope) is not tuple or len(expected_scope) != 2:
@@ -170,6 +179,10 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
             raise JournalConflict("capture_application_step_out_of_order")
         seal, frozen = application["seal"], application["request"]
         game_scope = frozen.get("game_scope")
+        if game_scope is not None and scoped_check is not None:
+            # The stored registration owns the scope. Both clocks start before
+            # its first lookup, and retries share the original deadline.
+            check = scoped_check
         snapshot = None
         try:
             _warm(journal, seal, check)
