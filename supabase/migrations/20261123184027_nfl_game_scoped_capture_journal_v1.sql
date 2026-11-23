@@ -803,5 +803,3 @@ do $$ declare f record; begin
   end loop;
 end $$;
 commit;
-
-

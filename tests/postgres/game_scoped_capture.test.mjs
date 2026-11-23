@@ -91,4 +91,3 @@ test('scoped membership CAS notices selected-game additions and leaves other gam
     assert.equal((await readApplication(changed,app.request.application_id,'terminal')).records[0].status,'incomplete_membership_changed');
   } finally {await changed.close();}
 });
-
