@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
-import { openGameCaptureApplicationDatabase as openCaptureApplicationDatabase } from './capture_application_harness.mjs';
+import { openProvenGameCaptureApplicationDatabase as openCaptureApplicationDatabase } from './capture_application_harness.mjs';
 import { asRole } from './harness.mjs';
 
 const params=Object.freeze({
@@ -21,6 +21,7 @@ const params=Object.freeze({
   selflearn_journal_read_capture_application_v2:['p_application_id','p_view','p_key','p_after','p_limit','p_ledger_watermark'],
   selflearn_journal_prepare_capture_membership_v2:['p_season','p_weeks_json'],
   selflearn_journal_prepare_capture_membership_v3:['p_season','p_weeks_json','p_game_scope_json'],
+  selflearn_journal_prepare_capture_generation_proofs_v1:['p_game_scope_json'],
   selflearn_journal_register_capture_application_v3:['p_request_json','p_seal_json','p_watermark'],
   selflearn_journal_read_observed_game_v1:['p_view','p_key','p_after','p_limit','p_watermark'],
   selflearn_journal_read_objects_v1:['p_view','p_key','p_after','p_limit','p_watermark'],

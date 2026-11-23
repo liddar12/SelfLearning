@@ -7,6 +7,7 @@ const RPCS = new Set(['selflearn_journal_register_capture_application_v2','selfl
   'selflearn_journal_register_capture_application_v3','selflearn_journal_prepare_capture_membership_v3',
   'selflearn_journal_read_observed_game_v1',
   'selflearn_journal_read_objects_v1',
+  'selflearn_journal_prepare_capture_generation_proofs_v1',
   'selflearn_journal_stop_capture_application_v2','selflearn_journal_read_capture_application_v2','selflearn_journal_prepare_capture_membership_v2']);
 export async function rpcV2(db,name,args=[]) {
   if (!RPCS.has(name)) throw new Error('Unsupported v2 test RPC');
@@ -40,6 +41,13 @@ export async function openGameCaptureApplicationDatabase({fastBatch=true}={}) {
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123191600_nfl_game_source_index_equality.sql', import.meta.url), 'utf8'));
     return db;
   } catch (error) { await db.close(); throw error; }
+}
+
+export const generationProofMigration = new URL('../../supabase/migrations/20261123191257_capture_generation_authority_proofs_v1.sql', import.meta.url);
+export async function openProvenGameCaptureApplicationDatabase() {
+  const db = await openGameCaptureApplicationDatabase();
+  try { await db.exec(await readFile(generationProofMigration, 'utf8')); return db; }
+  catch (error) { await db.close(); throw error; }
 }
 
 export async function addMembers(db, count, { vintage = 'first', player = i => 'player-' + i, line = i => 40 + i % 2, week = 6, gameId = 'G1',

@@ -56,6 +56,10 @@ def _warm(journal, period, check):
     game_scope = period.get("game_scope")
     if game_scope is None:
         journal.prepare_capture_membership(period["season"], period["weeks"])
+    elif callable(getattr(journal, "prepare_capture_generation_proofs", None)):
+        # The persisted-proof port checks this same operation deadline before
+        # each one-generation RPC. Older fixture ports keep their interface.
+        journal.prepare_capture_membership(period["season"], period["weeks"], game_scope=game_scope, check=check)
     else:
         journal.prepare_capture_membership(period["season"], period["weeks"], game_scope=game_scope)
     check()
@@ -103,9 +107,12 @@ def register_capture_application(journal, request, raw_chunks, *, clock=_now, ma
             legacy_id = V.make_request(frozen["capture_request"])["application_id"]
             if journal.get_capture_application(legacy_id) is not None:
                 raise JournalConflict("capture_application_legacy_original_exists")
+            _warm(journal, {"season": game_scope["season"], "weeks": [game_scope["week"]],
+                            "game_scope": game_scope}, check)
         context = V.bind_context(journal, frozen, raw_chunks, clock=clock)
         seal = V.prepare_seal(context, **seal_limits)
-        _warm(journal, seal, check)
+        if game_scope is None:
+            _warm(journal, seal, check)
         check()
         try:
             return journal.register_capture_application(frozen, seal, watermark=seal["source_watermark"])

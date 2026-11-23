@@ -50,6 +50,7 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                         "selflearn_journal_stop_capture_application_v2",
                         "selflearn_journal_prepare_capture_membership_v2",
                         "selflearn_journal_prepare_capture_membership_v3",
+                        "selflearn_journal_prepare_capture_generation_proofs_v1",
                         "selflearn_journal_read_capture_application_v2"}:
             raise ValueError("invalid_capture_application_rpc")
         try:
@@ -239,7 +240,53 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         """Read complete selected-game history at one global fence, in SQL."""
         return self._load_observed_game_snapshot(game_scope)
 
-    def prepare_capture_membership(self, season, weeks, *, game_scope=None):
+    def prepare_capture_generation_proofs(self, game_scope, *, check=None):
+        """Resume DB-verified envelope proofs, one bounded generation per RPC.
+
+        Completed proofs survive a request deadline. They are performance
+        certificates only; selected source checks and membership CAS still run.
+        """
+        scope = V.scope_from_document(game_scope).document()
+        if check is not None and not callable(check):
+            raise ValueError("invalid_capture_generation_proof_budget")
+        policy = None
+        for _ in range(256):
+            if check is not None:
+                check()
+            result = self._application_rpc("selflearn_journal_prepare_capture_generation_proofs_v1",
+                                           {"p_game_scope_json": V.bounded(scope, 1024)})
+            try:
+                C.keys(result, {"version", "kind", "scope", "game_scope", "policy_id",
+                                "total_generation_count", "verified_generation_count", "remaining_generation_count",
+                                "prepared_object_id", "added", "durable_ack", "learning_accepted"})
+                if (result["kind"] != "nfl.capture_generation_proofs.v1"
+                        or result["scope"] != "derived_generation_envelope_proofs_only"
+                        or V.bounded(result["game_scope"], 1024) != V.bounded(scope, 1024)
+                        or type(result["added"]) is not bool or result["durable_ack"] is not False
+                        or result["learning_accepted"] is not False):
+                    raise ValueError("invalid_capture_generation_proof_response")
+                D._hash(result["policy_id"])
+                if policy is not None and policy != result["policy_id"]:
+                    raise ValueError("capture_generation_proof_policy_changed")
+                policy = result["policy_id"]
+                total = C.integer(result["total_generation_count"], 0, 256)
+                verified = C.integer(result["verified_generation_count"], 0, total)
+                remaining = C.integer(result["remaining_generation_count"], 0, total)
+                if verified + remaining != total:
+                    raise ValueError("capture_generation_proof_count_mismatch")
+                if result["prepared_object_id"] is not None:
+                    D._hash(result["prepared_object_id"])
+                    if not verified:
+                        raise ValueError("capture_generation_proof_missing_verified_member")
+                elif result["added"] or remaining:
+                    raise ValueError("capture_generation_proof_no_progress")
+                if not remaining:
+                    return result
+            except (ValueError, TypeError, KeyError, OverflowError):
+                raise StoreError(502) from None
+        raise CaptureApplicationBudgetExceeded("capture_application_pending_generation_proofs")
+
+    def prepare_capture_membership(self, season, weeks, *, game_scope=None, check=None):
         """Warm a DB-derived authority cache; never a forecast/outcome ACK.
 
         Only SQL can construct its complete membership and source index. The
@@ -257,8 +304,11 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         if scope is not None:
             if season != scope["season"] or weeks != [scope["week"]]:
                 raise ValueError("invalid_capture_application_cache_period")
+            self.prepare_capture_generation_proofs(scope, check=check)
             name = "selflearn_journal_prepare_capture_membership_v3"
             data["p_game_scope_json"] = V.bounded(scope, 1024)
+        if check is not None:
+            check()
         result = self._application_rpc(name, data)
         try:
             C.keys(result, {"version", "kind", "scope", "durable_ack", "learning_accepted", "season", "weeks",
