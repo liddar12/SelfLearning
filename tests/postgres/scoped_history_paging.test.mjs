@@ -7,7 +7,7 @@ import {openGameCaptureApplicationDatabase} from './capture_application_harness.
 
 const load = name => readFile(new URL(name,import.meta.url),'utf8');
 const prior = '../../supabase/migrations/20261123195835_pack_scoped_journal_pages_incrementally.sql';
-const migration = '../../supabase/migrations/20261123201621_bound_scoped_receipt_history_pages.sql';
+const migration = '../../supabase/migrations/20261123201942_bound_scoped_receipt_history_pages.sql';
 const scope = canonical({policy:'nfl.capture_game_scope_v1',season:2026,week:11,game_id:'G1'});
 const read = async (db,view,after,limit,watermark) => (await db.query(
   'select public.selflearn_journal_read_observed_game_v1($1,$2,$3,$4,$5)::text value',
