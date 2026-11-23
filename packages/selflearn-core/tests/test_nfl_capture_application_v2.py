@@ -117,6 +117,48 @@ class SealedApplicationPreparationTests(unittest.TestCase):
             V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
                            snapshot=snapshot, _game_authority=authority)
 
+    def test_scoped_source_batch_pins_exact_ids_and_preserves_member_verification(self):
+        journal = journal_fixture()
+        envelope, objects = good_capture()
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+        request = V.make_request(v1_request(envelope, objects), game_scope=scope)
+        snapshot = {**journal.read_observed_snapshot(), "game_scope": scope}
+        raw = lambda oid: E.stream(objects[oid])
+        expected = V.bind_context(journal, request, raw, clock=lambda: PROCESSING, snapshot=snapshot)
+        expected_ids = sorted(journal.objects)
+
+        def batch(ids, *, watermark):
+            self.assertEqual(ids, expected_ids)
+            self.assertEqual(watermark, snapshot["watermark"])
+            return [copy.deepcopy(journal.objects[oid]) for oid in ids]
+
+        with patch.object(journal, "get_object", side_effect=AssertionError("unexpected point read")), \
+                patch.object(journal, "get_objects", create=True, side_effect=batch) as get_objects:
+            result = V.bind_context(journal, request, raw, clock=lambda: PROCESSING, snapshot=snapshot)
+            self.assertEqual(result, expected)
+            get_objects.assert_called_once()
+            authority = V._freeze_game_authority(journal, snapshot, scope)
+            self.assertEqual(V.bind_context(journal, request, raw, clock=lambda: PROCESSING,
+                                            snapshot=snapshot, _game_authority=authority), expected)
+            self.assertEqual(get_objects.call_count, 2)  # No batch during reuse.
+
+        def incomplete(ids, *, watermark):
+            return batch(ids, watermark=watermark)[:-1]
+
+        with patch.object(journal, "get_objects", create=True, side_effect=incomplete):
+            with self.assertRaisesRegex(ValueError, "invalid_capture_game_source_batch"):
+                V.bind_context(journal, request, raw, clock=lambda: PROCESSING, snapshot=snapshot)
+
+        def tampered(ids, *, watermark):
+            rows = batch(ids, watermark=watermark)
+            rows[0]["payload"] = {"poison": True}
+            return rows
+
+        with patch.object(journal, "get_objects", create=True, side_effect=tampered):
+            result = V.bind_context(journal, request, raw, clock=lambda: PROCESSING, snapshot=snapshot)
+        self.assertEqual(result["staged"]["observed_legs"], [])
+        self.assertEqual(result["staged"]["groups"][0]["reason_codes"], ["missing_or_changed_frozen_source_object"])
+
     def test_semantic_vector_rejects_metadata_restamp_and_equivalent_clock_spelling(self):
         ctx, _, envelope, objects = context()
         original = V.source_vector_id(envelope)

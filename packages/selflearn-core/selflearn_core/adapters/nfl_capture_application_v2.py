@@ -16,7 +16,7 @@ from . import nfl_capture_delivery_journal as delivery
 from .nfl_capture_delivery_job import _pointer_reader
 from .nfl_capture_job import _PinnedJournal
 from .nfl_capture_labels import (GAME_SCOPE_POLICY, POLICY as BINDING_POLICY, CaptureGameScope,
-                                 _bind_capture_labels, _frozen_entries, bind_capture_labels, bind_game_capture_labels)
+                                 _bind_capture_labels, _frozen_entries, bind_capture_labels)
 from .nfl_observed_job import _now
 from .nfl_observed_resolution import resolve_observed
 from ..probability_receipts import fingerprint, instant
@@ -176,7 +176,8 @@ class _GameAuthority:
 
 def _freeze_game_authority(journal, snapshot, game_scope):
     scope = scope_from_document(game_scope)
-    watermark, entries = _frozen_entries(_PinnedJournal(journal, snapshot), scope.season, {scope.week}, scope)
+    watermark, entries = _frozen_entries(_PinnedJournal(journal, snapshot), scope.season, {scope.week}, scope,
+                                         batch_objects=getattr(journal, "get_objects", None))
     if watermark != snapshot["watermark"]:
         raise ValueError("capture_application_binding_fence_mismatch")
     return _GameAuthority(snapshot, scope, watermark, entries)
@@ -216,8 +217,9 @@ def bind_context(journal, request, raw_chunks, *, clock=_now, max_total_bytes=ca
     elif game_scope is None:
         staged = bind_capture_labels(journal_at_fence, envelope, raw_reader, max_total_bytes=max_total_bytes)
     else:
-        staged = bind_game_capture_labels(journal_at_fence, envelope, raw_reader,
-                                          scope_from_document(game_scope), max_total_bytes=max_total_bytes)
+        staged = _bind_capture_labels(journal_at_fence, envelope, raw_reader, max_total_bytes,
+                                      scope_from_document(game_scope),
+                                      batch_objects=getattr(journal, "get_objects", None))
     if staged["membership_watermark"] != snapshot["watermark"]:
         raise ValueError("capture_application_binding_fence_mismatch")
     groups = staged["groups"]

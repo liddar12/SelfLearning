@@ -214,7 +214,35 @@ def _index_frozen_generation(doc, indexed, season, week, recorded_utc, get_objec
     return generation, refs, pool, candidates, games
 
 
-def _frozen_entries(journal, season, weeks, game_scope=None):
+def _prefetch_scope_objects(generations, batch_objects, watermark):
+    """Read source objects for proven target generations at the current fence."""
+    object_ids = set()
+    for _record, _oid, doc, _indexed, _relevant in generations:
+        manifests = doc.get("generations")
+        if type(manifests) is not list or len(manifests) != 1 or type(manifests[0]) is not dict:
+            continue  # Retain the original per-member invalid-manifest reason.
+        refs = manifests[0].get("source_snapshots")
+        if (type(refs) is dict and set(refs) == {"leg_pool", "schedule", "parlay_calibration"}
+                and all(type(value) is str and _HASH.fullmatch(value) for value in refs.values())):
+            object_ids.update(refs.values())
+    if not object_ids:
+        return {}
+    # The scoped journal's batch endpoint accepts at most 256 distinct IDs.
+    if len(object_ids) > 256:
+        _fail("capture_game_source_batch_exceeds_object_limit")
+    rows = batch_objects(sorted(object_ids), watermark=watermark)
+    if type(rows) is not list or len(rows) != len(object_ids):
+        _fail("invalid_capture_game_source_batch")
+    result = {}
+    for row in rows:
+        oid = row.get("object_id") if type(row) is dict else None
+        if type(oid) is not str or oid not in object_ids or oid in result:
+            _fail("invalid_capture_game_source_batch")
+        result[oid] = row
+    return result
+
+
+def _frozen_entries(journal, season, weeks, game_scope=None, *, batch_objects=None):
     snapshot = copy.deepcopy(journal.read_observed_snapshot())
     if (type(snapshot) is not dict or type(snapshot.get("version")) is not int or snapshot["version"] != 1
             or type(snapshot.get("watermark")) is not str or not _SEQ.fullmatch(snapshot["watermark"])
@@ -241,11 +269,12 @@ def _frozen_entries(journal, season, weeks, game_scope=None):
                 original_ids.add(receipt["source_receipt_id"])
                 scoped_receipts[receipt["receipt_id"]] = receipt
     objects, entries, seen, records = {}, {}, set(), set()
+    prefetched = {}
 
     def get_object(oid, recorded):
         _hash(oid)
         if oid not in objects:
-            wrapper = copy.deepcopy(journal.get_object(oid))
+            wrapper = copy.deepcopy(prefetched[oid] if oid in prefetched else journal.get_object(oid))
             if (type(wrapper) is not dict or wrapper.get("kind") != "source_snapshot"
                     or wrapper.get("object_id") != oid or "received_utc" not in wrapper
                     or fingerprint(wrapper.get("payload")) != oid):
@@ -256,18 +285,27 @@ def _frozen_entries(journal, season, weeks, game_scope=None):
             _fail("frozen_source_imported_after_generation")
         return objects[oid]["payload"]
 
-    for record in snapshot["generation_records"]:
-        if type(record) is not dict or not {"object_id", "payload", "ack", "recorded_utc"} <= set(record):
-            _fail("invalid_generation_record")
-        oid, doc = _hash(record["object_id"]), record["payload"]
-        if (oid in records or type(doc) is not dict or doc.get("envelope_id") != oid
-                or fingerprint({k: v for k, v in doc.items() if k != "envelope_id"}) != oid):
-            _fail("generation_envelope_hash_mismatch")
-        records.add(oid)
-        instant(record["recorded_utc"])
-        indexed, accepted = _ack(record, receipt_map, scoped_snapshot)
-        relevant = {sid: stored for sid, stored in accepted.items() if stored["receipt_id"] in scoped_receipts}
-        seen.update(stored["receipt_id"] for stored in relevant.values())
+    def selected_generations():
+        for record in snapshot["generation_records"]:
+            if type(record) is not dict or not {"object_id", "payload", "ack", "recorded_utc"} <= set(record):
+                _fail("invalid_generation_record")
+            oid, doc = _hash(record["object_id"]), record["payload"]
+            if (oid in records or type(doc) is not dict or doc.get("envelope_id") != oid
+                    or fingerprint({k: v for k, v in doc.items() if k != "envelope_id"}) != oid):
+                _fail("generation_envelope_hash_mismatch")
+            records.add(oid)
+            instant(record["recorded_utc"])
+            indexed, accepted = _ack(record, receipt_map, scoped_snapshot)
+            relevant = {sid: stored for sid, stored in accepted.items() if stored["receipt_id"] in scoped_receipts}
+            seen.update(stored["receipt_id"] for stored in relevant.values())
+            if relevant:
+                yield record, oid, doc, indexed, relevant
+
+    generations = selected_generations()
+    if scoped_snapshot is not None and callable(batch_objects):
+        generations = list(generations)
+        prefetched = _prefetch_scope_objects(generations, batch_objects, snapshot["watermark"])
+    for record, oid, doc, indexed, relevant in generations:
         context = None
         for sid, stored in relevant.items():
             row = indexed[sid]
@@ -694,7 +732,7 @@ def bind_game_capture_labels(journal, capture_envelope, raw_chunks, game_scope, 
 
 
 def _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes, game_scope=None, *,
-                         frozen_membership=None):
+                         frozen_membership=None, batch_objects=None):
     if (type(max_total_bytes) is not int or not 0 <= max_total_bytes <= capture.DEFAULT_MAX_TOTAL_BYTES
             or not callable(raw_chunks)):
         _fail("invalid_capture_limit_or_source")
@@ -713,7 +751,8 @@ def _bind_capture_labels(journal, capture_envelope, raw_chunks, max_total_bytes,
                 or fixtures[0]["week"] != game_scope.week or fixtures[0]["final"] is not True):
             _fail("capture_game_scope_requires_exact_final")
         if frozen_membership is None:
-            watermark, entries = _frozen_entries(journal, game_scope.season, {game_scope.week}, game_scope)
+            watermark, entries = _frozen_entries(journal, game_scope.season, {game_scope.week}, game_scope,
+                                                 batch_objects=batch_objects)
         else:
             watermark, entries = frozen_membership
     observations = {observation["profile"]: {"observation_id": oid, **observation} for oid, observation in sources
