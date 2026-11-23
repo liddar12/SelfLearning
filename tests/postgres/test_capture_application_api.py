@@ -146,6 +146,46 @@ def test_real_raw_stage_register_step_terminal_originals_and_pinned_pages(journa
     assert events[0] == "quota" and events.index("quota") < events.index("storage-POST")
 
 
+def test_game_scope_registers_only_verified_fixture_and_recovers_same_original(
+        journal, application_bridge, raw_producer):
+    initial(journal, raw_producer)
+    forecasts = copy.deepcopy(journal.receipts())
+    legacy, chunks = raw_request(raw_producer["captures"][0])
+    game_scope = {"policy": "nfl.capture_game_scope_v1", "season": 2026, "week": 6, "game_id": "G1"}
+    request = V.make_request(legacy["capture_request"], game_scope=game_scope)
+    unseen = V.make_request(legacy["capture_request"], game_scope={**game_scope, "game_id": "G2"})
+    assert request["application_id"] != legacy["application_id"] != unseen["application_id"]
+    receiver, storage, _ = actual_receiver(journal, application_bridge)
+    path = BASE + "/" + request["application_id"]
+
+    with api_client(receiver) as client:
+        stage_http(client, chunks)
+        response = client.post(BASE, json=unseen, headers=headers())
+        assert response.status_code == 422, response.text
+        assert client.get(BASE + "/" + unseen["application_id"], headers=headers()).status_code == 404
+        ack = registration(client, request)
+        assert (ack["member_count"], ack["group_count"], ack["batch_count"]) == (4, 1, 1)
+        registered = client.get(path + "?view=registration", headers=headers()).json()["records"][0]
+        assert registered["request"] == request
+        assert registered["seal_header"]["game_scope"] == game_scope
+        step = path + "/steps/" + ack["next_step_id"]
+        applied = client.post(step, json={}, headers=headers())
+        assert applied.status_code == 200, applied.text
+        terminal = client.get(path + "?view=terminal", headers=headers()).json()["records"][0]
+        assert terminal["processing_complete"] is True
+        assert terminal["counts"]["accepted_members"] == 4
+        assert terminal["counts"]["committed_batches"] == 1
+
+        reads_before_replay = len(storage.calls)
+        storage.bucket["public"] = True
+        assert registration(client, request) == ack
+        assert client.post(step, json={}, headers=headers()).json() == applied.json()
+        assert len(storage.calls) == reads_before_replay
+        assert client.get(BASE + "/" + legacy["application_id"], headers=headers()).status_code == 404
+
+    assert journal.receipts() == forecasts
+
+
 @pytest.mark.parametrize("route", [REGISTER, COMMIT])
 def test_lost_sql_reply_recovers_original_before_storage_after_membership_expansion(journal, application_bridge, raw_producer, route):
     initial(journal, raw_producer)
