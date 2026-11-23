@@ -3,7 +3,7 @@ import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {canonical,asRole,appendGeneration,commitGeneration,digest} from './harness.mjs';
 import {openGameCaptureApplicationDatabase,openProvenGameCaptureApplicationDatabase,
-  generationProofMigration,addMembers,serviceV2} from './capture_application_harness.mjs';
+  generationProofMigration,indexedScopeMigration,addMembers,serviceV2} from './capture_application_harness.mjs';
 const scope=game_id=>({policy:'nfl.capture_game_scope_v1',season:2026,week:6,game_id});
 const warm=(db,game='G1')=>serviceV2(db,'selflearn_journal_prepare_capture_generation_proofs_v1',[canonical(scope(game))]);
 const prepare=(db,game='G1')=>serviceV2(db,'selflearn_journal_prepare_capture_membership_v3',[2026,'[6]',canonical(scope(game))]);
@@ -28,6 +28,14 @@ test('one-generation warm resumes, reuses shared originals, preserves membership
     assert.equal(after.membership_id,before.membership_id);assert.notEqual(after.policy_id,before.policy_id);
     const current=(await db.query('select members,groups,source_index from selflearn_private.capture_game_membership_cache_v1 where cache_id=$1',[after.cache_id])).rows[0];
     assert.deepEqual(current,original,'pure membership and exact original-source strings are unchanged');
+    await db.exec(await readFile(indexedScopeMigration,'utf8'));
+    const indexed=await prepare(db);
+    assert.equal(indexed.membership_id,after.membership_id);
+    assert.notEqual(indexed.policy_id,after.policy_id);
+    const indexedSource=(await db.query('select members,groups,source_index from selflearn_private.capture_game_membership_cache_v1 where cache_id=$1',[indexed.cache_id])).rows[0];
+    assert.deepEqual(indexedSource,current);
+    assert.deepEqual(await prepare(db),indexed,'warm cache projects the same verified certificate');
+
     const reused=await warm(db,'G2');assert.equal(reused.remaining_generation_count,0);
     assert.equal(reused.prepared_object_id,null);assert.equal(reused.added,false);assert.equal(await proofCount(db),3);
     assert.equal((await db.query('select selflearn_private.observed_watermark_v1()::text value')).rows[0].value,watermark);

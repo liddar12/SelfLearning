@@ -44,9 +44,14 @@ export async function openGameCaptureApplicationDatabase({fastBatch=true}={}) {
 }
 
 export const generationProofMigration = new URL('../../supabase/migrations/20261123191257_capture_generation_authority_proofs_v1.sql', import.meta.url);
+export const indexedScopeMigration = new URL('../../supabase/migrations/20261123193300_index_scoped_membership_lookups.sql', import.meta.url);
 export async function openProvenGameCaptureApplicationDatabase() {
   const db = await openGameCaptureApplicationDatabase();
-  try { await db.exec(await readFile(generationProofMigration, 'utf8')); return db; }
+  try {
+    await db.exec(await readFile(generationProofMigration, 'utf8'));
+    await db.exec(await readFile(indexedScopeMigration, 'utf8'));
+    return db;
+  }
   catch (error) { await db.close(); throw error; }
 }
 

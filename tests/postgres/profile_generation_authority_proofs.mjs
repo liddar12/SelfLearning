@@ -1,7 +1,7 @@
 // Real RPC-admitted synthetic ledger; local WASM timings are not hosted claims.
 import {performance} from 'node:perf_hooks';
 import {readFile} from 'node:fs/promises';
-import {openGameCaptureApplicationDatabase,addMembers,serviceV2,generationProofMigration} from './capture_application_harness.mjs';
+import {openGameCaptureApplicationDatabase,addMembers,serviceV2,generationProofMigration,indexedScopeMigration} from './capture_application_harness.mjs';
 import {canonical} from './harness.mjs';
 const db=await openGameCaptureApplicationDatabase();
 const scope={policy:'nfl.capture_game_scope_v1',season:2026,week:6,game_id:'G1'};
@@ -29,8 +29,14 @@ try {
   const proven_prepare_ms=performance.now()-started;
   const current=(await db.query('select members,groups,source_index from selflearn_private.capture_game_membership_cache_v1 where cache_id=$1',[after.cache_id])).rows[0];
   if(canonical(prior)!==canonical(current)||before.membership_id!==after.membership_id)throw Error('authority/source bytes changed');
+  await db.exec(await readFile(indexedScopeMigration,'utf8'));
+  started=performance.now();
+  const indexed=await serviceV2(db,'selflearn_journal_prepare_capture_membership_v3',[2026,'[6]',canonical(scope)]);
+  const indexed_prepare_ms=performance.now()-started;
+  const indexedAuthority=(await db.query('select members,groups,source_index from selflearn_private.capture_game_membership_cache_v1 where cache_id=$1',[indexed.cache_id])).rows[0];
+  if(canonical(current)!==canonical(indexedAuthority)||after.membership_id!==indexed.membership_id)throw Error('indexed authority/source bytes changed');
   const sizes=(await db.query('select sum(octet_length(payload_json))::text generation_raw_bytes from selflearn_private.journal_objects where kind=\'generation\'')).rows[0];
   console.log(JSON.stringify({scope:'synthetic_local_postgresql_wasm_not_hosted_latency',total_receipts:total,selected_receipts:after.member_count,
-    generation_count:43,...sizes,old_prepare_ms,proven_prepare_ms,warm_calls:warm_ms.length,
+    generation_count:43,...sizes,old_prepare_ms,proven_prepare_ms,indexed_prepare_ms,warm_calls:warm_ms.length,
     max_warm_call_ms:Math.max(...warm_ms),total_warm_ms:warm_ms.reduce((a,b)=>a+b,0),exact_membership_and_source_index_equal:true}));
 } finally {await db.close();}
