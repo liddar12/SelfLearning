@@ -44,6 +44,8 @@ def requests(monkeypatch):
                 response = self.responses[path]
                 if isinstance(response, BaseException):
                     raise response
+                if callable(response):
+                    response = response(method, path, **kwargs)
                 return copy.deepcopy(response)
             if path == STATUS_PATH:
                 return {"version": 1, "rows": [{"schema_version": 1, "backend": "postgres", "journal_seq": "0"}],

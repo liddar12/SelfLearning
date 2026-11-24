@@ -83,6 +83,7 @@ jobs:
           tests/postgres/test_learning_job_discovery_adapter.py
           tests/postgres/test_learning_job_find_adapter.py
           tests/postgres/test_batched_object_adapter.py
+          tests/postgres/test_capture_factory_preflight.py
           tests/postgres/test_generation_proof_adapter.py -q -rs
       - name: Test hosted authorization, persistence contracts and test tooling
         run: python -m pytest tests packages/selflearn-core/tests/test_supabase_store.py --ignore=tests/postgres -q -rs
