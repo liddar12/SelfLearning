@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {performance} from 'node:perf_hooks';
 import {canonical,digest,asRole,appendGeneration,commitGeneration} from './harness.mjs';
 import {openGameCaptureApplicationDatabase as openCaptureApplicationDatabase,openCaptureApplicationDatabase as openLegacyDatabase,addMembers,captureRequest,applicationRequest,serviceV2,
-        memberProof,commonFact,stepPayload,commitStep,readApplication} from './capture_application_harness.mjs';
+        memberProof,commonFact,stepPayload,commitStep,readApplication,sealApplication,registerApplication} from './capture_application_harness.mjs';
 
 
 test('28,736-row ledger backfill and reads stay scoped before work limits and network pages',async()=>{
@@ -227,5 +227,37 @@ test('350 scoped observations and revisions commit atomically and replay exact o
     assert.equal((await readApplication(db,app.request.application_id,'terminal')).records[0].counts.accepted_members,350);
     console.log('SCOPED_BATCH_SQL_SCALE '+JSON.stringify({receipts:350,groups:8,baseline_ms,commit_ms:milliseconds,
       scope:'local_postgresql_wasm_not_hosted_latency'}));
+  } finally {await db.close();}
+});
+
+
+test('only registered game scopes get the extended commit route and unchanged v2 replay',async()=>{
+  const db=await openCaptureApplicationDatabase();
+  try {
+    const route='selflearn_journal_commit_capture_application_batch_v3';
+    const props=(await db.query(`select proname,proconfig,prosecdef from pg_proc where proname=any($1::text[]) order by proname`,
+      [[route,'selflearn_journal_commit_capture_application_batch_v2']])).rows;
+    assert.deepEqual(props.map(row=>[row.proname,row.prosecdef,row.proconfig.includes('statement_timeout=18s')]),[
+      ['selflearn_journal_commit_capture_application_batch_v2',false,false],[route,false,true]]);
+    const [member]=await addMembers(db,1,{player:'selected'});
+    const proof=memberProof(member,captureRequest());
+    const app=await prepare(db,'G1',{facts:{selected:commonFact(proof)}});
+    const payload=stepPayload(app.seal,0,[proof]);
+    const params=[app.request.application_id,app.seal.batches[0].step_id,canonical(payload.groups),canonical(payload.batch),app.seal.source_watermark];
+    const write=(args=params)=>serviceV2(db,route,args);
+    await assert.rejects(write(),e=>e.code==='PT422'&&e.message==='scoped_capture_application_required');
+    const legacy=applicationRequest(captureRequest('legacy-scope-test'));
+    const legacySeal=await sealApplication(db,legacy,{facts:{selected:commonFact(memberProof(member,legacy.capture_request))}});
+    await registerApplication(db,legacy,legacySeal);
+    await assert.rejects(write([legacy.application_id,...params.slice(1)]),e=>e.code==='PT422'&&e.message==='scoped_capture_application_required');
+    await register(db,app);
+    for(const role of ['anon','authenticated'])await assert.rejects(asRole(db,role,()=>db.query(
+      `select public.${route}($1,$2,$3,$4,$5)`,params)),e=>e.code==='42501');
+    await assert.rejects(write([...params.slice(0,4),'0']),e=>e.code==='PT409');
+    assert.equal((await gameRead(db,'G1','revisions')).rows.length,0);
+    const committed=await write();assert.equal(committed.added_revisions,1);
+    assert.deepEqual(await write([...params.slice(0,4),'0']),committed);
+    assert.deepEqual(await serviceV2(db,'selflearn_journal_commit_capture_application_batch_v2',params),committed);
+    assert.equal((await gameRead(db,'G1','revisions')).rows.length,1);
   } finally {await db.close();}
 });

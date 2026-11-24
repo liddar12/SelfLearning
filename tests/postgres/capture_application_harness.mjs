@@ -4,6 +4,7 @@ import { openCaptureDeliveryDatabase } from './capture_delivery_harness.mjs';
 import { canonical, digest, receipt, appendGeneration, commitGeneration, asRole } from './harness.mjs';
 
 const RPCS = new Set(['selflearn_journal_register_capture_application_v2','selflearn_journal_commit_capture_application_batch_v2',
+  'selflearn_journal_commit_capture_application_batch_v3',
   'selflearn_journal_register_capture_application_v3','selflearn_journal_prepare_capture_membership_v3',
   'selflearn_journal_read_observed_game_v1',
   'selflearn_journal_read_objects_v1',
@@ -39,6 +40,7 @@ export async function openGameCaptureApplicationDatabase({fastBatch=true}={}) {
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123191101_journal_batched_objects_v1.sql', import.meta.url), 'utf8'));
     if (fastBatch) await db.exec(await readFile(new URL('../../supabase/migrations/20261123191758_scoped_capture_batch_commit.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123191542_nfl_game_source_index_equality.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261124144414_bound_scoped_capture_commit_timeout.sql', import.meta.url), 'utf8'));
     return db;
   } catch (error) { await db.close(); throw error; }
 }

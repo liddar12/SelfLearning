@@ -2,10 +2,11 @@
 
 Import and selection open no resources and read only the supplied mapping.
 Opening the factory constructs urllib's HTTP transport (which may consult
-system proxy configuration), then checks only journal/ledger read RPCs. This is configuration
-readiness, NOT a verified hosted connection, provider authentication, a working
-learning loop or model adoption. Quotas must already be provisioned; their
-first reservation can still fail before any private Storage write. No bucket,
+system proxy configuration). V1 retains its journal/ledger probes. V2 validates
+the concrete operation's RPCs instead of probing unrelated sentinel IDs on
+every request. Configuration is NOT a verified hosted connection, provider
+authentication, a working learning loop or model adoption. Quotas must already
+be provisioned; their first reservation can still fail before any private Storage write. No bucket,
 quota, migration, token or environment value is created or changed here.
 """
 from __future__ import annotations
@@ -146,18 +147,21 @@ def select_capture_factory(env, injected=None):
                 journal_type = NFLCaptureApplicationJournal if protocol == "v2" else NFLCaptureDeliveryJournal
                 journal = stack.enter_context(journal_type(origin, key, transport=store.request,
                     **({"max_run_seconds": 45} if protocol == "v2" else {})))
-                status = journal.status()
-                if (type(status) is not dict or set(status) != {"schema_version", "backend", "watermark"}
-                        or type(status["schema_version"]) is not int or status["schema_version"] != 1
-                        or type(status["backend"]) is not str or status["backend"] != "postgres"
-                        or type(status["watermark"]) is not str or not _SEQUENCE.fullmatch(status["watermark"])):
-                    raise StoreError(503)
-                # Read-only missing-ID probe verifies the additive delivery
-                # RPC exists and can be executed. It reserves/writes nothing.
-                if journal.get_capture_delivery(_PROBE_ID) is not None:
-                    raise StoreError(503)
-                if protocol == "v2" and journal.get_capture_application(_PROBE_ID) is not None:
-                    raise StoreError(503)
+                if protocol == "v1":
+                    status = journal.status()
+                    if (type(status) is not dict or set(status) != {"schema_version", "backend", "watermark"}
+                            or type(status["schema_version"]) is not int or status["schema_version"] != 1
+                            or type(status["backend"]) is not str or status["backend"] != "postgres"
+                            or type(status["watermark"]) is not str or not _SEQUENCE.fullmatch(status["watermark"])):
+                        raise StoreError(503)
+                    if journal.get_capture_delivery(_PROBE_ID) is not None:
+                        raise StoreError(503)
+                # V2's real application reads validate complete pinned reports;
+                # registration also recovers the actual legacy delivery first.
+                # Missing/denied/malformed RPCs fail at those existing checks.
+                # Staging independently reserves quota before private Storage.
+                # None of these guarantees comes from a global status or an
+                # unrelated missing-ID read, which can itself scan old history.
                 receiver_type = CaptureApplicationReceiver if protocol == "v2" else CaptureReceiver
                 receiver = receiver_type(journal,
                     SupabaseEvidenceStore(store.request, bucket=bucket, namespace=_STORAGE_NAMESPACE),

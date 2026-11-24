@@ -61,6 +61,7 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         if name not in {"selflearn_journal_register_capture_application_v2",
                         "selflearn_journal_register_capture_application_v3",
                         "selflearn_journal_commit_capture_application_batch_v2",
+                        "selflearn_journal_commit_capture_application_batch_v3",
                         "selflearn_journal_stop_capture_application_v2",
                         "selflearn_journal_prepare_capture_membership_v2",
                         "selflearn_journal_prepare_capture_membership_v3",
@@ -396,7 +397,9 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         if snapshot is None or snapshot.get("watermark") != watermark or snapshot.get("game_scope") != game_scope:
             snapshot = reload(watermark)
         try:
-            result = self._application_rpc("selflearn_journal_commit_capture_application_batch_v2", data)
+            route = ("selflearn_journal_commit_capture_application_batch_v2" if game_scope is None
+                     else "selflearn_journal_commit_capture_application_batch_v3")
+            result = self._application_rpc(route, data)
         finally:
             self._observed_snapshot = None
         try:
