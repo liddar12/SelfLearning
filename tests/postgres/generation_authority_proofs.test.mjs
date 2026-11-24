@@ -143,3 +143,38 @@ test('proven source hashing preserves numeric lexemes, Unicode and nested receip
     await assert.rejects(prepare(db),e=>e.code==='PT422'&&e.message==='unlocatable_original_capture_member');
   } finally {await db.close();}
 });
+
+test('scoped policy byte reuse preserves the cache key and changes on every tracked policy family',async()=>{
+  const db=await openProvenGameCaptureApplicationDatabase();
+  try {
+    const policyDefinition=async(name)=>(await db.query('select pg_get_functiondef($1::regprocedure) value',[name])).rows[0].value;
+    const originalGame=await policyDefinition('selflearn_private.capture_game_policy_v1()');
+    const originalLegacy=await policyDefinition('selflearn_private.capture_membership_policy_v2()');
+    const originalProof=await policyDefinition('selflearn_private.capture_generation_proof_policy_v1()');
+    await db.exec(originalGame.replace('selflearn_private.capture_game_policy_v1()', 'selflearn_private.reference_game_policy_v1()'));
+    const readPolicies=async()=>(await db.query(`select selflearn_private.capture_game_policy_v1() optimized,
+      selflearn_private.reference_game_policy_v1() reference`)).rows[0];
+    await addMembers(db,2);await warm(db);
+    const before=await prepare(db);
+    const oldRow=(await db.query('select stored_utc,payload_sha256 from selflearn_private.capture_game_membership_cache_v1 where cache_id=$1',[before.cache_id])).rows[0];
+    const migration=new URL('../../supabase/migrations/20261124155124_reuse_scoped_policy_fingerprint_bytes.sql',import.meta.url);
+    await db.exec(await readFile(migration,'utf8'));
+    assert.deepEqual(await readPolicies(),{optimized:before.policy_id,reference:before.policy_id});
+    assert.deepEqual(await prepare(db),before,'same authority and policy reuse the existing cache ID');
+    const warmRow=(await db.query('select stored_utc,payload_sha256 from selflearn_private.capture_game_membership_cache_v1 where cache_id=$1',[before.cache_id])).rows[0];
+    assert.deepEqual(warmRow,oldRow,'existing cache payload was not rebuilt');
+    assert.equal(await policyDefinition('selflearn_private.capture_membership_policy_v2()'),originalLegacy);
+    assert.equal(await policyDefinition('selflearn_private.capture_generation_proof_policy_v1()'),originalProof);
+    for(const target of ['selflearn_private.capture_membership_policy_v2()',
+       'selflearn_private.capture_verify_generation_envelope_v1(text)',
+       'selflearn_private.capture_game_membership_id_v1(json,json)']) {
+      const definition=await policyDefinition(target);
+      await db.exec(definition.replace(/(AS \$\w*\$)/i,'$1\n-- mutate one tracked definition'));
+      const {optimized,reference}=await readPolicies();
+      assert.notEqual(reference,before.policy_id,target);
+      assert.equal(optimized,reference,target);
+      await db.exec(definition);
+    }
+    assert.deepEqual(await readPolicies(),{optimized:before.policy_id,reference:before.policy_id});
+  } finally {await db.close();}
+});
