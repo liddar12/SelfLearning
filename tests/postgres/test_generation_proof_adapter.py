@@ -51,9 +51,8 @@ def test_real_report_bundle_keeps_one_rpc_and_same_cross_view_checks(journal, ap
     from copy import deepcopy
     from unittest.mock import patch
     import pytest
-    from test_capture_application_adapter import prepare, commit_first
+    from test_capture_application_api import BASE, api_client, headers, receiver_for
     from selflearn_core.store.supabase_store import StoreError
-    from hosted.test_capture_application_api import BASE, api_client, headers, receiver_for
     from services.web.nfl_capture_applications import CaptureApplicationReceiver
 
     initial(journal, raw_producer)
