@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFile } from 'node:fs/promises';
 import { openCaptureApplicationDatabase, addMembers, memberMap, applicationRequest, sealApplication, registerApplication, serviceV2,
   memberProof,commonFact,stepPayload,commitStep,readApplication,captureRequest,rpcV2,moveCaptureDay,resealCapture } from './capture_application_harness.mjs';
 import { appendReceipt, receipt, asRole, rejectsCode,canonical,digest,digestText,serviceRpc,appendObject,
@@ -20,6 +21,31 @@ databaseTest('v2 additive membership leaves every existing function body unchang
   const definitions = (await db.query("SELECT proname,prosecdef,proconfig FROM pg_proc WHERE proname IN ('capture_members_v1','capture_members_v2') ORDER BY proname")).rows;
   assert.equal(definitions.length, 2);
   assert.ok(definitions.every(row => !row.prosecdef && row.proconfig.includes('search_path=""')));
+});
+
+databaseTest('capture report deadline leaves exact application pages and grants unchanged', async db => {
+  const [member] = await addMembers(db, 1, {player: 'selected'});
+  const request = applicationRequest(captureRequest());
+  const proof = memberProof(member, request.capture_request);
+  const seal = await sealApplication(db, request, {facts: {selected: commonFact(proof)}});
+  await registerApplication(db, request, seal);
+  const batch = await commitStep(db, request, seal, 0, stepPayload(seal, 0, [proof]), seal.source_watermark);
+  assert.equal(batch.added_revisions, 1);
+  const views = ['registration', 'status', 'groups', 'batches', 'terminal'];
+  const before = {};
+  for (const view of views) before[view] = await readApplication(db, request.application_id, view);
+
+  const migration = new URL('../../supabase/migrations/20261124152900_bound_capture_application_read_timeout.sql', import.meta.url);
+  await db.exec(await readFile(migration, 'utf8'));
+  for (const view of views) assert.deepEqual(await readApplication(db, request.application_id, view), before[view]);
+
+  const route = 'selflearn_journal_read_capture_application_v2';
+  const config = (await db.query('select proconfig,prosecdef from pg_proc where proname=$1', [route])).rows[0];
+  assert.deepEqual(config, {proconfig: ['search_path=""', 'statement_timeout=18s'], prosecdef: false});
+  for (const role of ['anon', 'authenticated']) {
+    await rejectsCode(() => asRole(db, role, () => rpcV2(db, route,
+      [request.application_id, 'status', null, null, 1, null])), '42501');
+  }
 });
 
 databaseTest('v2 equals v1 complete accepted membership for rungs, vintages and rejected neighbors', async db => {
