@@ -157,7 +157,7 @@ test('scoped policy byte reuse preserves the cache key and changes on every trac
     await addMembers(db,2);await warm(db);
     const before=await prepare(db);
     const oldRow=(await db.query('select stored_utc,payload_sha256 from selflearn_private.capture_game_membership_cache_v1 where cache_id=$1',[before.cache_id])).rows[0];
-    const migration=new URL('../../supabase/migrations/20261124155124_reuse_scoped_policy_fingerprint_bytes.sql',import.meta.url);
+    const migration=new URL('../../supabase/migrations/20261124155931_reuse_scoped_policy_fingerprint_bytes.sql',import.meta.url);
     await db.exec(await readFile(migration,'utf8'));
     assert.deepEqual(await readPolicies(),{optimized:before.policy_id,reference:before.policy_id});
     assert.deepEqual(await prepare(db),before,'same authority and policy reuse the existing cache ID');
