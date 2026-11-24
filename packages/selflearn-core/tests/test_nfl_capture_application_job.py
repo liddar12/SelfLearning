@@ -8,15 +8,18 @@ import unittest
 from unittest.mock import patch
 
 from selflearn_core.adapters import nfl_capture_application_job as J
+from selflearn_core.adapters import nfl_capture_labels as labels
 from selflearn_core.adapters import nfl_capture_application_v2 as V
 from selflearn_core.adapters import nfl_capture_application_contracts as C
 from selflearn_core.probability_receipts import fingerprint
 from selflearn_core.store.receipt_journal import JournalConflict
 from selflearn_core.store.supabase_store import StoreError
+from test_nfl_capture_application import population
 from test_nfl_capture_application_v2 import context
 from test_nfl_capture_application_contracts import registration,terminal,withheld,rehash
-from test_nfl_capture_labels import journal_fixture
-from test_nfl_capture_delivery_job import PROCESSING
+from test_nfl_capture_labels import BINDING_ROSTER, BINDING_STATS, binding_capture, journal_fixture, roster_row
+from test_nfl_capture_stat_identity import anonymous_stat_row
+from test_nfl_capture_delivery_job import PROCESSING, request as raw_request
 import test_nfl_capture_evidence as E
 
 
@@ -124,6 +127,62 @@ def step(port,**kwargs):
 
 
 class ApplicationJobOrchestrationTests(unittest.TestCase):
+    def test_scoped_recovery_keeps_legacy_withholding_and_accepted_fact_unchanged(self):
+        scope = V.CaptureGameScope(2026, 6, "g6").document()
+
+        class GamePort(FakeApplicationPort):
+            def read_observed_snapshot(self):
+                raise AssertionError("unexpected global read")
+
+            def read_observed_game_snapshot(self, game_scope):
+                if game_scope != scope:
+                    raise AssertionError("wrong game scope")
+                return {**self.base.read_observed_snapshot(), "game_scope": scope}
+
+            def prepare_capture_membership(self, season, weeks, *, game_scope=None):
+                if game_scope != scope:
+                    raise AssertionError("scoped preparation missing")
+                return super().prepare_capture_membership(season, weeks)
+
+        port = GamePort()
+        port.base, _ = population(sizes=(1, 1))
+        stats = BINDING_STATS.replace(b",,,NA", b",,,80") + anonymous_stat_row()
+        port.envelope, port.objects = binding_capture(
+            stats=stats, stats_audit=E.csv_audit(len(stats.splitlines()) - 1),
+            roster=BINDING_ROSTER + roster_row(8),
+        )
+        port.request = V.make_request(raw_request(port.envelope, port.objects), game_scope=scope)
+        exact_event_reason = labels._event_reason
+
+        def legacy_event_reason(row, entry, *, snaps=False):
+            # The previous malformed-ID branch did not use this proven event
+            # mismatch, so its other-fixture anonymous row blocked inference.
+            reason = exact_event_reason(row, entry, snaps=snaps)
+            if not snaps and not row.get("player_id") and reason == "source_fixture_mismatch":
+                return None
+            return reason
+
+        with patch.object(labels, "_event_reason", side_effect=legacy_event_reason):
+            original_ack = register(port)
+        original_seal = copy.deepcopy(port.application["seal"])
+        held = next(group for group in original_seal["groups"] if group["status"] == "withheld")
+        accepted = next(group for group in original_seal["groups"] if group["status"] == "planned")
+        self.assertEqual(held["reason_codes"], ["unidentified_stat_row_prevents_zero_inference"])
+        refreshed = V.prepare_seal(V.bind_context(port, port.request, port.raw, clock=lambda: PROCESSING))
+        self.assertEqual(refreshed["membership_id"], original_seal["membership_id"])
+        now = {group["group_id"]: group for group in refreshed["groups"]}
+        self.assertEqual(now[held["group_id"]]["status"], "planned")
+        self.assertEqual(now[accepted["group_id"]]["fact_id"], accepted["fact_id"])
+        result = step(port)
+        self.assertEqual([group["group_id"] for group in result["groups"]], [accepted["group_id"]])
+        self.assertEqual(result["added_revisions"], 1)
+        self.assertEqual(port.application["seal"], original_seal)
+        terminal_original = copy.deepcopy(port.application["terminal"])
+        self.assertEqual(terminal_original["status"], "partial")
+        self.assertEqual(terminal_original["counts"]["withheld_members"], 1)
+        self.assertEqual(register(port), original_ack)
+        self.assertEqual(port.application["terminal"], terminal_original)
+
     def test_real_raw_bind_kernel_two_steps_and_original_recovery_over_fake_port(self):
         port=FakeApplicationPort();original=copy.deepcopy(port.base.snapshot["receipts"])
         ack=register(port,max_batch_members=4)
