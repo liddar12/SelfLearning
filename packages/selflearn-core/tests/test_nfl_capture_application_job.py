@@ -247,6 +247,16 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
             port.before_commit = None
             port.base.snapshot["watermark"] = str(int(port.base.snapshot["watermark"]) + 1)
 
+        scoped_requests = []
+
+        def from_registered_request(request):
+            scoped_requests.append(fingerprint(request))
+            return slow_raw
+
+        def unexpected_fallback(_object_id):
+            raise AssertionError("scoped raw lookup reread its application")
+
+        port.raw = J.ScopedCaptureRawSource(unexpected_fallback, from_registered_request)
         port.before_commit = changed_fence
         elapsed[0] = 0
         first = step(port, scoped_run_seconds=90, monotonic=lambda: elapsed[0])
@@ -258,11 +268,17 @@ class ApplicationJobOrchestrationTests(unittest.TestCase):
         # validate immutable sources once and re-read the original raw bytes.
         self.assertEqual(len(port.base.gets) - previous_object_reads, 4 * objects_per_bind)
         self.assertEqual(len(port.raw_reads), 4 * raw_per_bind)
+        self.assertEqual(scoped_requests, [fingerprint(port.request)] * 3)
         self.assertEqual(acknowledgement["capture_intent_id"], V.capture_intent_id(port.request))
         self.assertNotEqual(first["step_id"], second["step_id"])
         self.assertTrue(port.application["terminal"]["complete_success"])
         self.assertEqual(register(port), acknowledgement)
         self.assertEqual(port.game_reads, [scope] * 5)
+        with self.assertRaises(J.CaptureApplicationScopeMismatch):
+            J.commit_capture_application_step(port, port.request["application_id"], first["step_id"], port.raw,
+                expected_scope=(fingerprint("unrelated-destination"), "nfl2026"))
+        self.assertEqual(J.commit_capture_application_step(port, port.request["application_id"], first["step_id"], port.raw), first)
+        self.assertEqual(scoped_requests, [fingerprint(port.request)] * 3)
 
     def test_legacy_cannot_use_scope_extended_deadline(self):
         port = FakeApplicationPort()

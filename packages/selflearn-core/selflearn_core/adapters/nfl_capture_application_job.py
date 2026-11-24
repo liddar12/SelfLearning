@@ -31,6 +31,17 @@ class CaptureApplicationScopeMismatch(ValueError):
     """A known digest does not authorize a different configured producer."""
 
 
+class ScopedCaptureRawSource:
+    """Keep the legacy callable and bind scoped reads to the checked request."""
+
+    def __init__(self, fallback, for_registered_request):
+        self._fallback = fallback
+        self.for_registered_request = for_registered_request
+
+    def __call__(self, object_id):
+        return self._fallback(object_id)
+
+
 def _budget(seconds, monotonic, *, maximum=45, started=None):
     if (type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0 < seconds <= maximum
             or not callable(monotonic)):
@@ -210,7 +221,12 @@ def commit_capture_application_step(journal, application_id, step_id, raw_chunks
                 else:
                     # Reuse immutable provenance only at this attempt's
                     # snapshot. Raw bytes are verified and SQL still owns CAS.
-                    context = V.bind_context(journal, frozen, raw_chunks, clock=clock, snapshot=snapshot,
+                    # The registered request above already passed the producer
+                    # scope check. Build pointers from it on this attempt rather
+                    # than downloading and validating the whole report again.
+                    scoped_raw = (raw_chunks.for_registered_request(frozen)
+                                  if isinstance(raw_chunks, ScopedCaptureRawSource) else raw_chunks)
+                    context = V.bind_context(journal, frozen, scoped_raw, clock=clock, snapshot=snapshot,
                                              _game_authority=game_authority)
             except capture.CaptureIntegrityError:
                 _stop(journal, application_id, "source_integrity_failed", snapshot["watermark"], check)
