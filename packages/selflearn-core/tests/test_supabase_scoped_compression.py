@@ -6,10 +6,48 @@ import random
 
 import pytest
 
+from selflearn_core.adapters.nfl_capture_application_journal import NFLCaptureApplicationJournal
 from selflearn_core.store.supabase_store import SupabaseStore, StoreError, _MAX_RESPONSE_BYTES
 
 GAME = "/rest/v1/rpc/selflearn_journal_read_observed_game_v1"
 OBJECTS = "/rest/v1/rpc/selflearn_journal_read_objects_v1"
+
+
+def test_transient_game_history_read_resumes_at_the_same_pinned_page():
+    journal = NFLCaptureApplicationJournal("https://offline.supabase.invalid", "sb_secret_fixture")
+    calls = []
+
+    def request(method, path, *, data):
+        assert method == "POST" and path == GAME
+        calls.append((data["p_after"], data["p_watermark"]))
+        if len(calls) == 2:
+            raise StoreError(500)
+        sequence = "2" if len(calls) == 1 else "5"
+        return {"version": 1, "rows": [{"journal_seq": sequence}], "watermark": "9",
+                "next_after": "2" if len(calls) == 1 else None}
+
+    journal._request = request
+    rows, watermark = journal._read("receipts", key="scope", rpc_operation="read_game")
+    assert calls == [(None, None), ("2", "9"), ("2", "9")]
+    assert rows == [{"journal_seq": "2"}, {"journal_seq": "5"}]
+    assert watermark == "9"
+
+
+@pytest.mark.parametrize("status,attempts", [(500, 2), (503, 2), (504, 2), (422, 1), (502, 1)])
+def test_scoped_page_retry_is_bounded_and_does_not_retry_validation_failures(status, attempts):
+    journal = NFLCaptureApplicationJournal("https://offline.supabase.invalid", "sb_secret_fixture")
+    calls = []
+
+    def request(method, path, *, data):
+        assert method == "POST" and path == GAME
+        calls.append(data)
+        raise StoreError(status)
+
+    journal._request = request
+    with pytest.raises(StoreError) as error:
+        journal._read("receipts", key="scope", watermark="9", rpc_operation="read_game")
+    assert error.value.status == status
+    assert len(calls) == attempts and all(call == calls[0] for call in calls)
 
 
 class Response(io.BytesIO):
