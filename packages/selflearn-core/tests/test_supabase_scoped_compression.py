@@ -36,6 +36,7 @@ class Opener:
     def open(self, request, timeout):
         scoped_verification = request.get_method() == "POST" and request.full_url.endswith((
             "/selflearn_journal_prepare_capture_membership_v3", "/selflearn_journal_register_capture_application_v3",
+            "/selflearn_journal_commit_capture_application_batch_v3",
         ))
         scoped_history = request.full_url.endswith("/selflearn_journal_read_observed_game_v1") and (
             request.get_header("Accept-encoding") == "gzip"
@@ -76,6 +77,8 @@ def test_server_may_decline_compression_without_changing_results(encoding):
     ("/rest/v1/rpc/selflearn_journal_read_v1", "POST", False),
     ("/rest/v1/rpc/selflearn_journal_read_observed_v1", "POST", False),
     ("/rest/v1/rpc/selflearn_journal_commit_capture_application_batch_v2", "POST", False),
+    ("/rest/v1/rpc/selflearn_journal_commit_capture_application_batch_v3", "POST", False),
+    ("/rest/v1/rpc/selflearn_journal_commit_capture_application_batch_v3", "GET", False),
     ("/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3", "POST", False),
     ("/rest/v1/rpc/selflearn_journal_register_capture_application_v3", "POST", False),
     ("/rest/v1/rpc/selflearn_journal_register_capture_application_v2", "POST", False),

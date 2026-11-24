@@ -40,6 +40,7 @@ _SCOPED_EXTENDED_TIMEOUT_RPCS = frozenset({
     "/rest/v1/rpc/selflearn_journal_read_observed_game_v1",
     "/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3",
     "/rest/v1/rpc/selflearn_journal_register_capture_application_v3",
+    "/rest/v1/rpc/selflearn_journal_commit_capture_application_batch_v3",
 })
 _COMPRESSED_SCOPED_READS = frozenset({
     "/rest/v1/rpc/selflearn_journal_read_observed_game_v1",
@@ -118,7 +119,7 @@ class SupabaseStore(StorageBackend):
             headers["Prefer"] = "return=minimal"
         url = self._url + path + ("?" + urlencode(query) if query else "")
         req = Request(url, data=body, headers=headers, method=method)
-        # Bounded game history, certification and registration each have
+        # Bounded game history, certification, registration and commit each have
         # an 18s database deadline. Allow time to return verified replies.
         timeout = 22 if method == "POST" and path in _SCOPED_EXTENDED_TIMEOUT_RPCS and not binary else 12
         try:

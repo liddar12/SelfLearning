@@ -17,6 +17,7 @@ const params=Object.freeze({
   selflearn_journal_read_capture_delivery_v1:['p_delivery_id','p_after','p_limit'],
   selflearn_journal_register_capture_application_v2:['p_request_json','p_seal_json','p_watermark'],
   selflearn_journal_commit_capture_application_batch_v2:['p_application_id','p_step_id','p_group_results_json','p_batch_json','p_watermark'],
+  selflearn_journal_commit_capture_application_batch_v3:['p_application_id','p_step_id','p_group_results_json','p_batch_json','p_watermark'],
   selflearn_journal_stop_capture_application_v2:['p_application_id','p_reason','p_watermark'],
   selflearn_journal_read_capture_application_v2:['p_application_id','p_view','p_key','p_after','p_limit','p_ledger_watermark'],
   selflearn_journal_prepare_capture_membership_v2:['p_season','p_weeks_json'],

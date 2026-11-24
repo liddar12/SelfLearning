@@ -95,11 +95,11 @@ def initial(journal, raw_producer):
     admit(journal, plan["source_objects"], [item["request"]["payload"] for item in plan["generations"]])
 
 
-def prepare(journal, capture, **limits):
+def prepare(journal, capture, *, game_scope=None, **limits):
     envelope, chunks = stage(capture)
     original = make_capture_delivery_request(envelope, list(chunks.pointers.values()),
         destination_id=fingerprint("local-v2-application-fixture"), producer_id="nfl2026")
-    request = V.make_request(original)
+    request = V.make_request(original, game_scope=game_scope)
     ctx = V.bind_context(journal, request, chunks.read,
         clock=lambda: datetime.now(timezone.utc).isoformat())
     return ctx, V.prepare_seal(ctx, **limits), chunks
