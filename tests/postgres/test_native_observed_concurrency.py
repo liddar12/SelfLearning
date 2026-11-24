@@ -146,14 +146,17 @@ class NativeObservedConcurrencyTests(unittest.TestCase):
           DO $$ BEGIN
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF;
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticator') THEN CREATE ROLE authenticator LOGIN NOINHERIT; END IF;
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role NOLOGIN BYPASSRLS; END IF;
           END $$;
         """)
         safe_roles = cls.pg.one("SELECT json_build_object("
             "'service',(SELECT rolbypassrls AND NOT rolsuper FROM pg_roles WHERE rolname='service_role'),"
             "'anon',(SELECT NOT rolbypassrls AND NOT rolsuper FROM pg_roles WHERE rolname='anon'),"
-            "'authenticated',(SELECT NOT rolbypassrls AND NOT rolsuper FROM pg_roles WHERE rolname='authenticated'));")
-        if safe_roles != {"service": True, "anon": True, "authenticated": True}:
+            "'authenticated',(SELECT NOT rolbypassrls AND NOT rolsuper FROM pg_roles WHERE rolname='authenticated'),"
+            "'authenticator',(SELECT rolcanlogin AND NOT rolinherit AND NOT rolbypassrls AND NOT rolsuper "
+            "FROM pg_roles WHERE rolname='authenticator'));")
+        if safe_roles != {"service": True, "anon": True, "authenticated": True, "authenticator": True}:
             raise RuntimeError("Observed native fixture roles are unsafe; existing roles were not changed")
         for migration in (native.MIGRATION, ADDITIVE):
             sql = migration.read_text(encoding="utf-8")

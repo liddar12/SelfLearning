@@ -49,8 +49,7 @@ databaseTest('capture report deadline leaves exact application pages and grants 
 });
 
 databaseTest('schema bootstrap timeout preserves public and service request deadlines', async db => {
-  await db.exec(`create role authenticator noinherit login;
-    alter role authenticator set statement_timeout to '8s';
+  await db.exec(`alter role authenticator set statement_timeout to '8s';
     alter role authenticator set lock_timeout to '8s';
     alter role anon set statement_timeout to '3s';
     alter role authenticated set statement_timeout to '8s';`);
