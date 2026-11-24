@@ -48,6 +48,24 @@ databaseTest('capture report deadline leaves exact application pages and grants 
   }
 });
 
+databaseTest('schema bootstrap timeout preserves public and service request deadlines', async db => {
+  await db.exec(`create role authenticator noinherit login;
+    alter role authenticator set statement_timeout to '8s';
+    alter role authenticator set lock_timeout to '8s';
+    alter role anon set statement_timeout to '3s';
+    alter role authenticated set statement_timeout to '8s';`);
+  const migration = new URL('../../supabase/migrations/20261124153903_bound_postgrest_schema_bootstrap_timeout.sql', import.meta.url);
+  await db.exec(await readFile(migration, 'utf8'));
+  const {rows} = await db.query(`select rolname,rolconfig from pg_roles
+    where rolname in ('anon','authenticated','authenticator','service_role') order by rolname`);
+  assert.deepEqual(rows.map(({rolname,rolconfig}) => [rolname, [...rolconfig].sort()]), [
+    ['anon', ['statement_timeout=3s']],
+    ['authenticated', ['statement_timeout=8s']],
+    ['authenticator', ['lock_timeout=8s', 'statement_timeout=30s']],
+    ['service_role', ['statement_timeout=8s']],
+  ]);
+});
+
 databaseTest('v2 equals v1 complete accepted membership for rungs, vintages and rejected neighbors', async db => {
   await addMembers(db, 4, { player: 'same-player', line: i => 40 + i, vintage: 'first' });
   await addMembers(db, 4, { player: 'same-player', line: i => 40 + i, vintage: 'second' });
