@@ -166,7 +166,8 @@ def select_capture_factory(env, injected=None):
                 receiver = receiver_type(journal,
                     SupabaseEvidenceStore(store.request, bucket=bucket, namespace=_STORAGE_NAMESPACE),
                     CaptureStagingQuota(store.request, namespace_id=_NAMESPACE),
-                    destination_id=DESTINATION_ID, producer_id=PRODUCER_ID)
+                    destination_id=DESTINATION_ID, producer_id=PRODUCER_ID,
+                    **({"report_bundle": True} if protocol == "v2" else {}))
             except Exception:
                 raise StoreError(503) from None
             # Operation errors retain their domain types/status for the route's

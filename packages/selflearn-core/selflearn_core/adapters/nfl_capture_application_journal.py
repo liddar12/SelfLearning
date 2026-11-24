@@ -20,6 +20,9 @@ from ..store.supabase_store import StoreConflict, StoreError
 
 
 SCOPED_CAPTURE_RUN_SECONDS = 120
+_REPORT_BUNDLE_RPC = "selflearn_journal_read_capture_application_bundle_v1"
+_REPORT_BUNDLE_MAX_BYTES = 6 * 1024 * 1024
+_REPORT_VIEWS = {"registration", "groups", "batches", "status", "terminal"}
 
 
 class CaptureApplicationBudgetExceeded(TimeoutError):
@@ -66,7 +69,7 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                         "selflearn_journal_prepare_capture_membership_v2",
                         "selflearn_journal_prepare_capture_membership_v3",
                         "selflearn_journal_prepare_capture_generation_proofs_v1",
-                        "selflearn_journal_read_capture_application_v2"}:
+                        "selflearn_journal_read_capture_application_v2", _REPORT_BUNDLE_RPC}:
             raise ValueError("invalid_capture_application_rpc")
         try:
             response = self._request("POST", "/rest/v1/rpc/" + name, data=data)
@@ -83,11 +86,12 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
                 raise ValueError("invalid_capture_application_rpc_response")
             # Bound the actual assembled page/ACK even with a fake/custom
             # transport; no relaxed limits based on claimed record counts.
-            return json.loads(V.bounded(response, V.MAX_REQUEST_BYTES))
+            maximum = _REPORT_BUNDLE_MAX_BYTES if name == _REPORT_BUNDLE_RPC else V.MAX_REQUEST_BYTES
+            return json.loads(V.bounded(response, maximum))
         except (ValueError, TypeError, KeyError, OverflowError):
             raise StoreError(502) from None
 
-    def _application_rows(self, application_id, view, *, key=None, ledger_watermark=None):
+    def _application_rows(self, application_id, view, *, key=None, ledger_watermark=None, bundled_page=None):
         D._hash(application_id)
         if type(view) is not str or view not in C.VIEWS or (view == "batch") != (key is not None):
             raise ValueError("invalid_capture_application_read_view")
@@ -99,11 +103,16 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
         limit = min(self.page_size, 100) if many else 1
         after, rows, metadata, fence = None, [], None, ledger_watermark
         for _ in range(V.MAX_GROUPS + 1):
-            page = self._application_rpc("selflearn_journal_read_capture_application_v2", {
-                "p_application_id": application_id, "p_view": view, "p_key": key,
-                "p_after": after, "p_limit": limit, "p_ledger_watermark": fence})
+            page = bundled_page if bundled_page is not None else self._application_rpc(
+                "selflearn_journal_read_capture_application_v2", {
+                    "p_application_id": application_id, "p_view": view, "p_key": key,
+                    "p_after": after, "p_limit": limit, "p_ledger_watermark": fence})
             try:
                 C.keys(page, C.PAGE_KEYS)
+                if bundled_page is not None:
+                    V.bounded(page, V.MAX_REQUEST_BYTES)
+                    if page["next_after"] is not None:
+                        raise ValueError("incomplete_capture_application_bundle")
                 if (page["kind"] != "nfl.capture_application_page.v2" or type(page["found"]) is not bool
                         or page["application_id"] != application_id or page["view"] != view
                         or type(page["records"]) is not list or len(page["records"]) > limit):
@@ -159,7 +168,37 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
 
     def get_capture_application(self, application_id, *, ledger_watermark=None):
         """Read the COMPLETE sealed application at one immutable ledger fence."""
-        header = self._application_rows(application_id, "registration", ledger_watermark=ledger_watermark)
+        return self._assemble_capture_application(application_id, ledger_watermark)
+
+    def get_capture_application_read_report(self, application_id, *, ledger_watermark=None):
+        """GET-only transport optimization with the same full report validators."""
+        D._hash(application_id)
+        if ledger_watermark is not None:
+            V.sequence(ledger_watermark)
+        bundle = self._application_rpc(_REPORT_BUNDLE_RPC, {"p_application_id": application_id,
+            "p_ledger_watermark": ledger_watermark, "p_limit": min(self.page_size, 100)})
+        try:
+            C.keys(bundle, {"version", "kind", "status", "pages"})
+            if bundle["kind"] != "nfl.capture_application_report_bundle.v1":
+                raise ValueError("invalid_capture_application_bundle")
+            if bundle["status"] == "page_required" and bundle["pages"] is None:
+                return self.get_capture_application(application_id, ledger_watermark=ledger_watermark)
+            pages = bundle["pages"]
+            if bundle["status"] != "complete" or type(pages) is not dict or type(pages.get("registration")) is not dict:
+                raise ValueError("invalid_capture_application_bundle")
+            C.keys(pages, {"registration"} if pages["registration"].get("found") is False else _REPORT_VIEWS)
+            if any(type(page) is not dict for page in pages.values()):
+                raise ValueError("invalid_capture_application_bundle")
+        except (ValueError, TypeError, KeyError, OverflowError):
+            raise StoreError(502) from None
+        return self._assemble_capture_application(application_id, ledger_watermark, pages)
+
+    def _assemble_capture_application(self, application_id, ledger_watermark, pages=None):
+        def read(view, fence):
+            return self._application_rows(application_id, view, ledger_watermark=fence,
+                                          bundled_page=None if pages is None else pages[view])
+
+        header = read("registration", ledger_watermark)
         if header is None:
             return None
         try:
@@ -170,7 +209,7 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
             C.keys(record["seal_header"], C.seal_keys(record["request"]) - {"groups", "batches"})
             documents = {}
             for view in ("groups", "batches", "status", "terminal"):
-                page = self._application_rows(application_id, view, ledger_watermark=header["ledger_watermark"])
+                page = read(view, header["ledger_watermark"])
                 if page is None or any(page[k] != header[k] for k in ("ledger_watermark", "registration_id", "seal_id")):
                     raise ValueError("capture_application_cross_view_fence_changed")
                 documents[view] = page["records"]

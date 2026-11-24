@@ -39,11 +39,13 @@ _MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 _OUTCOME_EXTENDED_TIMEOUT_RPCS = frozenset({
     "/rest/v1/rpc/selflearn_journal_read_observed_game_v1",
     "/rest/v1/rpc/selflearn_journal_read_capture_application_v2",
+    "/rest/v1/rpc/selflearn_journal_read_capture_application_bundle_v1",
     "/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3",
     "/rest/v1/rpc/selflearn_journal_register_capture_application_v3",
     "/rest/v1/rpc/selflearn_journal_commit_capture_application_batch_v3",
 })
 _COMPRESSED_SCOPED_READS = frozenset({
+    "/rest/v1/rpc/selflearn_journal_read_capture_application_bundle_v1",
     "/rest/v1/rpc/selflearn_journal_read_observed_game_v1",
     "/rest/v1/rpc/selflearn_journal_read_objects_v1",
 })

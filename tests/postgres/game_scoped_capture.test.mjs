@@ -261,3 +261,40 @@ test('only registered game scopes get the extended commit route and unchanged v2
     assert.equal((await gameRead(db,'G1','revisions')).rows.length,1);
   } finally {await db.close();}
 });
+
+test('bounded report bundle embeds the exact immutable pages and keeps page-limit fallback',async()=>{
+  const db=await openCaptureApplicationDatabase();
+  try {
+    const source=captureRequest();
+    const members=await addMembers(db,2,{player:i=>'reported-'+i});
+    const proofs=members.map(member=>memberProof(member,source));
+    const facts=Object.fromEntries(proofs.map(proof=>[
+      proof.observation.measurement.canonical_contract[2],commonFact(proof)]));
+    const app=await prepare(db,'G1',{facts});
+    const aid=app.request.application_id,route='selflearn_journal_read_capture_application_bundle_v1';
+    const read=(id=aid,fence=null,limit=100)=>serviceV2(db,route,[id,fence,limit]);
+    const absent=await read();
+    assert.deepEqual(Object.keys(absent.pages),['registration']);
+    assert.equal(absent.pages.registration.found,false);
+    await register(db,app);
+    const active=await read(),fence=active.pages.registration.ledger_watermark;
+    assert.equal(active.pages.status.records[0].status,'active');
+    assert.deepEqual(await read(aid,fence,1),{version:2,kind:'nfl.capture_application_report_bundle.v1',status:'page_required',pages:null});
+    await commitStep(db,app.request,app.seal,0,stepPayload(app.seal,0,proofs),app.seal.source_watermark);
+    const complete=await read();
+    assert.deepEqual(await read(aid,fence),active);
+    assert.equal(complete.pages.terminal.records[0].counts.accepted_members,2);
+    for(const [view,expected] of Object.entries(complete.pages)) {
+      const original=await serviceV2(db,'selflearn_journal_read_capture_application_v2',
+        [aid,view,null,null,['groups','batches'].includes(view)?100:1,expected.ledger_watermark]);
+      assert.deepEqual(expected,original);
+      const actualText=(await db.query(`select (public.${route}($1,$2,100)->'pages'->$3::text)::text value`,
+        [aid,expected.ledger_watermark,view])).rows[0].value;
+      const priorText=(await db.query('select public.selflearn_journal_read_capture_application_v2($1,$2,null,null,$3,$4)::text value',
+        [aid,view,['groups','batches'].includes(view)?100:1,expected.ledger_watermark])).rows[0].value;
+      assert.equal(actualText,priorText);
+    }
+    for(const role of ['anon','authenticated'])await assert.rejects(asRole(db,role,()=>db.query(
+      `select public.${route}($1,null,100)`,[aid])),e=>e.code==='42501');
+  } finally {await db.close();}
+});

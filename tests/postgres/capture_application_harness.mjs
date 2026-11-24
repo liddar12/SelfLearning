@@ -9,7 +9,7 @@ const RPCS = new Set(['selflearn_journal_register_capture_application_v2','selfl
   'selflearn_journal_read_observed_game_v1',
   'selflearn_journal_read_objects_v1',
   'selflearn_journal_prepare_capture_generation_proofs_v1',
-  'selflearn_journal_stop_capture_application_v2','selflearn_journal_read_capture_application_v2','selflearn_journal_prepare_capture_membership_v2']);
+  'selflearn_journal_stop_capture_application_v2','selflearn_journal_read_capture_application_v2','selflearn_journal_read_capture_application_bundle_v1','selflearn_journal_prepare_capture_membership_v2']);
 export async function rpcV2(db,name,args=[]) {
   if (!RPCS.has(name)) throw new Error('Unsupported v2 test RPC');
   return (await db.query(`SELECT public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) AS result`,args)).rows[0].result;
@@ -40,6 +40,7 @@ export async function openGameCaptureApplicationDatabase({fastBatch=true}={}) {
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123191101_journal_batched_objects_v1.sql', import.meta.url), 'utf8'));
     if (fastBatch) await db.exec(await readFile(new URL('../../supabase/migrations/20261123191758_scoped_capture_batch_commit.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261123191542_nfl_game_source_index_equality.sql', import.meta.url), 'utf8'));
+    await db.exec(await readFile(new URL('../../supabase/migrations/20261124155828_bundle_validated_capture_application_reads.sql', import.meta.url), 'utf8'));
     await db.exec(await readFile(new URL('../../supabase/migrations/20261124144414_bound_scoped_capture_commit_timeout.sql', import.meta.url), 'utf8'));
     return db;
   } catch (error) { await db.close(); throw error; }
