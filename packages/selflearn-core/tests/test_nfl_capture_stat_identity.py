@@ -2,8 +2,9 @@
 
 import pytest
 
-from test_nfl_capture_event_identity import bind_and_resolve, snap_rows, stats_rows
-from test_nfl_capture_labels import RECEIVER_GSIS_ID, RECEIVER_PFR_ID, player_ids, unrelated_stats
+from test_nfl_capture_evidence import csv_audit
+from test_nfl_capture_event_identity import EXACT_GAME, bind_and_resolve, snap_rows, stats_rows
+from test_nfl_capture_labels import RECEIVER_GSIS_ID, RECEIVER_PFR_ID, player_ids, stat_row, unrelated_stats
 
 
 @pytest.mark.parametrize("player_present", [True, False], ids=["positive-snaps", "absent-from-snaps"])
@@ -54,3 +55,37 @@ def test_roster_proves_same_name_snap_with_distinct_pfr_is_another_player():
     _, staged, resolved = bind_and_resolve(stats=unrelated_stats(stats_rows()), snaps=snaps)
     assert staged["rejections"] == resolved["rejections"] == []
     assert [row["resolution"]["status"] for row in resolved["proposals"]] == ["VOID"]
+
+
+def anonymous_stat_row(*, game="2026_06_IND_HOU", team="IND", opponent="HOU", name=""):
+    # Week 11 nflverse produced this shape with blank names, position and GSIS.
+    return stat_row(name, "0", player_index=0, team=team, opponent=opponent, game=game).replace(
+        b",WR,", b",,").replace(RECEIVER_GSIS_ID.encode(), b"")
+
+
+@pytest.mark.parametrize("name", ["", "Fixture Receiver"], ids=["anonymous", "recognizable"])
+@pytest.mark.parametrize("player_present,expected", [(True, ("FINAL", 0.0, False)), (False, ("VOID", None, None))])
+def test_unidentified_stat_from_another_confirmed_fixture_does_not_block_inference(name, player_present, expected):
+    stats = unrelated_stats(stats_rows()) + anonymous_stat_row(name=name)
+    _, staged, resolved = bind_and_resolve(
+        stats=stats, stats_audit=csv_audit(len(stats.splitlines()) - 1),
+        snaps=snap_rows(player_present=player_present),
+    )
+    assert staged["rejections"] == resolved["rejections"] == []
+    assert len(resolved["proposals"]) == 1
+    value = resolved["proposals"][0]["resolution"]
+    assert (value["status"], value["actual"], value["hit"]) == expected
+
+
+@pytest.mark.parametrize("game,team,opponent", [
+    (EXACT_GAME, "SEA", "LAR"),
+    ("2026_06_IND_HOU", "IND", "MIN"),
+    ("", "SEA", "LAR"),
+], ids=["same-fixture", "conflicting-team", "unknown-fixture"])
+def test_unidentified_stat_is_withheld_without_proof_of_another_fixture(game, team, opponent):
+    stats = unrelated_stats(stats_rows()) + anonymous_stat_row(game=game, team=team, opponent=opponent)
+    _, staged, resolved = bind_and_resolve(
+        stats=stats, stats_audit=csv_audit(len(stats.splitlines()) - 1), snaps=snap_rows(),
+    )
+    assert staged["observed_legs"] == resolved["proposals"] == []
+    assert staged["groups"][0]["reason_codes"] == ["unidentified_stat_row_prevents_zero_inference"]

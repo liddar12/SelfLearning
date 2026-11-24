@@ -602,6 +602,11 @@ def _raw_facts(entries, observations, raw_chunks):
                 fact["published_teams"].add(capture._team(row.get("team") or row.get("recent_team")))
             recognizable = name == fact["name"] or _alias(name, fact["name"])
             if not rid:
+                # A self-consistent different fixture cannot establish either
+                # a result or ambiguity about this fixture. Conflicting or
+                # unknown fixture fields still prevent unsupported inference.
+                if event_reason == "source_fixture_mismatch":
+                    continue
                 if recognizable:
                     fact["hard_error"] = "unidentified_stat_row_prevents_zero_inference"
                 elif not name:
