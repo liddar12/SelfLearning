@@ -65,6 +65,7 @@ jobs:
           tests/postgres/batched_objects.test.mjs
           tests/postgres/scoped_journal_paging.test.mjs
           tests/postgres/scoped_history_paging.test.mjs
+          tests/postgres/shared_observed_journal_paging.test.mjs
           tests/postgres/generation_authority_proofs.test.mjs
           tests/postgres/game_cache_recycling.test.mjs
       - name: Check out the immutable public NFL producer fixture
