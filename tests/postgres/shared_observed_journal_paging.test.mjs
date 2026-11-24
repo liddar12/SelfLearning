@@ -6,7 +6,7 @@ import {asRole,digestText} from './harness.mjs';
 import {openGameCaptureApplicationDatabase} from './capture_application_harness.mjs';
 
 const load = name=>readFile(new URL(name,import.meta.url),'utf8');
-const migration='../../supabase/migrations/20261124143306_bound_shared_observed_journal_reads.sql';
+const migration='../../supabase/migrations/20261124143736_bound_shared_observed_journal_reads.sql';
 const id=number=>'sha256:'+String(number).padStart(64,'0');
 const raw=async(db,args)=>(await db.query('select public.selflearn_journal_read_observed_v1($1,$2,$3,$4,$5)::text value',args)).rows[0].value;
 async function measure(db,cases) {
