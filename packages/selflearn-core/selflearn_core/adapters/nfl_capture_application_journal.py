@@ -235,7 +235,15 @@ class NFLCaptureApplicationJournal(D.NFLCaptureDeliveryJournal):
 
     def _rpc(self, operation, data):
         if operation == "read_game":
-            return self._observed_rpc("selflearn_journal_read_observed_game_v1", data)
+            name = "selflearn_journal_read_observed_game_v1"
+            try:
+                return self._observed_rpc(name, data)
+            except StoreError as error:
+                if error.status not in (500, 503, 504):
+                    raise
+                # Retry only the failed page. Keep its cursor and any pinned
+                # watermark, and use the same per-operation request budget.
+                return self._observed_rpc(name, data)
         return super()._rpc(operation, data)
 
     def _load_observed_game_snapshot(self, game_scope, watermark=None):

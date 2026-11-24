@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import re
 
 from fastapi import HTTPException, Request
@@ -11,12 +12,14 @@ from selflearn_core.adapters import nfl_capture_application_v2 as V
 from selflearn_core.adapters import nfl_capture_application_contracts as C
 from selflearn_core.adapters.nfl_capture_application_job import (
     register_capture_application, commit_capture_application_step, CaptureApplicationStopped,
-    CaptureApplicationScopeMismatch, SCOPED_CAPTURE_RUN_SECONDS,
+    CaptureApplicationScopeMismatch, ScopedCaptureRawSource, SCOPED_CAPTURE_RUN_SECONDS,
 )
 from selflearn_core.adapters.nfl_capture_application_journal import CaptureApplicationBudgetExceeded
 from selflearn_core.store.receipt_journal import JournalConflict
 from selflearn_core.store.supabase_store import StoreError
 from .nfl_capture_intake import CaptureReceiver
+
+LOG = logging.getLogger(__name__)
 
 _ORDINAL = re.compile(r"(?:0|[1-9][0-9]{0,3})\Z")
 # SQL's ceiling remains500. The public v2 server chooses a lower immutable
@@ -66,7 +69,8 @@ class CaptureApplicationReceiver(CaptureReceiver):
                     raise CaptureApplicationScopeMismatch("capture_application_not_found_in_configured_scope")
                 pointers = {value["object_id"]: value for value in application["request"]["capture_request"]["raw_pointers"]}
             return self.evidence.object_chunks(pointers[oid])
-        result = commit_capture_application_step(self.journal, application_id, step_id, raw,
+        result = commit_capture_application_step(self.journal, application_id, step_id,
+                                                 ScopedCaptureRawSource(raw, self._raw),
                                                  expected_scope=(self.destination_id, self.producer_id),
                                                  scoped_run_seconds=SCOPED_CAPTURE_RUN_SECONDS)
         return {"version": 2, "result": result, "scope": "batch_only"}
@@ -139,14 +143,20 @@ def register_application_routes(app, capture_factory, body_reader):
             raise HTTPException(409, "Capture application stopped; read its original terminal report before proceeding") from None
         except JournalConflict:
             raise HTTPException(409, "Capture application conflict; retain original IDs and read current progress") from None
-        except CaptureApplicationBudgetExceeded:
+        except CaptureApplicationBudgetExceeded as exc:
+            reason = ("generation_proofs_pending" if exc.args == ("capture_application_pending_generation_proofs",)
+                      else "operation_budget_exhausted")
+            LOG.warning("NFL capture application pending %s", reason)
             raise HTTPException(503, "Capture operation is pending; recover the same original IDs before retrying") from None
         except StoreError as exc:
+            if exc.status not in (409, 429):
+                LOG.warning("NFL capture application backend unavailable")
             raise HTTPException(exc.status if exc.status in (409, 429) else 503,
                                 "Capture backend unavailable; no durable success is inferred") from None
         except (ValueError, TypeError, KeyError, OverflowError):
             raise HTTPException(422, "Invalid capture application evidence or command") from None
         except Exception:
+            LOG.warning("NFL capture application unexpected failure")
             raise HTTPException(503, "Capture application unavailable; no durable success is inferred") from None
 
     async def data(request):

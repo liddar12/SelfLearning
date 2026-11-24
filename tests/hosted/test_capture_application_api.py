@@ -14,6 +14,7 @@ from services.web.application import create_app
 from services.web.nfl_capture_applications import CaptureApplicationReceiver
 from services.web.security import MAX_LEARNING_JSON
 from selflearn_core.adapters import nfl_capture_application_v2 as V
+from selflearn_core.adapters.nfl_capture_application_journal import CaptureApplicationBudgetExceeded
 from selflearn_core.adapters.nfl_capture_delivery_journal import make_capture_delivery_request
 from selflearn_core.probability_receipts import fingerprint
 from selflearn_core.store.capture_staging import staging_namespace
@@ -252,3 +253,22 @@ def test_backend_failures_are_static_no_secret_or_false_durable_success(failure,
         assert result.status_code == expected and "SECRET" not in result.text
         assert "durable\":true" not in result.text
     assert storage.calls == []
+
+
+@pytest.mark.parametrize("failure,signal", [
+    (CaptureApplicationBudgetExceeded("PRIVATE_BUDGET_CONTEXT"), "pending operation_budget_exhausted"),
+    (CaptureApplicationBudgetExceeded("capture_application_pending_generation_proofs"), "pending generation_proofs_pending"),
+    (StoreError(502), "backend unavailable"),
+    (RuntimeError("PRIVATE_UNEXPECTED_CONTEXT"), "unexpected failure"),
+])
+def test_capture_failure_logs_only_allowlisted_reason_without_application_or_exception_details(failure, signal, caplog):
+    journal = BoundaryJournal()
+    journal.failure = failure
+    receiver, _, _ = receiver_for(journal)
+    aid, sid = fingerprint("application"), fingerprint("step")
+    with api_client(receiver) as client:
+        result = client.post(f"{BASE}/{aid}/steps/{sid}", json={}, headers=headers())
+    assert result.status_code == 503
+    assert [record.getMessage() for record in caplog.records
+            if record.name == "services.web.nfl_capture_applications"] == [f"NFL capture application {signal}"]
+    assert all(private not in caplog.text for private in (aid, sid, OUTCOME, "PRIVATE_"))
