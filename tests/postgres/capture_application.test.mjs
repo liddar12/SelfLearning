@@ -35,7 +35,7 @@ databaseTest('capture report deadline leaves exact application pages and grants 
   const before = {};
   for (const view of views) before[view] = await readApplication(db, request.application_id, view);
 
-  const migration = new URL('../../supabase/migrations/20261124152900_bound_capture_application_read_timeout.sql', import.meta.url);
+  const migration = new URL('../../supabase/migrations/20261124153209_bound_capture_application_read_timeout.sql', import.meta.url);
   await db.exec(await readFile(migration, 'utf8'));
   for (const view of views) assert.deepEqual(await readApplication(db, request.application_id, view), before[view]);
 
