@@ -75,6 +75,7 @@ class Opener:
     def open(self, request, timeout):
         scoped_verification = request.get_method() == "POST" and request.full_url.endswith((
             "/selflearn_journal_prepare_capture_membership_v3", "/selflearn_journal_register_capture_application_v3",
+            "/selflearn_journal_read_capture_application_bundle_v1",
             "/selflearn_journal_commit_capture_application_batch_v3", APPLICATION,
         ))
         scoped_history = request.full_url.endswith("/selflearn_journal_read_observed_game_v1") and (
@@ -92,7 +93,7 @@ def store(payload, encoding="gzip"):
     return value
 
 
-@pytest.mark.parametrize("path", [GAME, OBJECTS])
+@pytest.mark.parametrize("path", [GAME, OBJECTS, "/rest/v1/rpc/selflearn_journal_read_capture_application_bundle_v1"])
 def test_only_scoped_read_rpcs_negotiate_gzip_and_preserve_original_payload_lexemes(path):
     original = b'{"rows":[{"payload_json":"{\\"a\\":1.0,\\"b\\":1,\\"s\\":\\"caf\\u00e9\\"}"}],"watermark":"9"}'
     expected = json.loads(original)

@@ -25,7 +25,7 @@ def test_configured_v2_missing_application_uses_only_its_real_sql_read(monkeypat
                 assert response.status_code == 404
                 assert response.headers["Cache-Control"] == "no-store"
         assert len(bridge.calls) == 2
-        assert all(call["path"] == "/rest/v1/rpc/selflearn_journal_read_capture_application_v2"
+        assert all(call["path"] == "/rest/v1/rpc/selflearn_journal_read_capture_application_bundle_v1"
                    and call["data"]["p_application_id"] == application_id for call in bridge.calls)
     finally:
         bridge.close()

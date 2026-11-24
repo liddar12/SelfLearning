@@ -30,11 +30,12 @@ DEFAULT_BATCH_MEMBERS = 400
 
 
 class CaptureApplicationReceiver(CaptureReceiver):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, report_bundle=False, **kwargs):
         super().__init__(*args, **kwargs)
         if any(not callable(getattr(self.journal, key, None)) for key in (
                 "get_capture_application", "register_capture_application", "commit_capture_application_batch", "stop_capture_application")):
             raise ValueError("invalid_capture_application_receiver_boundary")
+        self._report_bundle = report_bundle
 
     def _scope(self, request):
         captured = request["capture_request"]
@@ -83,7 +84,9 @@ class CaptureApplicationReceiver(CaptureReceiver):
         many = view in ("groups", "batches")
         if not many and after is not None:
             raise ValueError("invalid_capture_application_cursor")
-        application = self.journal.get_capture_application(application_id, ledger_watermark=ledger_watermark)
+        read = (self.journal.get_capture_application_read_report if self._report_bundle
+                else self.journal.get_capture_application)
+        application = read(application_id, ledger_watermark=ledger_watermark)
         if application is None or not self._scope(application["request"]):
             return None
         if view == "registration":

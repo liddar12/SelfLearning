@@ -13,6 +13,7 @@ from selflearn_core.probability_receipts import fingerprint
 from .test_capture_configuration import ENV, STATUS_PATH, DELIVERY_PATH, QUOTA_PATH, requests
 
 V2_PATH = "/rest/v1/rpc/selflearn_journal_read_capture_application_v2"
+BUNDLE_PATH = "/rest/v1/rpc/selflearn_journal_read_capture_application_bundle_v1"
 APPLICATION_ID = fingerprint("actual_requested_application")
 
 
@@ -22,8 +23,18 @@ def missing():
             "registration_id": None, "seal_id": None, "records": [], "total_records": 0, "next_after": None}
 
 
+def bundle(pages):
+    return {"version": 2, "kind": "nfl.capture_application_report_bundle.v1", "status": "complete", "pages": pages}
+
+
+def bundled_read_fault(fault):
+    if isinstance(fault, dict) and fault.get("kind") == "nfl.capture_application_page.v2":
+        return bundle({"registration": fault})
+    return fault
+
+
 def test_explicit_v2_factory_opens_without_network_or_unrelated_legacy_probes(requests):
-    requests.responses[V2_PATH] = missing()
+    requests.responses[BUNDLE_PATH] = bundle({"registration": missing()})
     factory, info = config.select_capture_factory({**ENV, "SELFLEARN_CAPTURE_PROTOCOL": "v2"})
     assert requests.calls == []
     assert info["capture_protocol"] == "v2" and info["readiness"] == "configured_unverified"
@@ -58,7 +69,7 @@ def test_disabled_backend_ignores_protocol_and_never_auto_enables(requests):
     {**missing(), "records": [{}]}, {**missing(), "ledger_watermark": "0"},
     {**missing(), "found": True}, {**missing(), "application_id": "sha256:" + "f" * 64}])
 def test_missing_or_malformed_concrete_v2_read_never_becomes_missing_or_success(requests, fault):
-    requests.responses[V2_PATH] = fault
+    requests.responses[BUNDLE_PATH] = bundled_read_fault(fault)
     factory, info = config.select_capture_factory({**ENV, "SELFLEARN_CAPTURE_PROTOCOL": "v2"})
     with pytest.raises(StoreError) as caught:
         with factory() as receiver:
@@ -67,19 +78,19 @@ def test_missing_or_malformed_concrete_v2_read_never_becomes_missing_or_success(
     assert caught.value.status in (401, 403, 404, 502, 503) and "SECRET" not in str(caught.value)
     assert info["production_connection_verified"] is False
     assert not any("reserve" in call[1] or "storage" in call[1] for call in requests.calls)
-    assert [call[1] for call in requests.calls] == [V2_PATH]
+    assert [call[1] for call in requests.calls] == [BUNDLE_PATH]
     assert requests.calls[0][2]["data"]["p_application_id"] == APPLICATION_ID
 
 
 def test_v2_original_read_is_independent_of_legacy_status_outage(requests):
     requests.responses[STATUS_PATH] = StoreError(503)
     requests.responses[DELIVERY_PATH] = StoreError(503)
-    requests.responses[V2_PATH] = missing()
+    requests.responses[BUNDLE_PATH] = bundle({"registration": missing()})
     factory, info = config.select_capture_factory({**ENV, "SELFLEARN_CAPTURE_PROTOCOL": "v2"})
     for _ in range(2):
         with factory() as receiver:
             assert receiver.application(APPLICATION_ID) is None
-    assert [call[1] for call in requests.calls] == [V2_PATH, V2_PATH]
+    assert [call[1] for call in requests.calls] == [BUNDLE_PATH, BUNDLE_PATH]
     assert info["readiness"] == "configured_unverified"
 
 
@@ -96,14 +107,14 @@ def test_v2_missing_quota_still_prevents_private_storage_write(requests):
                                   TimeoutError("SECRET"), {"version": 1}, {**missing(), "records": [{}]}])
 def test_concrete_v2_status_errors_remain_sanitized_503_at_http_boundary(requests, fault):
     from .test_capture_application_api import api_client, headers, ENV as AUTH_ENV, BASE
-    requests.responses[V2_PATH] = fault
+    requests.responses[BUNDLE_PATH] = bundled_read_fault(fault)
     env = {**ENV, **AUTH_ENV, "SELFLEARN_CAPTURE_PROTOCOL": "v2"}
     with api_client(env=env) as client:
         response = client.get(BASE + "/" + APPLICATION_ID, headers=headers())
     assert response.status_code == 503
     assert "SECRET" not in response.text and "offline.supabase" not in response.text
     assert "durable\":true" not in response.text
-    assert [call[1] for call in requests.calls] == [V2_PATH]
+    assert [call[1] for call in requests.calls] == [BUNDLE_PATH]
 
 
 def test_v2_registration_still_checks_the_actual_legacy_original_before_raw_or_writes(requests):
@@ -133,8 +144,9 @@ def test_v2_factory_inherited_v1_reads_validate_the_actual_requested_delivery(re
     assert requests.calls[0][2]["data"]["p_delivery_id"] == delivery_id
 
 
-def test_large_scoped_status_uses_only_its_pinned_application_ledger(requests):
-    # Self-consistent in-memory report for 2,996 members. This tests the real
+@pytest.mark.parametrize("sizes", [(1498, 1498), (1827, 1828)])
+def test_large_scoped_status_uses_only_its_pinned_application_ledger(requests, sizes):
+    # Self-consistent in-memory reports at both production sizes. This tests the real
     # factory/port/HTTP read path, not SQL durability or outcome acceptance.
     from .test_capture_application_api import api_client, headers, ENV as AUTH_ENV, BASE, CORE_TESTS, V
     from selflearn_core.adapters.nfl_capture_delivery_journal import make_capture_delivery_request
@@ -144,7 +156,7 @@ def test_large_scoped_status_uses_only_its_pinned_application_ledger(requests):
         from test_nfl_capture_application_port_faults import Pages
     finally:
         sys.path.pop(0)
-    bound, _journal, _envelope, _objects = context(sizes=(1498, 1498))
+    bound, _journal, _envelope, _objects = context(sizes=sizes)
     original = bound["request"]["capture_request"]
     captured = make_capture_delivery_request(original["envelope"], original["raw_pointers"],
         destination_id=config.DESTINATION_ID, producer_id=config.PRODUCER_ID)
@@ -154,13 +166,23 @@ def test_large_scoped_status_uses_only_its_pinned_application_ledger(requests):
         pages = Pages()
     requests.responses[STATUS_PATH] = StoreError(503)
     requests.responses[DELIVERY_PATH] = StoreError(503)
-    requests.responses[V2_PATH] = lambda method, path, **kwargs: pages.request(method, path, data=kwargs["data"])
+    def read_bundled(method, _path, *, data):
+        fence = data["p_ledger_watermark"]
+        combined = {}
+        for view in ("registration", "groups", "batches", "status", "terminal"):
+            limit = data["p_limit"] if view in {"groups", "batches"} else 1
+            combined[view] = pages.request(method, V2_PATH, data={"p_application_id": data["p_application_id"],
+                "p_view": view, "p_key": None, "p_after": None, "p_limit": limit, "p_ledger_watermark": fence})
+            fence = combined[view]["ledger_watermark"]
+        return bundle(combined)
+
+    requests.responses[BUNDLE_PATH] = read_bundled
     with api_client(env={**ENV, **AUTH_ENV, "SELFLEARN_CAPTURE_PROTOCOL": "v2"}) as client:
         response = client.get(BASE + "/" + seal["application_id"], headers=headers())
     assert response.status_code == 200, response.text
     assert response.json()["records"] == [pages.status]
-    assert pages.terminal["counts"]["members"] == 2996
-    assert len(requests.calls) == 5
-    assert all(call[1] == V2_PATH for call in requests.calls)
-    assert all(call[2]["data"]["p_application_id"] == seal["application_id"] for call in requests.calls)
-    assert [call[2]["data"]["p_ledger_watermark"] for call in requests.calls] == [None] + [pages.fence] * 4
+    assert pages.terminal["counts"]["members"] == sum(sizes)
+    assert len(requests.calls) == 1
+    assert requests.calls[0][1] == BUNDLE_PATH
+    assert requests.calls[0][2]["data"]["p_application_id"] == seal["application_id"]
+    assert [call[2]["p_ledger_watermark"] for call in pages.calls] == [None] + [pages.fence] * 4
