@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFile } from 'node:fs/promises';
 import { openCaptureApplicationDatabase, addMembers, memberMap, applicationRequest, sealApplication, registerApplication, serviceV2,
   memberProof,commonFact,stepPayload,commitStep,readApplication,captureRequest,rpcV2,moveCaptureDay,resealCapture } from './capture_application_harness.mjs';
 import { appendReceipt, receipt, asRole, rejectsCode,canonical,digest,digestText,serviceRpc,appendObject,
@@ -20,6 +21,48 @@ databaseTest('v2 additive membership leaves every existing function body unchang
   const definitions = (await db.query("SELECT proname,prosecdef,proconfig FROM pg_proc WHERE proname IN ('capture_members_v1','capture_members_v2') ORDER BY proname")).rows;
   assert.equal(definitions.length, 2);
   assert.ok(definitions.every(row => !row.prosecdef && row.proconfig.includes('search_path=""')));
+});
+
+databaseTest('capture report deadline leaves exact application pages and grants unchanged', async db => {
+  const [member] = await addMembers(db, 1, {player: 'selected'});
+  const request = applicationRequest(captureRequest());
+  const proof = memberProof(member, request.capture_request);
+  const seal = await sealApplication(db, request, {facts: {selected: commonFact(proof)}});
+  await registerApplication(db, request, seal);
+  const batch = await commitStep(db, request, seal, 0, stepPayload(seal, 0, [proof]), seal.source_watermark);
+  assert.equal(batch.added_revisions, 1);
+  const views = ['registration', 'status', 'groups', 'batches', 'terminal'];
+  const before = {};
+  for (const view of views) before[view] = await readApplication(db, request.application_id, view);
+
+  const migration = new URL('../../supabase/migrations/20261124153209_bound_capture_application_read_timeout.sql', import.meta.url);
+  await db.exec(await readFile(migration, 'utf8'));
+  for (const view of views) assert.deepEqual(await readApplication(db, request.application_id, view), before[view]);
+
+  const route = 'selflearn_journal_read_capture_application_v2';
+  const config = (await db.query('select proconfig,prosecdef from pg_proc where proname=$1', [route])).rows[0];
+  assert.deepEqual(config, {proconfig: ['search_path=""', 'statement_timeout=18s'], prosecdef: false});
+  for (const role of ['anon', 'authenticated']) {
+    await rejectsCode(() => asRole(db, role, () => rpcV2(db, route,
+      [request.application_id, 'status', null, null, 1, null])), '42501');
+  }
+});
+
+databaseTest('schema bootstrap timeout preserves public and service request deadlines', async db => {
+  await db.exec(`alter role authenticator set statement_timeout to '8s';
+    alter role authenticator set lock_timeout to '8s';
+    alter role anon set statement_timeout to '3s';
+    alter role authenticated set statement_timeout to '8s';`);
+  const migration = new URL('../../supabase/migrations/20261124153903_bound_postgrest_schema_bootstrap_timeout.sql', import.meta.url);
+  await db.exec(await readFile(migration, 'utf8'));
+  const {rows} = await db.query(`select rolname,rolconfig from pg_roles
+    where rolname in ('anon','authenticated','authenticator','service_role') order by rolname`);
+  assert.deepEqual(rows.map(({rolname,rolconfig}) => [rolname, [...rolconfig].sort()]), [
+    ['anon', ['statement_timeout=3s']],
+    ['authenticated', ['statement_timeout=8s']],
+    ['authenticator', ['lock_timeout=8s', 'statement_timeout=30s']],
+    ['service_role', ['statement_timeout=8s']],
+  ]);
 });
 
 databaseTest('v2 equals v1 complete accepted membership for rungs, vintages and rejected neighbors', async db => {

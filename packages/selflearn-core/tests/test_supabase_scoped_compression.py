@@ -11,6 +11,7 @@ from selflearn_core.store.supabase_store import SupabaseStore, StoreError, _MAX_
 
 GAME = "/rest/v1/rpc/selflearn_journal_read_observed_game_v1"
 OBJECTS = "/rest/v1/rpc/selflearn_journal_read_objects_v1"
+APPLICATION = "/rest/v1/rpc/selflearn_journal_read_capture_application_v2"
 
 
 def test_transient_game_history_read_resumes_at_the_same_pinned_page():
@@ -74,7 +75,7 @@ class Opener:
     def open(self, request, timeout):
         scoped_verification = request.get_method() == "POST" and request.full_url.endswith((
             "/selflearn_journal_prepare_capture_membership_v3", "/selflearn_journal_register_capture_application_v3",
-            "/selflearn_journal_commit_capture_application_batch_v3",
+            "/selflearn_journal_commit_capture_application_batch_v3", APPLICATION,
         ))
         scoped_history = request.full_url.endswith("/selflearn_journal_read_observed_game_v1") and (
             request.get_header("Accept-encoding") == "gzip"
@@ -120,6 +121,7 @@ def test_server_may_decline_compression_without_changing_results(encoding):
     ("/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3", "POST", False),
     ("/rest/v1/rpc/selflearn_journal_register_capture_application_v3", "POST", False),
     ("/rest/v1/rpc/selflearn_journal_register_capture_application_v2", "POST", False),
+    (APPLICATION, "POST", False), (APPLICATION, "GET", False),
     (GAME, "GET", False), (GAME, "POST", True), ("/storage/v1/object/private/x", "GET", True),
 ])
 def test_legacy_writes_and_binary_storage_keep_existing_wire_behavior(path, method, binary):

@@ -36,8 +36,9 @@ class _NoRedirect(HTTPRedirectHandler):
 
 
 _MAX_RESPONSE_BYTES = 8 * 1024 * 1024
-_SCOPED_EXTENDED_TIMEOUT_RPCS = frozenset({
+_OUTCOME_EXTENDED_TIMEOUT_RPCS = frozenset({
     "/rest/v1/rpc/selflearn_journal_read_observed_game_v1",
+    "/rest/v1/rpc/selflearn_journal_read_capture_application_v2",
     "/rest/v1/rpc/selflearn_journal_prepare_capture_membership_v3",
     "/rest/v1/rpc/selflearn_journal_register_capture_application_v3",
     "/rest/v1/rpc/selflearn_journal_commit_capture_application_batch_v3",
@@ -121,7 +122,7 @@ class SupabaseStore(StorageBackend):
         req = Request(url, data=body, headers=headers, method=method)
         # Bounded game history, certification, registration and commit each have
         # an 18s database deadline. Allow time to return verified replies.
-        timeout = 22 if method == "POST" and path in _SCOPED_EXTENDED_TIMEOUT_RPCS and not binary else 12
+        timeout = 22 if method == "POST" and path in _OUTCOME_EXTENDED_TIMEOUT_RPCS and not binary else 12
         try:
             with self._opener.open(req, timeout=timeout) as response:
                 if scoped_compression:

@@ -27,6 +27,7 @@ export async function openDatabase() {
     await db.exec(`
       CREATE ROLE anon NOLOGIN;
       CREATE ROLE authenticated NOLOGIN;
+      CREATE ROLE authenticator LOGIN NOINHERIT;
       CREATE ROLE service_role NOLOGIN BYPASSRLS;
     `);
     await db.exec(sql);
